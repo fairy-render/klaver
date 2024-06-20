@@ -1,8 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use relative_path::RelativePathBuf;
 use rquickjs::{
-    loader::{BuiltinResolver, FileResolver, Loader, Resolver},
+    loader::{BuiltinResolver, Loader, Resolver},
     module::ModuleDef,
     Ctx, Error, Module, Result,
 };
