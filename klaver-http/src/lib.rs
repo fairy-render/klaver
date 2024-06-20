@@ -1,3 +1,4 @@
+use futures::Future;
 use klaver_base::get_base;
 use reggie::{Body, HttpClient, HttpClientFactory, SharedClientFactory};
 use rquickjs::Ctx;
@@ -27,6 +28,7 @@ pub fn set_client<T>(ctx: &Ctx<'_>, factory: T) -> rquickjs::Result<()>
 where
     T: HttpClientFactory + Send + Sync + 'static,
     T::Client<reggie::Body>: Send + Sync,
+    for<'a> <T::Client<reggie::Body> as HttpClient<reggie::Body>>::Future<'a>: Send,
     <T::Client<Body> as HttpClient<reggie::Body>>::Body: Into<Body>,
 {
     let base = get_base(ctx)?;
