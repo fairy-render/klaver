@@ -1,0 +1,15 @@
+[package]
+name = "klaver-worker"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["pool"]
+pool = ["deadpool", "tokio/sync"]
+
+[dependencies]
+tokio = { workspace = true, features = ["rt"] }
+rquickjs = { workspace = true }
+futures = { workspace = true }
+slotmap = { version = "1" }
+deadpool = { version = "0.12", optional = true }

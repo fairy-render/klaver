@@ -1,0 +1,10 @@
+[package]
+name = "klaver-shared"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+send = []
+
+[dependencies]
+locket = { git = "https://github.com/kildevaeld/locket-rs", features = ["std"] }

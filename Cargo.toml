@@ -1,0 +1,30 @@
+[workspace]
+
+resolver = "2"
+
+members = [
+  "klaver-base",
+  "klaver-cli",
+  "klaver-compat",
+  "klaver-http",
+  "klaver-module",
+  "klaver-os",
+  "klaver-shared",
+  "klaver-worker",
+]
+
+
+[workspace.dependencies]
+rquickjs = { version = "0.6", features = [
+  "futures",
+  "macro",
+  "classes",
+  "array-buffer",
+] }
+tokio = { version = "1" }
+futures = { version = "0.3" }
+
+
+[profile.release]
+lto = "fat"
+panic = "abort"
