@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, hash::Hash, path::PathBuf};
 
 use rquickjs::{
     loader::{BuiltinResolver, Loader, Resolver},
@@ -43,6 +43,7 @@ impl Runtime for rquickjs::AsyncRuntime {
 #[derive(Debug, Default)]
 pub struct Modules {
     modules: HashMap<String, LoadFn>,
+    modules_src: HashMap<String, Vec<u8>>,
     search_paths: Vec<PathBuf>,
     patterns: Vec<String>,
 }
@@ -55,6 +56,10 @@ impl Modules {
     pub fn register<T: ModuleDef>(&mut self, name: impl ToString) {
         self.modules
             .insert(name.to_string(), Modules::load_func::<T>);
+    }
+
+    pub fn register_src(&mut self, name: impl ToString, source: Vec<u8>) {
+        self.modules_src.insert(name.to_string(), source);
     }
 
     pub fn add_search_path(&mut self, path: impl Into<PathBuf>) -> &mut Self {
@@ -86,6 +91,7 @@ impl Modules {
 
         let module_loader = ModuleLoader {
             modules: self.modules,
+            modules_src: self.modules_src,
         };
 
         runtime
@@ -99,6 +105,7 @@ impl Modules {
 
 struct ModuleLoader {
     modules: HashMap<String, LoadFn>,
+    modules_src: HashMap<String, Vec<u8>>,
 }
 
 impl Loader for ModuleLoader {
@@ -107,11 +114,12 @@ impl Loader for ModuleLoader {
         ctx: &Ctx<'js>,
         path: &str,
     ) -> Result<Module<'js, rquickjs::module::Declared>> {
-        let load = self
-            .modules
-            .remove(path)
-            .ok_or_else(|| Error::new_loading(path))?;
-
-        (load)(ctx.clone(), Vec::from(path))
+        if let Some(load) = self.modules.remove(path) {
+            (load)(ctx.clone(), Vec::from(path))
+        } else if let Some(source) = self.modules_src.remove(path) {
+            Module::declare(ctx.clone(), path, source)
+        } else {
+            Err(Error::new_loading(path))
+        }
     }
 }
