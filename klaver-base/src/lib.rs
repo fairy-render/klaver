@@ -37,6 +37,9 @@ pub fn register_global(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
     Class::<module::TextDecoder>::register(ctx)?;
     Class::<module::TextDecoder>::define(&ctx.globals())?;
 
+    Class::<module::TextEncoder>::register(ctx)?;
+    Class::<module::TextEncoder>::define(&ctx.globals())?;
+
     ctx.globals().set(
         "setTimeout",
         Function::new(ctx.clone(), module::base_mod::set_timeout),
