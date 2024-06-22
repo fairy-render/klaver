@@ -84,6 +84,10 @@ impl Modules {
             builtin_resolver.add_module(k);
         }
 
+        for k in self.modules_src.keys() {
+            builtin_resolver.add_module(k);
+        }
+
         file_resolver.add_paths(self.search_paths);
         for pattern in self.patterns {
             file_resolver.add_pattern(pattern);

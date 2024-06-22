@@ -13,13 +13,14 @@
 		"rollup": "^2.76.0",
 		"rollup-plugin-ts": "^3.0.2",
 		"tslib": "^2.4.0",
-		"typescript": "^4.7.4"
+		"typescript": "^4.7.4",
+		"@swc/core": "^1.5.24",
+		"@swc/helpers": "^0.5.11"
 	},
 	"dependencies": {
 		"@stardazed/streams": "^3.1.0",
 		"@stardazed/streams-text-encoding": "^1.0.2",
-		"@swc/core": "^1.5.24",
-		"@swc/helpers": "^0.5.11",
+
 		"abort-controller": "^3.0.0",
 		"dom-events-wintercg": "^21.0.0",
 		"event-target-shim": "^6.0.2",
