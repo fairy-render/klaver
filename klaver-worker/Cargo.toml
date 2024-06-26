@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["pool"]
+default = []
 pool = ["deadpool", "tokio/sync"]
+send = ["rquickjs/parallel"]
 
 [dependencies]
 tokio = { workspace = true, features = ["rt"] }
@@ -13,3 +14,8 @@ rquickjs = { workspace = true }
 futures = { workspace = true }
 slotmap = { version = "1" }
 deadpool = { version = "0.12", optional = true }
+
+[[example]]
+bin = "examples/worker.rs"
+name = "worker"
+required-features = ["pool"]

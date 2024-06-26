@@ -1,4 +1,3 @@
-use futures::Future;
 use klaver_base::get_base;
 use reggie::{Body, HttpClient, HttpClientFactory, SharedClientFactory};
 use rquickjs::Ctx;
@@ -18,7 +17,6 @@ pub type Module = module::js_http_mod;
 
 pub fn register(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
     rquickjs::Module::declare_def::<module::js_http_mod, _>(ctx.clone(), "@klaver/http")?;
-
     Ok(())
 }
 

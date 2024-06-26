@@ -139,3 +139,79 @@ impl deadpool::managed::Manager for Manager {
         async move { Ok(()) }
     }
 }
+
+#[cfg(feature = "send")]
+pub struct SendManager {
+    init: Option<
+        Box<
+            dyn for<'a> Fn(
+                    Ctx<'a>,
+                )
+                    -> Pin<Box<dyn Future<Output = Result<(), rquickjs::Error>> + 'a + Send>>
+                + Send
+                + Sync,
+        >,
+    >,
+    runtime: rquickjs::AsyncRuntime,
+}
+
+#[cfg(feature = "send")]
+impl SendManager {
+    pub fn new() -> Result<SendManager, rquickjs::Error> {
+        let runtime = rquickjs::AsyncRuntime::new()?;
+
+        Ok(SendManager {
+            init: None,
+            runtime,
+        })
+    }
+
+    pub fn new_with(runtime: rquickjs::AsyncRuntime) -> Result<SendManager, rquickjs::Error> {
+        Ok(SendManager {
+            init: None,
+            runtime,
+        })
+    }
+
+    pub fn with<T>(mut self, fun: T) -> Self
+    where
+        T: Send + Sync,
+        for<'js> T: Fn(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<(), rquickjs::Error>> + 'js + Send>>
+            + Send
+            + 'js,
+    {
+        self.init = Some(Box::new(fun));
+        self
+    }
+}
+
+#[cfg(feature = "send")]
+impl deadpool::managed::Manager for SendManager {
+    type Type = rquickjs::AsyncContext;
+
+    type Error = Error;
+
+    fn create(
+        &self,
+    ) -> impl futures::prelude::Future<Output = Result<Self::Type, Self::Error>> + Send {
+        async move {
+            let ctx = rquickjs::AsyncContext::full(&self.runtime).await?;
+            if let Some(init) = &self.init {
+                ctx.async_with(init).await?;
+            }
+            Ok(ctx)
+        }
+    }
+
+    fn recycle(
+        &self,
+        _obj: &mut Self::Type,
+        _metrics: &deadpool::managed::Metrics,
+    ) -> impl futures::prelude::Future<Output = deadpool::managed::RecycleResult<Self::Error>> + Send
+    {
+        async move { Ok(()) }
+    }
+}
+
+#[cfg(feature = "send")]
+pub type SendPool = deadpool::managed::Pool<SendManager>;
