@@ -199,6 +199,7 @@ impl deadpool::managed::Manager for SendManager {
             if let Some(init) = &self.init {
                 ctx.async_with(init).await?;
             }
+
             Ok(ctx)
         }
     }

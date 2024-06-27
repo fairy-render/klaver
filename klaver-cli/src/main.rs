@@ -1,8 +1,6 @@
 use klaver_base::get_config;
-use klaver_module::{Modules};
-use rquickjs::{
-    AsyncContext, AsyncRuntime, Error, Function, Module,
-};
+use klaver_module::Modules;
+use rquickjs::{AsyncContext, AsyncRuntime, Error, Function, Module};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
