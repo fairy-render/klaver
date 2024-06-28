@@ -125,7 +125,7 @@ impl<'js> Trace<'js> for TimerId {
     fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
 
-#[rquickjs::module(rename_vars = "camelCase")]
+#[rquickjs::module]
 pub mod base_mod {
     use rquickjs::{function::Opt, Ctx, Function, Result};
     use rquickjs::{Class, Error};
@@ -137,7 +137,7 @@ pub mod base_mod {
     use super::TimerId;
     pub use super::{TextDecoder, TextEncoder};
 
-    #[rquickjs::function(rename = "setTimeout")]
+    #[rquickjs::function]
     pub fn set_timeout<'js>(
         ctx: Ctx<'js>,
         func: Function<'js>,
@@ -239,5 +239,12 @@ pub mod base_mod {
         let sleep = tokio::time::sleep(std::time::Duration::from_millis(duration.unwrap_or(0)));
         sleep.await;
         Ok(())
+    }
+
+    #[rquickjs::function]
+    pub async fn throw_uncaught<'js>(ctx: Ctx<'js>) -> Result<()> {
+        let base_class: Class<'_, Base<'_>> = get_base(&ctx)?;
+        let mut base = base_class.try_borrow_mut()?;
+        base.uncaught(ctx)
     }
 }

@@ -23,7 +23,7 @@ export default {
 				// },
 			},
 			swcConfig: {
-				minify: true,
+				minify: false,
 				jsc: {
 					minify: {
 						compress: true,

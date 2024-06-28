@@ -1,33 +1,21 @@
+import { log } from "./console.js";
+
 export default async function init(global: Record<string, unknown>) {
 	const {
 		TextDecoder,
 		TextEncoder,
-		setInterval,
-		setTimeout,
-		clearInterval,
-		clearTimeout,
+		set_interval,
+		set_timeout,
+		clear_interval,
+		clear_timeout,
 	} = await import("@klaver/base");
 
-	print("typeof " + (await import("@klaver/base")).setInterval);
-
-	Object.defineProperties(global, {
-		TextDecoder: {
-			value: TextDecoder,
-		},
-		TextEncoder: {
-			value: TextEncoder,
-		},
-		setTimeout: {
-			value: setTimeout,
-		},
+	Object.assign(global, {
+		TextDecoder,
+		TextEncoder,
+		setInterval: set_interval,
+		setTimeout: set_timeout,
+		clearInterval: clear_interval,
+		clearTimeout: clear_timeout,
 	});
-
-	// Object.assign(global, {
-	// 	TextDecoder,
-	// 	TextEncoder,
-	// 	setInterval,
-	// 	setTimeout,
-	// 	clearInterval,
-	// 	clearTimeout,
-	// });
 }

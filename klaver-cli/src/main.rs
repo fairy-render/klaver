@@ -1,4 +1,4 @@
-use klaver_base::get_config;
+use klaver_base::{get_base, get_config};
 use klaver_module::Modules;
 use rquickjs::{AsyncContext, AsyncRuntime, Error, Function, Module};
 
@@ -29,35 +29,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let (content, _) = klaver_module::typescript::compile(&args[0], &content);
 
-    let ret = context
-        .with(|ctx| {
-            ctx.globals().set(
-                "print",
-                Function::new(ctx.clone(), |arg: rquickjs::Value| {
-                    println!("{}", arg.try_into_string().unwrap().to_string()?);
-                    rquickjs::Result::Ok(())
-                }),
-            )?;
+    tokio::spawn(runtime.drive());
 
-            klaver_compat::init(&ctx)?;
+    let ret = rquickjs::async_with!(context => |ctx| {
+        ctx.globals().set(
+            "print",
+            Function::new(ctx.clone(), |arg: rquickjs::Value| {
+                println!("{}", arg.try_into_string().unwrap().to_string()?);
+                rquickjs::Result::Ok(())
+            }),
+        )?;
 
-            get_config(&ctx, |config| {
-                config.set_cwd(|| std::env::current_dir().ok());
-                config.set_args(|| std::env::args().collect());
-                Ok(())
-            })?;
+        klaver_compat::init(&ctx)?;
 
-            let globals = ctx.globals();
+        get_config(&ctx, |config| {
+            config.set_cwd(|| std::env::current_dir().ok());
+            config.set_args(|| std::env::args().collect());
+            Ok(())
+        })?;
 
-            let module = Module::evaluate(ctx.clone(), "main", &*content)?;
+        let globals = ctx.globals();
 
-            let _ = module.finish::<()>()?;
+        let module = Module::evaluate(ctx.clone(), "main", &*content)?;
 
-            rquickjs::Result::Ok(())
-        })
-        .await;
+        let _ = module.into_future::<()>().await?;
 
-    runtime.idle().await;
+        rquickjs::Result::Ok(())
+    })
+    .await;
 
     if let Err(Error::Exception) = ret {
         context
@@ -68,6 +67,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     println!(
                         "catch: {:?}",
                         catch.try_into_exception().unwrap().to_string()
+                    );
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .await?;
+    }
+
+    runtime.idle().await;
+
+    let ret = context
+        .with(|ctx| {
+            let base = get_base(&ctx)?;
+            let mut base = base.try_borrow_mut()?;
+
+            base.uncaught(ctx)
+        })
+        .await;
+
+    if let Err(Error::Exception) = ret {
+        context
+            .with(|ctx| {
+                let catch = ctx.catch();
+
+                if !catch.is_null() {
+                    println!(
+                        "catch: {:?}",
+                        catch
+                            .try_into_exception()
+                            .map(|m| m.to_string())
+                            .or_else(|v| v
+                                .try_into_string()
+                                .map_err(|_| rquickjs::Error::new_from_js("not", "to"))
+                                .and_then(|m| m.to_string()))
+                            .unwrap()
                     );
                 }
 

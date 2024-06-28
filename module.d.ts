@@ -1,9 +1,9 @@
 declare module "@klaver/base" {
 	export type TimerId = number;
-	export function setTimeout(fn: () => void, ns?: number): TimerId;
-	export function clearTimeout(id: TimerId): void;
-	export function setInterval(fn: () => void, ns?: number): TimerId;
-	export function clearInterval(id: TimerId);
+	export function set_timeout(fn: () => void, ns?: number): TimerId;
+	export function clear_timeout(id: TimerId): void;
+	export function set_interval(fn: () => void, ns?: number): TimerId;
+	export function clear_interval(id: TimerId);
 
 	export class TextEncoder {
 		constructor(label?: string);

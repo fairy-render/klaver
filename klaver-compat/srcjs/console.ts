@@ -25,6 +25,11 @@ export class Console implements ConsoleApi {
 	}
 }
 
+export function log(...args: unknown[]) {
+	const formatted = args.map((m) => format(m)).join(", ");
+	print(`${formatted}`);
+}
+
 export default function init(global: Record<string, unknown>) {
 	Object.defineProperties(global, {
 		Console: { value: Console },

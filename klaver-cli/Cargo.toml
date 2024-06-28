@@ -15,5 +15,5 @@ klaver-http = { path = "../klaver-http", features = ["reqwest"] }
 klaver-compat = { path = "../klaver-compat" }
 
 
-rquickjs = { version = "0.6", features = ["futures"] }
+rquickjs = { version = "0.6", features = ["futures", "parallel"] }
 tokio = { version = "1", features = ["rt", "macros"] }
