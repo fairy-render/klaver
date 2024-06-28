@@ -163,9 +163,8 @@ pub mod base_mod {
                 base.timeouts.remove(id);
                 drop(base);
                 if let Err(Error::Exception) = func.call::<_, ()>(()) {
-                  let mut base = base_class.try_borrow_mut().unwrap();
-                  base.uncaugth_exceptions.push_back(cloned_ctx.catch());
-
+                    let mut base = base_class.try_borrow_mut().unwrap();
+                    base.push_uncaught_exception(cloned_ctx.catch());
                 }
 
               }
@@ -211,9 +210,8 @@ pub mod base_mod {
                   }
                   _ = sleep.tick() => {
                     if let Err(Error::Exception) = func.call::<_, ()>(()) {
-                      let mut base = base_class.try_borrow_mut().unwrap();
-                      base.uncaugth_exceptions.push_back(cloned_ctx.catch());
-
+                        let mut base = base_class.try_borrow_mut().unwrap();
+                        base.push_uncaught_exception(cloned_ctx.catch());
                     }
 
                   }

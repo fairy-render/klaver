@@ -11,7 +11,7 @@ use crate::config::Config;
 #[rquickjs::class]
 pub struct Base<'js> {
     pub timeouts: SlotMap<slotmap::DefaultKey, oneshot::Sender<()>>,
-    pub uncaugth_exceptions: VecDeque<Value<'js>>,
+    uncaugth_exceptions: VecDeque<Value<'js>>,
     pub config: Config,
     pub extensions: Extensions,
 }
@@ -24,6 +24,11 @@ impl<'js> Base<'js> {
         } else {
             Ok(())
         }
+    }
+
+    pub fn push_uncaught_exception(&mut self, value: Value<'js>) {
+        println!("uncaugth exception: {:?}", value);
+        self.uncaugth_exceptions.push_back(value);
     }
 }
 
