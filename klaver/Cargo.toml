@@ -3,6 +3,9 @@ name = "klaver"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+pool = ["deadpool"]
+
 [dependencies]
 rquickjs = { workspace = true, features = ["full-async", "parallel"] }
 once_cell = "1"
@@ -10,8 +13,9 @@ klaver-module = { path = "../klaver-module" }
 tokio = { version = "1", features = ["macros"] }
 pin-project-lite = "0.2"
 slotmap = { version = "1" }
-encoding_rs = { version = "0.8" }
 
+encoding_rs = { version = "0.8" }
+deadpool = { version = "0.12", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt", "time"] }
@@ -20,3 +24,9 @@ klaver-http = { path = "../klaver-http" }
 [[example]]
 name = "klaver"
 path = "examples/klaver.rs"
+
+
+[[example]]
+name = "pool"
+path = "examples/pool.rs"
+required-features = ["pool"]

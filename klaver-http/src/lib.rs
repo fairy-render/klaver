@@ -7,9 +7,9 @@ pub mod client;
 mod convert;
 mod headers;
 mod module;
+
 mod request;
 mod response;
-// mod traits;
 
 pub use self::request::Request;
 

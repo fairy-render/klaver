@@ -1,13 +1,11 @@
+mod base;
 mod error;
 mod ext;
 mod modules;
+#[cfg(feature = "pool")]
+pub mod pool;
 mod state;
-// mod timers;
-// mod timers;
-// mod vm;
 pub mod vm;
-
-mod base;
 
 pub use self::error::Error;
 

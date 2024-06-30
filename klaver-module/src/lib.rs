@@ -60,7 +60,7 @@ impl Modules {
     }
 
     pub fn register_module<T: ModuleInfo>(&mut self) -> &mut Self {
-        T::register(Builder::new(self));
+        T::register(&mut Builder::new(self));
         self
     }
 

@@ -19,14 +19,14 @@ impl<'a> Builder<'a> {
 }
 
 pub trait ModuleInfo {
-    fn register(modules: Builder<'_>);
+    fn register(modules: &mut Builder<'_>);
 }
 
 #[macro_export]
 macro_rules! module_info {
     ($name: literal => $module: ident) => {
         impl $crate::ModuleInfo for $module {
-            fn register(mut modules: $crate::Builder<'_>) {
+            fn register(mut modules: &mut $crate::Builder<'_>) {
                 modules.register::<$module>($name);
             }
         }

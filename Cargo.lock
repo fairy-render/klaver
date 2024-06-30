@@ -973,6 +973,7 @@ dependencies = [
 name = "klaver"
 version = "0.1.0"
 dependencies = [
+ "deadpool",
  "encoding_rs",
  "klaver-http",
  "klaver-module",
