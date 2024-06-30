@@ -1,6 +1,6 @@
 use rquickjs::{Ctx, Object};
 
-const CORE_KEY: &str = "$_klvar";
+const CORE_KEY: &str = "Klaver";
 
 pub fn get_core<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Object<'js>> {
     if let Ok(core) = ctx.globals().get(CORE_KEY) {
