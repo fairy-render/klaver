@@ -2,7 +2,7 @@
 
 resolver = "2"
 
-members = [
+members = [ "klaver",
   "klaver-base",
   "klaver-cli",
   "klaver-compat",

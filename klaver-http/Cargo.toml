@@ -8,6 +8,7 @@ reqwest = ["reggie/reqwest", "dep:reqwest"]
 
 [dependencies]
 klaver-base = { path = "../klaver-base" }
+klaver-module = { path = "../klaver-module" }
 rquickjs.workspace = true
 futures = { version = "0.3" }
 bytes = "1"

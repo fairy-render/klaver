@@ -15,6 +15,8 @@ pub use self::request::Request;
 
 pub type Module = module::js_http_mod;
 
+klaver_module::module_info!("@klaver/http" => Module);
+
 pub fn register(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
     rquickjs::Module::declare_def::<module::js_http_mod, _>(ctx.clone(), "@klaver/http")?;
     Ok(())

@@ -7,9 +7,12 @@ use rquickjs::{
 };
 
 mod file;
+mod module;
 #[cfg(feature = "typescript")]
 pub mod typescript;
 mod util;
+
+pub use self::module::*;
 
 type LoadFn = for<'js> fn(Ctx<'js>, Vec<u8>) -> Result<Module<'js>>;
 
@@ -40,17 +43,25 @@ impl Runtime for rquickjs::AsyncRuntime {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Modules {
-    modules: HashMap<String, LoadFn>,
+    pub(crate) modules: HashMap<String, LoadFn>,
     modules_src: HashMap<String, Vec<u8>>,
     search_paths: Vec<PathBuf>,
     patterns: Vec<String>,
 }
 
 impl Modules {
-    fn load_func<'js, D: ModuleDef>(ctx: Ctx<'js>, name: Vec<u8>) -> Result<Module<'js>> {
+    pub(crate) fn load_func<'js, D: ModuleDef>(
+        ctx: Ctx<'js>,
+        name: Vec<u8>,
+    ) -> Result<Module<'js>> {
         Module::declare_def::<D, _>(ctx, name)
+    }
+
+    pub fn register_module<T: ModuleInfo>(&mut self) -> &mut Self {
+        T::register(Builder::new(self));
+        self
     }
 
     pub fn register<T: ModuleDef>(&mut self, name: impl ToString) {

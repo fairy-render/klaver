@@ -1,6 +1,6 @@
 use futures::TryStreamExt;
-use reggie::{Body, ResponseExt};
 use klaver_base::streams::{async_byte_iterator, AsyncByteIterError};
+use reggie::{Body, ResponseExt};
 use rquickjs::{class::Trace, Class, Ctx, Exception, Object, Value};
 
 use crate::module::Headers;
@@ -17,7 +17,8 @@ pub struct Response<'js> {
 
 impl<'js> Trace<'js> for Response<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.url.trace(tracer)
+        self.url.trace(tracer);
+        self.headers.trace(tracer);
     }
 }
 
