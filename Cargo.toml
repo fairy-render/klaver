@@ -2,16 +2,7 @@
 
 resolver = "2"
 
-members = [ "klaver",
-  "klaver-base",
-  "klaver-cli",
-  "klaver-compat",
-  "klaver-http",
-  "klaver-module",
-  "klaver-os",
-  "klaver-shared",
-  "klaver-worker",
-]
+members = ["klaver", "klaver-cli", "klaver-compat", "klaver-encoding"]
 
 
 [workspace.dependencies]

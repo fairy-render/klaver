@@ -8,12 +8,9 @@ name = "klaver"
 path = "src/main.rs"
 
 [dependencies]
-klaver-base = { path = "../klaver-base" }
-klaver-os = { path = "../klaver-os" }
-klaver-module = { path = "../klaver-module", features = ["typescript"] }
-klaver-http = { path = "../klaver-http", features = ["reqwest"] }
+klaver = { path = "../klaver" }
 klaver-compat = { path = "../klaver-compat" }
+klaver-encoding = { path = "../klaver-encoding" }
 
 
-rquickjs = { version = "0.6", features = ["futures", "parallel"] }
 tokio = { version = "1", features = ["rt", "macros"] }

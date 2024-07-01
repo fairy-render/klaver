@@ -1,14 +1,28 @@
 /// <reference path="../../module.d.ts" />
-import initFetch from "./fetch/index.js";
-import initStreams from "./streams.js";
-import initConsole from "./console.js";
-import initBase from "./base.js";
 
-async function init(global: Record<string, unknown>) {
-	await initBase(global);
-	initConsole(global);
-	initStreams(global);
-	await initFetch(global);
+function writeProp(out: Record<string, unknown>, name: string, value: unknown) {
+	Object.defineProperty(out, name, {
+		writable: true,
+		configurable: true,
+		enumerable: true,
+		value,
+	});
 }
 
-await init(globalThis);
+const Core = globalThis.Core;
+
+export default async function main(global: Record<string, unknown>) {
+	writeProp(global, "setTimeout", (cb: () => void, timeout?: number) => {
+		return Core.timers.createTimer(cb, timeout, false);
+	});
+	writeProp(global, "clearTimeout", Core.timers.clearTimer.bind(Core.timers));
+	writeProp(global, "setInterval", (cb: () => void, timeout?: number) => {
+		return Core.timers.createTimer(cb, timeout, true);
+	});
+	writeProp(global, "clearInterval", Core.timers.clearTimer.bind(Core.timers));
+
+	const { TextEncoder, TextDecoder } = await import("@klaver/encoding");
+
+	writeProp(global, "TextEncoder", TextEncoder);
+	writeProp(global, "TextDecoder", TextDecoder);
+}

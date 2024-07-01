@@ -91,3 +91,19 @@ declare module "@klaver/http" {
 }
 
 declare function print(...args: unknown[]);
+
+declare module "@klaver/encoding" {
+	export class TextEncoder {
+		constructor(label?: string);
+
+		readonly encoding: string;
+		encode(input: string): Uint8Array;
+	}
+
+	export class TextDecoder {
+		constructor(label?: string);
+
+		readonly encoding: string;
+		decode(input: ArrayBuffer): string;
+	}
+}

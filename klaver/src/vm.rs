@@ -6,7 +6,6 @@ use std::{
     task::Poll,
 };
 
-use klaver_module::ModuleInfo;
 use rquickjs::{
     context::EvalOptions,
     qjs::{self, JSRuntime},
@@ -19,17 +18,18 @@ use crate::{
         timers::{poll_timers, process_timers},
     },
     error::Error,
+    modules::ModuleInfo,
 };
 
 #[derive(Default, Clone)]
 pub struct VmOptions {
-    modules: klaver_module::Modules,
+    modules: crate::modules::Modules,
     max_stack_size: Option<usize>,
     memory_limit: Option<usize>,
 }
 
 impl VmOptions {
-    pub fn modules(&mut self) -> &mut klaver_module::Modules {
+    pub fn modules(&mut self) -> &mut crate::modules::Modules {
         &mut self.modules
     }
 
