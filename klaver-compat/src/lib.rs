@@ -6,6 +6,7 @@ const COMPAT: &[u8] = include_bytes!("compat.js");
 
 impl ModuleInfo for Compat {
     fn register(modules: &mut klaver::modules::Builder<'_>) {
+        klaver_http::Module::register(modules);
         modules.register_src("@klaver/compat", COMPAT.to_vec());
     }
 }

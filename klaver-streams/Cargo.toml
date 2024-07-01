@@ -1,0 +1,7 @@
+[package]
+name = "klaver-streams"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+klaver = { path = "../klaver" }

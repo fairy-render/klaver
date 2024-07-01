@@ -2,7 +2,13 @@
 
 resolver = "2"
 
-members = ["klaver", "klaver-cli", "klaver-compat", "klaver-encoding"]
+members = [
+  "klaver",
+  "klaver-cli",
+  "klaver-compat",
+  "klaver-encoding",
+  "klaver-http", "klaver-streams",
+]
 
 
 [workspace.dependencies]

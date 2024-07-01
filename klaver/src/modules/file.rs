@@ -134,6 +134,8 @@ impl Resolver for FileResolver {
                 name.into()
             };
 
+            println!("PATH {}", path);
+
             if base.starts_with("/")
                 && !<RelativePathBuf as AsRef<str>>::as_ref(&path).starts_with("/")
             {

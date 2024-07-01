@@ -134,9 +134,9 @@ impl Vm {
     // }
 
     // pub async fn run_file(&self, filename: &Path) -> Result<(), Error> {
-    //     async_with!(self => |ctx| {
+    //     crate::async_with!(self => |ctx| {
     //       ctx.eval_promise(format!(
-    //         r#"import("{}").catch((e) => {{console.error(e);process.exit(1)}})"#,
+    //         r#"await import("{}")"#,
     //         filename.to_string_lossy()
     //       ))?.into_future().await
     //     })

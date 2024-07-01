@@ -1,16 +1,16 @@
 /// <reference path="module.d.ts" />
 
+import { EXPORT } from "./import.ts";
+
 const i = setInterval(() => {
 	print("interval");
-}, 0);
+}, 450);
 
 print(i);
 
-clearInterval(i);
-
 setTimeout(() => {
-	print("Hello");
+	console.log("Hello");
 	clearInterval(i);
 }, 1000);
 
-print("Hello, World!", 2020, false);
+print("Hello, World!", 2020, false, EXPORT);

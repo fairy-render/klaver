@@ -37,11 +37,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let content = std::fs::read_to_string(&args[0])?;
 
-    // let (content, _) = klaver_module::typescript::compile(&args[0], &content);
+    let (content, _) = klaver::modules::typescript::compile(&args[0], &content);
 
     let ret = klaver::async_with!(vm => |ctx| {
 
-        let _ = Module::evaluate(ctx.clone(), "main", content).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
+        let _ = Module::evaluate(ctx.clone(), &*args[0], content).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
 
        Ok(())
     })

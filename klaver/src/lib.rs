@@ -8,6 +8,10 @@ mod state;
 mod utils;
 pub mod vm;
 
+pub mod core {
+    pub use super::base::{get_core, Core, Extensions};
+}
+
 pub use rquickjs as quick;
 
 pub use self::error::Error;

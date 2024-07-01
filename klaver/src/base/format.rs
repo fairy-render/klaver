@@ -1,12 +1,28 @@
 use rquickjs::{
     function::{Opt, Rest},
-    Ctx, Type, Value,
+    Ctx, FromJs, Type, Value,
 };
 use std::fmt::Write;
 
 #[derive(Debug, Clone)]
 pub struct FormatOptions {
     colors: bool,
+}
+
+impl<'js> FromJs<'js> for FormatOptions {
+    fn from_js(_ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+        let Some(obj) = value.as_object() else {
+            return Err(rquickjs::Error::new_from_js(value.type_name(), "object"));
+        };
+
+        let colors = if let Ok(colors) = obj.get("colors") {
+            colors
+        } else {
+            false
+        };
+
+        Ok(FormatOptions { colors })
+    }
 }
 
 pub fn format<'js>(

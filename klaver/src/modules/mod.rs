@@ -83,7 +83,7 @@ impl Modules {
         let mut builtin_resolver = BuiltinResolver::default();
         let mut file_resolver = file::FileResolver::default();
         #[cfg(feature = "typescript")]
-        let script_loader = crate::typescript::TsLoader::default();
+        let script_loader = typescript::TsLoader::default();
         #[cfg(feature = "typescript")]
         {
             file_resolver.add_pattern("{}.ts");

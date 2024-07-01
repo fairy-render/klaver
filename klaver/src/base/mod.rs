@@ -3,7 +3,7 @@ use rquickjs::{
     Class, Ctx, Value,
 };
 
-use self::core::Core;
+pub use self::core::{get_core, Core, Extensions};
 
 mod core;
 // mod encoding;

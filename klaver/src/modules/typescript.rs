@@ -8,7 +8,7 @@ use swc_ecma_parser::Syntax;
 use swc_ecma_transforms_typescript::strip;
 use swc_ecma_visit::FoldWith;
 
-use crate::util::check_extensions;
+use super::util::check_extensions;
 
 /// Transforms typescript to javascript. Returns tuple (js string, source map)
 pub fn compile(filename: &str, ts_code: &str) -> (String, String) {

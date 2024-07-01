@@ -8,7 +8,7 @@ name = "klaver"
 path = "src/main.rs"
 
 [dependencies]
-klaver = { path = "../klaver" }
+klaver = { path = "../klaver", features = ["typescript"] }
 klaver-compat = { path = "../klaver-compat" }
 klaver-encoding = { path = "../klaver-encoding" }
 
