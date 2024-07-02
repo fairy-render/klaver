@@ -1,6 +1,6 @@
 use rquickjs::module::ModuleDef;
 
-use super::Modules;
+use super::{Init, Modules};
 
 pub struct Builder<'a> {
     modules: &'a mut Modules,
@@ -19,6 +19,14 @@ impl<'a> Builder<'a> {
 
     pub fn register_src(&mut self, name: impl ToString, source: Vec<u8>) -> &mut Self {
         self.modules.register_src(name, source);
+        self
+    }
+
+    pub fn register_init<T>(&mut self, init: T) -> &mut Self
+    where
+        T: Init + Send + Sync + 'static,
+    {
+        self.modules.add_init(init);
         self
     }
 }

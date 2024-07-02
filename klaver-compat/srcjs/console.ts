@@ -19,6 +19,12 @@ export class Console implements ConsoleApi {
 		this.#print("warn", args);
 	}
 
+	assert(condition?: boolean, ...data: unknown[]): void {
+		if (condition) {
+			this.log(...data);
+		}
+	}
+
 	#print(level: string, args: unknown[]) {
 		const formatted = args.map((m) => Core.format(m)).join(" ");
 		print(`[${level}] ${formatted}`);

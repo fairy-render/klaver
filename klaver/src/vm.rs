@@ -68,7 +68,7 @@ impl Vm {
 
         ctx.with(init_base).await?;
 
-        options.modules.attach(&rt).await;
+        options.modules.attach(&rt, &ctx).await?;
 
         Ok(Vm { ctx, rt })
     }

@@ -1,4 +1,5 @@
 use futures::TryStreamExt;
+use klaver_streams::{async_byte_iterator, AsyncByteIterError};
 // use klaver_base::streams::{async_byte_iterator, AsyncByteIterError};
 use reggie::{Body, ResponseExt};
 use rquickjs::{class::Trace, Class, Ctx, Exception, Object, Value};
@@ -11,6 +12,7 @@ pub struct Response<'js> {
     status: u16,
     #[qjs(get)]
     url: rquickjs::String<'js>,
+    #[qjs(get)]
     headers: Class<'js, Headers<'js>>,
     resp: Option<reggie::http::Response<Body>>,
 }
@@ -87,20 +89,20 @@ impl<'js> Response<'js> {
         }
     }
 
-    // pub async fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
-    //     let Some(resp) = self.resp.take() else {
-    //         return Err(ctx.throw(Value::from_exception(Exception::from_message(
-    //             ctx.clone(),
-    //             "body is exhausted",
-    //         )?)));
-    //     };
+    pub fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
+        let Some(resp) = self.resp.take() else {
+            return Err(ctx.throw(Value::from_exception(Exception::from_message(
+                ctx.clone(),
+                "body is exhausted",
+            )?)));
+        };
 
-    //     let stream = resp.bytes_stream();
+        let stream = resp.bytes_stream();
 
-    //     let stream = stream
-    //         .map_ok(|m| m.to_vec())
-    //         .map_err(|_| AsyncByteIterError);
+        let stream = stream
+            .map_ok(|m| m.to_vec())
+            .map_err(|_| AsyncByteIterError);
 
-    //     async_byte_iterator(ctx, stream)
-    // }
+        async_byte_iterator(ctx, stream)
+    }
 }

@@ -19,3 +19,16 @@ export function writeProps(
 		writeProp(out, key, value[key]);
 	}
 }
+
+export function lazy<T>(init: () => T): () => T {
+	let value: T | undefined;
+	let initialized = false;
+
+	return () => {
+		if (!initialized) {
+			value = init();
+			initialized = true;
+		}
+		return value;
+	};
+}

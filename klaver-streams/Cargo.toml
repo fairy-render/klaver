@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 klaver = { path = "../klaver" }
+futures = { version = "0.3" }
+rquickjs.workspace = true

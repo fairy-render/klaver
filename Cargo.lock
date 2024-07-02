@@ -1024,6 +1024,7 @@ dependencies = [
  "bytes",
  "futures",
  "klaver",
+ "klaver-streams",
  "reggie",
  "reqwest",
  "rquickjs",
@@ -1035,7 +1036,9 @@ dependencies = [
 name = "klaver-streams"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "klaver",
+ "rquickjs",
 ]
 
 [[package]]

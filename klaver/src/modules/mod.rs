@@ -1,23 +1,23 @@
-use std::{collections::HashMap, hash::Hash, path::PathBuf};
+use std::{collections::HashMap, hash::Hash, path::PathBuf, sync::Arc};
 
 use rquickjs::{
     loader::{BuiltinResolver, Loader, Resolver},
     module::ModuleDef,
-    Ctx, Error, Module, Result,
+    AsyncContext, Ctx, Error, Module,
 };
 
 mod file;
-mod global;
+mod init;
 mod module;
 #[cfg(feature = "typescript")]
 pub mod typescript;
 mod util;
 
-pub use self::{global::*, module::*};
+pub use self::{init::*, module::*};
 
-type LoadFn = for<'js> fn(Ctx<'js>, Vec<u8>) -> Result<Module<'js>>;
+type LoadFn = for<'js> fn(Ctx<'js>, Vec<u8>) -> rquickjs::Result<Module<'js>>;
 
-pub trait Runtime {
+pub(crate) trait Runtime {
     async fn set_loader<R, L>(&self, resolver: R, loader: L)
     where
         R: Resolver + 'static,
@@ -44,19 +44,20 @@ impl Runtime for rquickjs::AsyncRuntime {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub struct Modules {
     pub(crate) modules: HashMap<String, LoadFn>,
     modules_src: HashMap<String, Vec<u8>>,
     search_paths: Vec<PathBuf>,
     patterns: Vec<String>,
+    inits: Vec<Arc<dyn Init + Send + Sync>>,
 }
 
 impl Modules {
     pub(crate) fn load_func<'js, D: ModuleDef>(
         ctx: Ctx<'js>,
         name: Vec<u8>,
-    ) -> Result<Module<'js>> {
+    ) -> rquickjs::Result<Module<'js>> {
         Module::declare_def::<D, _>(ctx, name)
     }
 
@@ -79,7 +80,19 @@ impl Modules {
         self
     }
 
-    pub async fn attach<T: Runtime>(self, runtime: &T) {
+    pub fn add_init<T>(&mut self, init: T) -> &mut Self
+    where
+        T: Init + Send + Sync + 'static,
+    {
+        self.inits.push(Arc::new(init));
+        self
+    }
+
+    pub(crate) async fn attach<T: Runtime>(
+        self,
+        runtime: &T,
+        context: &AsyncContext,
+    ) -> Result<(), Error> {
         let mut builtin_resolver = BuiltinResolver::default();
         let mut file_resolver = file::FileResolver::default();
         #[cfg(feature = "typescript")]
@@ -116,6 +129,18 @@ impl Modules {
                 (script_loader, module_loader),
             )
             .await;
+
+        context
+            .with(|ctx| {
+                for init in self.inits {
+                    init.init(ctx.clone())?
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -129,7 +154,7 @@ impl Loader for ModuleLoader {
         &mut self,
         ctx: &Ctx<'js>,
         path: &str,
-    ) -> Result<Module<'js, rquickjs::module::Declared>> {
+    ) -> rquickjs::Result<Module<'js, rquickjs::module::Declared>> {
         if let Some(load) = self.modules.remove(path) {
             (load)(ctx.clone(), Vec::from(path))
         } else if let Some(source) = self.modules_src.remove(path) {

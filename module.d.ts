@@ -82,9 +82,10 @@ declare module "@klaver/http" {
 	export class Response {
 		readonly url: string;
 		readonly status: number;
+		readonly headers: Headers;
 
 		text(): Promise<string>;
-		stream(): Promise<AsyncIterable<ArrayBuffer>>;
+		stream(): AsyncIterable<ArrayBuffer>;
 	}
 
 	export function createCancel(): Cancel;

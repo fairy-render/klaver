@@ -2,6 +2,9 @@
 
 import { writeProps } from "./util.js";
 import console from "./console.js";
+import fetch from "./fetch/index.js";
+import stream from "./streams.js";
+import process from "./process.js";
 
 // const Core = globalThis.Core;
 
@@ -22,4 +25,7 @@ export default async function main(global: Record<string, unknown>) {
 	writeProps(global, { TextDecoder, TextEncoder });
 
 	console(global);
+	stream(global);
+	await fetch(global);
+	process(global);
 }

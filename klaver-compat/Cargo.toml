@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 klaver = { path = "../klaver" }
 klaver-encoding = { path = "../klaver-encoding" }
-klaver-http = { path = "../klaver-http" }
+klaver-http = { path = "../klaver-http", features = ["reqwest"] }
