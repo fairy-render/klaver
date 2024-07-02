@@ -11,7 +11,7 @@ export default {
 	plugins: [
 		resolve(),
 		ts({
-			transpiler: "swc",
+			// transpiler: "swc",
 			/* Plugin options */
 			hook: {
 				// outputPath(path, kind) {
