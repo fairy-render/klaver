@@ -16,6 +16,8 @@ pub type CustomizeFn = Arc<
 
 pub type Pool = deadpool::managed::Pool<Manager>;
 
+pub type PoolError = deadpool::managed::PoolError<Error>;
+
 pub struct Manager {
     init: Option<CustomizeFn>,
     options: VmOptions,
