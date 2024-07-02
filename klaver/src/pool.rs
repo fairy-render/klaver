@@ -9,10 +9,7 @@ use crate::{
 };
 
 pub type CustomizeFn = Arc<
-    dyn for<'a> Fn(
-            Ctx<'a>,
-        )
-            -> Pin<Box<dyn Future<Output = Result<(), rquickjs::Error>> + Send + 'a>>
+    dyn for<'a> Fn(&'a Vm) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
         + Send
         + Sync,
 >;
@@ -35,8 +32,7 @@ impl Manager {
     pub fn init<T>(mut self, init: T) -> Self
     where
         T: Send + Sync + 'static,
-        for<'a> T:
-            Fn(Ctx<'a>) -> Pin<Box<dyn Future<Output = Result<(), rquickjs::Error>> + Send + 'a>>,
+        for<'a> T: Fn(&'a Vm) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>,
     {
         self.init = Some(Arc::new(init));
         self
@@ -53,14 +49,7 @@ impl deadpool::managed::Manager for Manager {
             let vm = self.options.clone().build().await?;
 
             if let Some(init) = &self.init {
-                let init = init.clone();
-                vm.async_with(move |ctx| {
-                    Box::pin(async move {
-                        init(ctx).await?;
-                        Ok(())
-                    })
-                })
-                .await?;
+                init(&vm).await?;
             }
 
             Ok(vm)
