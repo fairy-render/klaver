@@ -14,7 +14,7 @@ pub enum Method {
     PUT,
     DELETE,
     HEAD,
-    OPTION,
+    OPTIONS,
     PATCH,
 }
 
@@ -26,7 +26,7 @@ impl Method {
             Method::PUT => "PUT",
             Method::DELETE => "DELETE",
             Method::HEAD => "HEAD",
-            Method::OPTION => "OPTION",
+            Method::OPTIONS => "OPTIONS",
             Method::PATCH => "PATCH",
         }
     }
@@ -171,6 +171,9 @@ impl<'js> Request<'js> {
             reggie::http::Method::POST => Method::POST,
             reggie::http::Method::PATCH => Method::PATCH,
             reggie::http::Method::DELETE => Method::DELETE,
+            reggie::http::Method::PUT => Method::PUT,
+            reggie::http::Method::OPTIONS => Method::OPTIONS,
+            reggie::http::Method::HEAD => Method::HEAD,
             v => todo!("{v}"),
         };
 
@@ -191,7 +194,11 @@ impl<'js> Request<'js> {
         &self,
         ctx: Ctx<'js>,
     ) -> rquickjs::Result<(reggie::http::Request<Body>, Option<Receiver<()>>)> {
-        let url = self.url.to_string()?;
+        let mut url = self.url.to_string()?;
+
+        if url.starts_with("/") {
+            url = format!("internal://{url}");
+        }
 
         let mut builder = reggie::http::Request::builder()
             .method(self.method.as_str())
