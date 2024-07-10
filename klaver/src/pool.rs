@@ -1,7 +1,6 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use deadpool::managed::{Metrics, RecycleResult};
-use rquickjs::{AsyncContext, AsyncRuntime, Ctx};
 
 use crate::{
     vm::{Vm, VmOptions},

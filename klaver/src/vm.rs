@@ -1,14 +1,12 @@
 use std::{
-    future::{poll_fn, Future},
-    path::{Path, PathBuf},
+    future::{Future},
+    path::{PathBuf},
     pin::{pin, Pin},
-    process::Output,
     task::Poll,
 };
 
 use rquickjs::{
     context::EvalOptions,
-    qjs::{self, JSRuntime},
     AsyncContext, AsyncRuntime, CatchResultExt, Ctx, FromJs,
 };
 

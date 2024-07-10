@@ -5,7 +5,7 @@ use std::{
 };
 
 use rquickjs::{
-    class::Trace, function::Func, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs, Object,
+    class::Trace, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs,
     Value,
 };
 use slotmap::{new_key_type, KeyData, SlotMap};

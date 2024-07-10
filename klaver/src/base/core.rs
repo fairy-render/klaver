@@ -2,7 +2,7 @@ pub use extensions::Extensions;
 use rquickjs::{
     class::{Trace, Tracer},
     function::Opt,
-    Class, Ctx, Object, Value,
+    Class, Ctx, Value,
 };
 
 use super::{

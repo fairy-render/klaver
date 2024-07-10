@@ -1,6 +1,5 @@
 use rquickjs::{
-    function::{Func, Opt, Rest},
-    Class, Ctx, Value,
+    function::{Func, Opt, Rest}, Ctx, Value,
 };
 
 pub use self::core::{get_core, Core, Extensions};

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use rquickjs::{
     loader::{BuiltinResolver, Loader, Resolver},

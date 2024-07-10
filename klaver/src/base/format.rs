@@ -1,8 +1,8 @@
 use rquickjs::{
-    function::{Opt, Rest},
+    function::{Opt},
     Ctx, FromJs, Object, Type, Value,
 };
-use std::{fmt::Write, option};
+use std::{fmt::Write};
 
 #[derive(Debug, Clone, Default)]
 pub struct FormatOptions {
