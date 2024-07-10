@@ -120,7 +120,6 @@ impl Default for FileResolver {
 
 impl Resolver for FileResolver {
     fn resolve<'js>(&mut self, _ctx: &Ctx<'js>, base: &str, name: &str) -> Result<String> {
-        println!("resolve: {} {}", base, name);
         let path = if !name.starts_with('.') {
             self.paths.iter().find_map(|path| {
                 let path = RelativePathBuf::from(path.display().to_string()).join_normalized(name);
@@ -133,8 +132,6 @@ impl Resolver for FileResolver {
             } else {
                 name.into()
             };
-
-            println!("PATH {}", path);
 
             if base.starts_with("/")
                 && !<RelativePathBuf as AsRef<str>>::as_ref(&path).starts_with("/")
