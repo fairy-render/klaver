@@ -82,7 +82,9 @@ impl rquickjs::loader::Loader for TsLoader {
             return Err(Error::new_loading(path));
         }
 
-        let content = std::fs::read(path)?;
+        let content = std::fs::read_to_string(path)?;
+
+        let (content, _) = compile(path, &content);
 
         Module::declare(ctx.clone(), path, content)
     }
