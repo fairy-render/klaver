@@ -6,6 +6,8 @@ use swc_common::{errors::Handler, source_map::SourceMap, sync::Lrc, Mark, GLOBAL
 use swc_ecma_ast::EsVersion;
 use swc_ecma_parser::Syntax;
 use swc_ecma_transforms_typescript::strip;
+use swc_ecma_transforms_typescript::tsx;
+use swc_ecma_transforms_typescript::TsxConfig;
 use swc_ecma_visit::FoldWith;
 
 use super::util::check_extensions;
@@ -38,6 +40,13 @@ pub fn compile(filename: &str, ts_code: &str) -> (String, String) {
         // Add TypeScript type stripping transform
         let top_level_mark = Mark::new();
         let program = program.fold_with(&mut strip(top_level_mark));
+        // .fold_with(&mut tsx(
+        //     cm.clone(),
+        //     Default::default(),
+        //     TsxConfig::default(),
+        //     compiler.comments(),
+        //     top_level_mark,
+        // ));
 
         // https://rustdoc.swc.rs/swc/struct.Compiler.html#method.print
         let ret = compiler

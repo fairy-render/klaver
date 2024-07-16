@@ -41,6 +41,10 @@ impl<'js> Response<'js> {
             resp: Some(resp),
         })
     }
+
+    pub fn to_reggie(&mut self) -> rquickjs::Result<reggie::Response<Body>> {
+        todo!()
+    }
 }
 
 #[rquickjs::methods]

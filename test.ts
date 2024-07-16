@@ -19,7 +19,7 @@ setTimeout(() => {
 
 print("Hello, World!", 2020, false, EXPORT);
 
-const abort = new AbortController();
+const abort: AbortController = new AbortController();
 
 const resp = await fetch("https://google.com", { signal: abort.signal }).then(
 	(resp) => resp.text(),
