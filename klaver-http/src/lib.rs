@@ -5,11 +5,11 @@ use rquickjs::Ctx;
 mod cancel;
 pub mod client;
 mod convert;
-mod headers;
+pub mod headers;
 mod module;
 
-mod request;
-mod response;
+pub mod request;
+pub mod response;
 
 pub use self::request::Request;
 
