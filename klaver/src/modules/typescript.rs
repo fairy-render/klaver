@@ -5,6 +5,7 @@ use swc::{config::IsModule, Compiler, PrintArgs};
 use swc_common::{errors::Handler, source_map::SourceMap, sync::Lrc, Mark, GLOBALS};
 use swc_ecma_ast::EsVersion;
 use swc_ecma_parser::Syntax;
+use swc_ecma_parser::TsConfig;
 use swc_ecma_transforms_typescript::strip;
 use swc_ecma_transforms_typescript::tsx;
 use swc_ecma_transforms_typescript::TsxConfig;
@@ -31,7 +32,10 @@ pub fn compile(filename: &str, ts_code: &str) -> (String, String) {
                 source,
                 &handler,
                 EsVersion::Es2022,
-                Syntax::Typescript(Default::default()),
+                Syntax::Typescript(TsConfig {
+                    tsx: true,
+                    ..Default::default()
+                }),
                 IsModule::Bool(true),
                 Some(compiler.comments()),
             )
