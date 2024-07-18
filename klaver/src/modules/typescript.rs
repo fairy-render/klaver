@@ -5,7 +5,10 @@ use swc::{config::IsModule, Compiler as SwcCompiler, PrintArgs};
 use swc_common::{errors::Handler, source_map::SourceMap, sync::Lrc, Mark, GLOBALS};
 use swc_ecma_ast::EsVersion;
 use swc_ecma_parser::Syntax;
-use swc_ecma_parser::TsConfig;
+use swc_ecma_parser::TsSyntax;
+use swc_ecma_transforms_base::resolver;
+use swc_ecma_transforms_react::Runtime;
+use swc_ecma_transforms_react::{jsx, parse_expr_for_jsx, Options};
 use swc_ecma_transforms_typescript::strip;
 use swc_ecma_transforms_typescript::tsx;
 use swc_ecma_transforms_typescript::{Config, TsxConfig};
@@ -42,7 +45,7 @@ impl Compiler {
     }
     pub fn compile(&self, filename: &str, code: &str) -> Result<Source, Error> {
         let source = self.cm.new_source_file(
-            swc_common::FileName::Custom(filename.into()),
+            swc_common::FileName::Custom(filename.into()).into(),
             code.to_string(),
         );
 
@@ -52,7 +55,7 @@ impl Compiler {
                     source,
                     &self.handler,
                     EsVersion::Es2022,
-                    Syntax::Typescript(TsConfig {
+                    Syntax::Typescript(TsSyntax {
                         tsx: true,
                         decorators: true,
                         ..Default::default()
@@ -62,21 +65,21 @@ impl Compiler {
                 )?;
 
                 // Add TypeScript type stripping transform
+                let unresolved_mark = Mark::new();
                 let top_level_mark = Mark::new();
-                let program = program.fold_with(&mut strip(top_level_mark));
-
-                let top_level_mark = Mark::new();
-                let program = program.fold_with(&mut tsx(
-                    self.cm.clone(),
-                    Config {
-                        verbatim_module_syntax: false,
-                        ..Default::default()
-                    },
-                    TsxConfig::default(),
-                    self.compiler.comments(),
-                    top_level_mark,
-                ));
-                //.fold_with(&mut strip(top_level_mark));
+                let program = program
+                    .fold_with(&mut strip(unresolved_mark, top_level_mark))
+                    .fold_with(&mut jsx(
+                        self.cm.clone(),
+                        Some(self.compiler.comments()),
+                        Options {
+                            runtime: Some(Runtime::Automatic),
+                            ..Default::default()
+                        },
+                        top_level_mark,
+                        unresolved_mark,
+                    ))
+                    .fold_with(&mut resolver(unresolved_mark, top_level_mark, true));
 
                 // https://rustdoc.swc.rs/swc/struct.Compiler.html#method.print
                 self.compiler
@@ -93,58 +96,6 @@ impl Compiler {
             sourcemap: map,
         })
     }
-}
-
-/// Transforms typescript to javascript. Returns tuple (js string, source map)
-pub fn compile(filename: &str, ts_code: &str) -> (String, String) {
-    let cm = Lrc::new(SourceMap::new(swc_common::FilePathMapping::empty()));
-
-    let compiler = SwcCompiler::new(cm.clone());
-
-    let source = cm.new_source_file(
-        swc_common::FileName::Custom(filename.into()),
-        ts_code.to_string(),
-    );
-
-    let handler = Handler::with_emitter_writer(Box::new(io::stderr()), Some(compiler.cm.clone()));
-
-    return GLOBALS.set(&Default::default(), || {
-        let program = compiler
-            .parse_js(
-                source,
-                &handler,
-                EsVersion::Es2022,
-                Syntax::Typescript(TsConfig {
-                    tsx: true,
-                    ..Default::default()
-                }),
-                IsModule::Bool(true),
-                Some(compiler.comments()),
-            )
-            .expect("parse_js failed");
-
-        // Add TypeScript type stripping transform
-        let top_level_mark = Mark::new();
-        let program = program
-            .fold_with(&mut strip(top_level_mark))
-            .fold_with(&mut tsx(
-                cm.clone(),
-                Default::default(),
-                TsxConfig::default(),
-                compiler.comments(),
-                top_level_mark,
-            ));
-
-        // https://rustdoc.swc.rs/swc/struct.Compiler.html#method.print
-        let ret = compiler
-            .print(
-                &program, // ast to print
-                PrintArgs::default(),
-            )
-            .expect("print failed");
-
-        return (ret.code, ret.map.expect("no source map"));
-    });
 }
 
 pub struct TsLoader {

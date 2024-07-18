@@ -1,6 +1,7 @@
+/* @jsxImportSource @wilbur/template */
+
 /// <reference path="module.d.ts" />
-/* jsxSourceImport @wilbur/template */
-import { EXPORT } from "./import.ts";
+import { EXPORT } jfrom "./import.ts";
 
 const i = setInterval(() => {
   print("interval");

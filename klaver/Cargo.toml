@@ -31,15 +31,17 @@ deadpool = { version = "0.12", optional = true }
 relative-path = { version = "1" }
 
 # Typescript
-swc = { version = "0.273.6", optional = true }
-swc_common = { version = "0.33.17", optional = true }
-swc_ecma_ast = { version = "0.112.2", optional = true }
-swc_ecma_parser = { version = "0.143.3", features = [
+swc = { version = "0.282.1", optional = true }
+swc_common = { version = "0.36.0", optional = true }
+swc_ecma_ast = { version = "0.117.0", optional = true }
+swc_ecma_parser = { version = "0.148.0", features = [
   "verify",
   "typescript",
 ], optional = true }
-swc_ecma_transforms_typescript = { version = "0.188.5", optional = true }
-swc_ecma_visit = { version = "0.98.2", optional = true }
+swc_ecma_transforms_typescript = { version = "0.194.0", optional = true }
+swc_ecma_transforms_react = { version = "0.189.0" }
+swc_ecma_transforms_base = { version = "0.143.0" }
+swc_ecma_visit = { version = "0.103.1", optional = true }
 
 
 [dev-dependencies]

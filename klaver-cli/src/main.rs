@@ -29,9 +29,10 @@ enum Commands {
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cli = Cli::parse();
 
+    let compiler = Compiler::new();
+
     match cli.command {
         Some(Commands::Compile { path }) => {
-            let compiler = Compiler::new();
             let content = tokio::fs::read_to_string(&path).await?;
             let source = compiler.compile(&path.display().to_string(), &content)?;
             println!("{}", source.code);
@@ -58,11 +59,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let content = std::fs::read_to_string(&args[0])?;
 
-    let (content, _) = klaver::modules::typescript::compile(&args[0], &content);
+    let source = compiler.compile(&args[0], &content)?;
 
     let ret = klaver::async_with!(vm => |ctx| {
 
-        let _ = Module::evaluate(ctx.clone(), &*args[0], content).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
+        let _ = Module::evaluate(ctx.clone(), &*args[0], source.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
 
        Ok(())
     })
