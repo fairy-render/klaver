@@ -39,14 +39,15 @@ pub fn compile(filename: &str, ts_code: &str) -> (String, String) {
 
         // Add TypeScript type stripping transform
         let top_level_mark = Mark::new();
-        let program = program.fold_with(&mut strip(top_level_mark));
-        // .fold_with(&mut tsx(
-        //     cm.clone(),
-        //     Default::default(),
-        //     TsxConfig::default(),
-        //     compiler.comments(),
-        //     top_level_mark,
-        // ));
+        let program = program
+            .fold_with(&mut strip(top_level_mark))
+            .fold_with(&mut tsx(
+                cm.clone(),
+                Default::default(),
+                TsxConfig::default(),
+                compiler.comments(),
+                top_level_mark,
+            ));
 
         // https://rustdoc.swc.rs/swc/struct.Compiler.html#method.print
         let ret = compiler
