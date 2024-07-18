@@ -1,15 +1,12 @@
 use std::{
-    future::{poll_fn, Future},
-    path::{Path, PathBuf},
+    future::{Future},
+    path::{PathBuf},
     pin::{pin, Pin},
-    process::Output,
     task::Poll,
 };
 
-use klaver_module::ModuleInfo;
 use rquickjs::{
     context::EvalOptions,
-    qjs::{self, JSRuntime},
     AsyncContext, AsyncRuntime, CatchResultExt, Ctx, FromJs,
 };
 
@@ -19,17 +16,18 @@ use crate::{
         timers::{poll_timers, process_timers},
     },
     error::Error,
+    modules::ModuleInfo,
 };
 
 #[derive(Default, Clone)]
 pub struct VmOptions {
-    modules: klaver_module::Modules,
+    modules: crate::modules::Modules,
     max_stack_size: Option<usize>,
     memory_limit: Option<usize>,
 }
 
 impl VmOptions {
-    pub fn modules(&mut self) -> &mut klaver_module::Modules {
+    pub fn modules(&mut self) -> &mut crate::modules::Modules {
         &mut self.modules
     }
 
@@ -68,7 +66,7 @@ impl Vm {
 
         ctx.with(init_base).await?;
 
-        options.modules.attach(&rt).await;
+        options.modules.attach(&rt, &ctx).await?;
 
         Ok(Vm { ctx, rt })
     }
@@ -134,9 +132,9 @@ impl Vm {
     // }
 
     // pub async fn run_file(&self, filename: &Path) -> Result<(), Error> {
-    //     async_with!(self => |ctx| {
+    //     crate::async_with!(self => |ctx| {
     //       ctx.eval_promise(format!(
-    //         r#"import("{}").catch((e) => {{console.error(e);process.exit(1)}})"#,
+    //         r#"await import("{}")"#,
     //         filename.to_string_lossy()
     //       ))?.into_future().await
     //     })

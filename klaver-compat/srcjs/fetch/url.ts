@@ -96,7 +96,7 @@ export class URLSearchParams {
 
 	forEach(callback: (value: string, name: string, _this: this) => void) {
 		let entries;
-		for (let name in this._entries) {
+		for (const name in this._entries) {
 			if (this._entries.hasOwnProperty(name)) {
 				entries = this._entries[name];
 				for (let i = 0; i < entries.length; i++) {
@@ -131,7 +131,7 @@ export class URLSearchParams {
 	}
 
 	toString(): string {
-		let searchString: string = "";
+		let searchString = "";
 		this.forEach((value: string, name: string) => {
 			if (searchString.length > 0) searchString += "&";
 			searchString +=
@@ -216,7 +216,7 @@ export class URL {
 			throw new Error("Invalid base URL");
 		}
 
-		let urlParts = URL.parse(url);
+		const urlParts = URL.parse(url);
 
 		if (urlParts.protocol) {
 			this._parts = { ...urlParts };
@@ -310,7 +310,7 @@ export class URL {
 	}
 
 	set pathname(value: string) {
-		let chunks = value.toString().split("/").map(encodePathSegment);
+		const chunks = value.toString().split("/").map(encodePathSegment);
 		if (chunks[0]) {
 			// ensure joined string starts with slash.
 			chunks.unshift("");
@@ -323,7 +323,7 @@ export class URL {
 	}
 
 	set port(value: string) {
-		let port = parseInt(value);
+		const port = Number.parseInt(value);
 		if (isNaN(port)) {
 			this._parts.port = "0";
 		} else {

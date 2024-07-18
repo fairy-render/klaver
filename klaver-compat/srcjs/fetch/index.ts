@@ -1,88 +1,57 @@
-import { AbortController, AbortSignal } from "abort-controller";
-import type {
-	RequestInit as KlaverRequestInit,
-	Response as KlaverResponse,
-} from "@klaver/http";
-import { URL, URLParts, URLSearchParams } from "./url.js";
-
-const http = await import("@klaver/http");
-
-const CLIENT = new http.Client();
+import AbortController, { AbortSignal } from "abort-controller";
+import { lazy, writeProps } from "../util.js";
+import { Request } from "./request.js";
+import { Response } from "./response.js";
+import { URL, URLSearchParams } from "./url.js";
+import { Cancel, Client } from "@klaver/http";
 
 export default async function init(global: Record<string, unknown>) {
-	Object.defineProperty(global, "fetch", {
-		value: fetchImpl,
-		configurable: true,
-		writable: true,
-	});
+	const {
+		Request: KlaverRequest,
+		Response: KlaverResponse,
+		Headers,
+		Client,
+		createCancel,
+	} = await import("@klaver/http");
 
-	Object.defineProperties(global, {
-		AbortController: {
-			value: AbortController,
-		},
-		AbortSignal: {
-			value: AbortSignal,
-		},
-		URL: {
-			value: URL,
-		},
-		URLSearchParams: {
-			value: URLSearchParams,
-		},
-		Request: {
-			value: class Request {},
-		},
-		Response: {
-			value: class Response {},
+	const client = lazy(() => new Client());
+
+	writeProps(global, {
+		URL,
+		Response,
+		Request,
+		Headers,
+		URLSearchParams,
+		AbortController,
+		AbortSignal,
+		fetch(url: string | Request | URL, init?: RequestInit): Promise<Response> {
+			return fetchImpl(url, init);
 		},
 	});
-}
 
-function fetchImpl(input: RequestInfo | URL, init?: RequestInit | undefined) {
-	const opts: KlaverRequestInit = {
-		// method: init?.method ?? "GET",
-		headers: new http.Headers(),
-	};
+	async function fetchImpl(
+		url?: string | Request | URL,
+		init?: RequestInit,
+	): Promise<Response> {
+		const req = new Request(url, init);
 
-	const url = typeof input === "string" ? input : input;
-
-	if (init?.headers) {
-		let headers = init.headers;
-		if (!Array.isArray(init.headers)) {
-			headers = Object.entries(init.headers);
-		}
-	}
-
-	if (init?.signal) {
-		opts.cancel = new http.Cancel();
-		init.signal.onabort = opts.cancel.cancel.bind(opts.cancel);
-	}
-
-	const req = new http.Request(url?.toString(), opts);
-
-	return CLIENT.send(req);
-}
-
-export class Response {
-	#body: ReadableStream<ArrayBuffer>;
-	#inner?: KlaverResponse;
-	constructor(body?: ReadableStream | KlaverResponse) {
-		if (body && body instanceof http.Response) {
-			this.#inner = body;
-			let stream: AsyncIterator<ArrayBuffer>;
-			this.#body = new ReadableStream({
-				async pull(controller) {
-					const { done, value } = await stream.next();
-					if (done) {
-						controller.close();
-					} else {
-						controller.enqueue(value);
-					}
-				},
-				async start(controller) {
-					stream = (await body.stream())[Symbol.asyncIterator]();
-				},
+		let cancel: Cancel | undefined;
+		if (init?.signal) {
+			const signal = init.signal;
+			cancel = new Cancel();
+			signal.addEventListener("abort", () => {
+				cancel.cancel();
 			});
 		}
+
+		const httpReq = new KlaverRequest(req.url.toString(), {
+			method: req.method,
+			headers: req.headers,
+			cancel,
+		});
+
+		const resp = await client().send(httpReq);
+
+		return new Response(resp);
 	}
 }

@@ -1,0 +1,9 @@
+[package]
+name = "klaver-encoding"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+klaver = { path = "../klaver" }
+encoding_rs = { version = "0.8" }
+rquickjs.workspace = true

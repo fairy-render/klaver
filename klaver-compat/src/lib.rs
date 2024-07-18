@@ -1,16 +1,24 @@
-use rquickjs::{Ctx, Promise};
+use klaver::{modules::ModuleInfo, quick::CatchResultExt, vm::Vm};
 
-const SOURCE: &[u8] = include_bytes!("compat.js");
+pub struct Compat;
 
-fn load<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Promise<'js>> {
-    // klaver_base::register_global(ctx)?;
-    ctx.eval_promise(SOURCE)
+const COMPAT: &[u8] = include_bytes!("compat.js");
+
+impl ModuleInfo for Compat {
+    fn register(modules: &mut klaver::modules::Builder<'_>) {
+        // Include deps
+        klaver_encoding::Encoding::register(modules);
+        klaver_http::Module::register(modules);
+        modules.register_src("@klaver/compat", COMPAT.to_vec());
+    }
 }
 
-pub fn init(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
-    load(ctx)?.finish()
-}
+pub async fn init(vm: &Vm) -> Result<(), klaver::Error> {
+    klaver::async_with!(vm => |ctx| {
+        ctx.eval_promise(r#"await (await import("@klaver/compat")).default(globalThis)"#).catch(&ctx)?.into_future().await.catch(&ctx)?;
+        Ok(())
+    })
+    .await?;
 
-pub async fn init_async(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
-    load(ctx)?.into_future().await
+    Ok(())
 }

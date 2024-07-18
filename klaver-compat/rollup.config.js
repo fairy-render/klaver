@@ -7,11 +7,11 @@ export default {
 		file: "src/compat.js",
 		format: "es",
 	},
-	external: ["@klaver/http", "@klaver/base"],
+	external: ["@klaver/http", "@klaver/encoding"],
 	plugins: [
 		resolve(),
 		ts({
-			transpiler: "swc",
+			// transpiler: "swc",
 			/* Plugin options */
 			hook: {
 				// outputPath(path, kind) {

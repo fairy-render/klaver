@@ -2,15 +2,12 @@
 
 resolver = "2"
 
-members = [ "klaver",
-  "klaver-base",
+members = [
+  "klaver",
   "klaver-cli",
   "klaver-compat",
-  "klaver-http",
-  "klaver-module",
-  "klaver-os",
-  "klaver-shared",
-  "klaver-worker",
+  "klaver-encoding",
+  "klaver-http", "klaver-streams",
 ]
 
 

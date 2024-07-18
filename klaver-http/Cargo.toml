@@ -7,8 +7,8 @@ edition = "2021"
 reqwest = ["reggie/reqwest", "dep:reqwest"]
 
 [dependencies]
-klaver-base = { path = "../klaver-base" }
-klaver-module = { path = "../klaver-module" }
+klaver = { path = "../klaver" }
+klaver-streams = { path = "../klaver-streams" }
 rquickjs.workspace = true
 futures = { version = "0.3" }
 bytes = "1"

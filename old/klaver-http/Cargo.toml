@@ -1,0 +1,19 @@
+[package]
+name = "klaver-http"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+reqwest = ["reggie/reqwest", "dep:reqwest"]
+
+[dependencies]
+klaver-base = { path = "../klaver-base" }
+klaver-module = { path = "../klaver-module" }
+rquickjs.workspace = true
+futures = { version = "0.3" }
+bytes = "1"
+tokio = { version = "1", features = ["sync", "macros"] }
+reggie = { git = "https://github.com/fairy-render/reggie", features = ["json"] }
+
+serde_json = "1"
+reqwest = { version = "0.12", optional = true }

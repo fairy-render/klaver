@@ -2,7 +2,7 @@ pub use super::{
     cancel::Cancel, client::Client, headers::Headers, request::Request, response::Response,
 };
 
-#[rquickjs::module(rename_vars = "camelCase")]
+#[rquickjs::module]
 pub mod http_mod {
     pub use super::{Cancel, Client, Headers, Request, Response};
 

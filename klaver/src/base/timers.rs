@@ -1,10 +1,11 @@
 use std::{
+    cell::RefCell,
     ops::Add,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use rquickjs::{
-    class::Trace, function::Func, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs, Object,
+    class::Trace, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs,
     Value,
 };
 use slotmap::{new_key_type, KeyData, SlotMap};
@@ -32,7 +33,7 @@ impl<'js> FromJs<'js> for TimeId {
 
 impl<'js> IntoJs<'js> for TimeId {
     fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
-        Ok(Value::new_number(ctx.clone(), self.0.as_ffi() as f64))
+        Ok(Value::new_int(ctx.clone(), self.0.as_ffi() as i32))
     }
 }
 
@@ -48,6 +49,7 @@ struct TimeRef<'js> {
     func: Function<'js>,
     expires: Instant,
     repeat: bool,
+    duration: Duration,
 }
 
 impl<'js> Trace<'js> for TimeRef<'js> {
@@ -59,12 +61,12 @@ impl<'js> Trace<'js> for TimeRef<'js> {
 #[derive(Default)]
 #[rquickjs::class]
 pub struct Timers<'js> {
-    time_ref: SlotMap<TimeId, TimeRef<'js>>,
+    time_ref: RefCell<SlotMap<TimeId, TimeRef<'js>>>,
 }
 
 impl<'js> Trace<'js> for Timers<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        for (_, time) in &self.time_ref {
+        for (_, time) in &*self.time_ref.borrow() {
             time.trace(tracer)
         }
     }
@@ -73,144 +75,84 @@ impl<'js> Trace<'js> for Timers<'js> {
 impl<'js> Timers<'js> {
     pub fn next_time(&self) -> Instant {
         self.time_ref
+            .borrow()
             .values()
             .min_by_key(|m| m.expires)
             .map(|m| m.expires)
             .unwrap_or(Instant::now().add(Duration::from_millis(1)))
     }
 
-    pub fn process(&mut self, ctx: Ctx<'_>) -> rquickjs::Result<()> {
+    pub fn clear(&self) {
+        self.time_ref.borrow_mut().clear();
+    }
+
+    pub fn sleep(&self) -> Sleep {
+        tokio::time::sleep_until(self.next_time())
+    }
+
+    pub fn process(&self, ctx: &Ctx<'_>) -> Result<bool, Error> {
         let current = Instant::now();
 
         let ids = self
             .time_ref
+            .borrow()
             .iter()
             .filter(|(_, v)| v.expires <= current)
-            .map(|m| m.0)
+            .map(|m| (m.0, m.1.func.clone(), m.1.repeat))
             .collect::<Vec<_>>();
 
-        for id in ids {
-            self.time_ref[id].func.call::<_, ()>(())?;
-            if !self.time_ref[id].repeat {
-                self.time_ref.remove(id);
+        for (id, func, repeat) in ids {
+            func.call::<_, ()>(()).catch(ctx)?;
+            if !repeat {
+                self.time_ref.borrow_mut().remove(id);
+            } else {
+                let mut time_ref = self.time_ref.borrow_mut();
+                time_ref[id].expires = current.add(time_ref[id].duration);
             }
         }
 
-        Ok(())
+        Ok(!self.time_ref.borrow().is_empty())
     }
 }
 
-#[rquickjs::methods]
+#[rquickjs::methods(rename_all = "camelCase")]
 impl<'js> Timers<'js> {
     pub fn create_timer(
-        &mut self,
+        &self,
         func: Function<'js>,
         timeout: u64,
         repeat: bool,
     ) -> rquickjs::Result<TimeId> {
-        let id = self.time_ref.insert(TimeRef {
+        let id = self.time_ref.borrow_mut().insert(TimeRef {
             func,
             expires: Instant::now().add(Duration::from_millis(timeout)),
             repeat,
+            duration: Duration::from_millis(timeout),
         });
 
         Ok(id)
     }
 
-    pub fn clear_timer(&mut self, time_id: TimeId) -> rquickjs::Result<()> {
-        self.time_ref.remove(time_id);
+    pub fn clear_timer(&self, time_id: TimeId) -> rquickjs::Result<()> {
+        self.time_ref.borrow_mut().remove(time_id);
         Ok(())
     }
 }
 
-pub fn get_timers<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, Timers<'js>>> {
-    let core = get_core(ctx)?;
-
-    if let Ok(ret) = core.get::<_, Class<'js, Timers>>("timers") {
-        return Ok(ret);
-    };
-
-    let timers = Class::instance(ctx.clone(), Timers::default())?;
-
-    core.set("timers", timers.clone())?;
-
-    Ok(timers)
+fn get_timers<'js>(ctx: &Ctx<'js>) -> Result<Class<'js, Timers<'js>>, Error> {
+    let core = get_core(ctx).catch(ctx)?;
+    let core: rquickjs::class::Borrow<'_, '_, super::core::Core<'_>> = core.borrow();
+    Ok(core.timers())
 }
 
-pub fn poll_timers(ctx: &Ctx<'_>) -> rquickjs::Result<Sleep> {
+pub fn poll_timers(ctx: &Ctx<'_>) -> Result<Sleep, Error> {
     let timer = get_timers(ctx)?;
     let timers = timer.borrow();
-    Ok(tokio::time::sleep_until(timers.next_time()))
+    Ok(timers.sleep())
 }
 
 pub fn process_timers(ctx: &Ctx<'_>) -> Result<bool, Error> {
     let timer = get_timers(ctx)?;
-    let mut timer = timer.borrow_mut();
-    timer.process(ctx.clone()).catch(ctx)?;
-    Ok(!timer.time_ref.is_empty())
-}
-
-pub fn has_timers(ctx: &Ctx<'_>) -> rquickjs::Result<bool> {
-    let timer = get_timers(ctx)?;
-    let timer = timer.borrow();
-    Ok(!timer.time_ref.is_empty())
-}
-
-pub fn init<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
-    let globals = ctx.globals();
-
-    globals.set(
-        "setTimeout",
-        Func::from(move |ctx, cb, delay| {
-            let timers = get_timers(&ctx)?;
-            let mut timers = timers.borrow_mut();
-            timers.create_timer(cb, delay, false)
-        }),
-    )?;
-
-    globals.set(
-        "setInterval",
-        Func::from(move |ctx, cb, delay| {
-            let timers = get_timers(&ctx)?;
-            let mut timers = timers.borrow_mut();
-            timers.create_timer(cb, delay, true)
-        }),
-    )?;
-
-    globals.set(
-        "clearInterval",
-        Func::from(move |ctx, id| {
-            let timers = get_timers(&ctx)?;
-            let mut timers = timers.borrow_mut();
-            timers.clear_timer(id)
-        }),
-    )?;
-
-    globals.set(
-        "clearTimeout",
-        Func::from(move |ctx, id| {
-            let timers = get_timers(&ctx)?;
-            let mut timers = timers.borrow_mut();
-            timers.clear_timer(id)
-        }),
-    )?;
-
-    // globals.set(
-    //     "setInterval",
-    //     Func::from(move |ctx, cb, delay| set_timeout_interval(&ctx, cb, delay, true)),
-    // )?;
-
-    // globals.set(
-    //     "clearTimeout",
-    //     Func::from(move |ctx: Ctx, id: usize| clear_timeout_interval(&ctx, id)),
-    // )?;
-
-    // globals.set(
-    //     "clearInterval",
-    //     Func::from(move |ctx: Ctx, id: usize| clear_timeout_interval(&ctx, id)),
-    // )?;
-
-    // globals.set("setImmediate", Func::from(set_immediate))?;
-
-    Ok(())
+    let timers = timer.borrow();
+    timers.process(ctx)
 }

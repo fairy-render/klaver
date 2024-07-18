@@ -1,5 +1,6 @@
 use futures::TryStreamExt;
-use klaver_base::streams::{async_byte_iterator, AsyncByteIterError};
+use klaver_streams::{async_byte_iterator, AsyncByteIterError};
+// use klaver_base::streams::{async_byte_iterator, AsyncByteIterError};
 use reggie::{Body, ResponseExt};
 use rquickjs::{class::Trace, Class, Ctx, Exception, Object, Value};
 
@@ -11,6 +12,7 @@ pub struct Response<'js> {
     status: u16,
     #[qjs(get)]
     url: rquickjs::String<'js>,
+    #[qjs(get)]
     headers: Class<'js, Headers<'js>>,
     resp: Option<reggie::http::Response<Body>>,
 }
@@ -38,6 +40,10 @@ impl<'js> Response<'js> {
             headers,
             resp: Some(resp),
         })
+    }
+
+    pub fn to_reggie(&mut self) -> rquickjs::Result<reggie::Response<Body>> {
+        todo!()
     }
 }
 
@@ -87,7 +93,7 @@ impl<'js> Response<'js> {
         }
     }
 
-    pub async fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
+    pub fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
         let Some(resp) = self.resp.take() else {
             return Err(ctx.throw(Value::from_exception(Exception::from_message(
                 ctx.clone(),

@@ -10,7 +10,7 @@ export class Console implements ConsoleApi {
 	}
 
 	log(...args: unknown[]): void {
-		this.#print("info", args);
+		log(...args);
 	}
 	warn(...args: unknown[]): void {
 		this.#print("warn", args);
@@ -19,14 +19,20 @@ export class Console implements ConsoleApi {
 		this.#print("warn", args);
 	}
 
+	assert(condition?: boolean, ...data: unknown[]): void {
+		if (condition) {
+			this.log(...data);
+		}
+	}
+
 	#print(level: string, args: unknown[]) {
-		const formatted = args.map((m) => format(m)).join(", ");
+		const formatted = args.map((m) => Core.format(m)).join(" ");
 		print(`[${level}] ${formatted}`);
 	}
 }
 
 export function log(...args: unknown[]) {
-	const formatted = args.map((m) => format(m)).join(", ");
+	const formatted = args.map((m) => Core.format(m)).join(" ");
 	print(`${formatted}`);
 }
 
@@ -37,39 +43,39 @@ export default function init(global: Record<string, unknown>) {
 	});
 }
 
-function format(value: unknown, embed = false): string {
-	if (Array.isArray(value)) {
-		return formatArray(value);
-	}
+// function format(value: unknown, embed = false): string {
+// 	if (Array.isArray(value)) {
+// 		return formatArray(value);
+// 	}
 
-	switch (typeof value) {
-		case "string":
-			return embed ? `"${value}"` : value;
-		case "number":
-		case "undefined":
-			return `${value}`;
-		case "function":
-			return `<Function ${value.name}>`;
-		case "object":
-			return formatObject(value);
-	}
-}
+// 	switch (typeof value) {
+// 		case "string":
+// 			return embed ? `"${value}"` : value;
+// 		case "number":
+// 		case "undefined":
+// 			return `${value}`;
+// 		case "function":
+// 			return `<Function ${value.name}>`;
+// 		case "object":
+// 			return formatObject(value);
+// 	}
+// }
 
-function formatObject(value: object) {
-	let output = "{";
-	let count = 0;
-	for (const key in value) {
-		if (count++ > 0) {
-			output += ",";
-		}
-		output += ` ${format(key, true)}: ${format(value[key], true)}`;
-	}
+// function formatObject(value: object) {
+// 	let output = "{";
+// 	let count = 0;
+// 	for (const key in value) {
+// 		if (count++ > 0) {
+// 			output += ",";
+// 		}
+// 		output += ` ${format(key, true)}: ${format(value[key], true)}`;
+// 	}
 
-	output += " }";
+// 	output += " }";
 
-	return output;
-}
+// 	return output;
+// }
 
-function formatArray(value: unknown[]) {
-	return `[${value.map((m) => format(m, true)).join(", ")}]`;
-}
+// function formatArray(value: unknown[]) {
+// 	return `[${value.map((m) => format(m, true)).join(", ")}]`;
+// }
