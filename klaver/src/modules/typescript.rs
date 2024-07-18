@@ -108,7 +108,7 @@ impl Default for TsLoader {
                 "js".to_string(),
                 "jsx".to_string(),
                 "ts".to_string(),
-                "jsx".to_string(),
+                "tsx".to_string(),
             ],
             compiler: Compiler::new(),
         }
