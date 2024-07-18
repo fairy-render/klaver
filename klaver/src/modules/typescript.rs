@@ -8,10 +8,8 @@ use swc_ecma_parser::Syntax;
 use swc_ecma_parser::TsSyntax;
 use swc_ecma_transforms_base::resolver;
 use swc_ecma_transforms_react::Runtime;
-use swc_ecma_transforms_react::{jsx, parse_expr_for_jsx, Options};
+use swc_ecma_transforms_react::{jsx, Options};
 use swc_ecma_transforms_typescript::strip;
-use swc_ecma_transforms_typescript::tsx;
-use swc_ecma_transforms_typescript::{Config, TsxConfig};
 use swc_ecma_visit::FoldWith;
 
 use crate::Error;
