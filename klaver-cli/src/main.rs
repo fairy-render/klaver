@@ -1,23 +1,44 @@
+use std::path::PathBuf;
+
 use klaver::{
+    modules::typescript::Compiler,
     quick::{CatchResultExt, Module},
     vm::VmOptions,
 };
 
+use clap::{Parser, Subcommand};
+
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    path: Option<PathBuf>,
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// does testing things
+    Compile {
+        /// lists test values
+        path: PathBuf,
+    },
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    /*let runtime = AsyncRuntime::new()?;
-    let context = AsyncContext::full(&runtime).await?;
+    let cli = Cli::parse();
 
-    let mut modules = Modules::default();
-
-    modules.register::<klaver_os::env::Moodule>("@klaver/env");
-    modules.register::<klaver_os::shell::Module>("@klaver/shell");
-    modules.register::<klaver_http::Module>("@klaver/http");
-    modules.register::<klaver_base::Module>("@klaver/base");
-
-    modules.add_search_path(std::env::current_dir().unwrap().display().to_string());
-
-    modules.attach(&runtime).await;*/
+    match cli.command {
+        Some(Commands::Compile { path }) => {
+            let compiler = Compiler::new();
+            let content = tokio::fs::read_to_string(&path).await?;
+            let source = compiler.compile(&path.display().to_string(), &content)?;
+            println!("{}", source.code);
+            return Ok(());
+        }
+        _ => {}
+    }
 
     let vm = VmOptions::default()
         .search_path(".")

@@ -11,6 +11,7 @@ path = "src/main.rs"
 klaver = { path = "../klaver", features = ["typescript"] }
 klaver-compat = { path = "../klaver-compat" }
 klaver-encoding = { path = "../klaver-encoding" }
+clap = { version = "4", features = ["derive"] }
 
 
-tokio = { version = "1", features = ["rt", "macros"] }
+tokio = { version = "1", features = ["rt", "macros", "fs"] }
