@@ -1,4 +1,4 @@
-import { Headers, type Method } from "@klaver/http";
+import { Headers, type Method, Request as KlaverRequest } from "@klaver/http";
 import { URL } from "./url.js";
 import type { AbortSignal } from "abort-controller";
 import { Body } from "./body.js";
@@ -25,7 +25,11 @@ export class Request extends Body {
 	constructor(input: Request | string | URL, init: RequestInit = {}) {
 		super(
 			init.body ??
-				(input && input instanceof Request ? input.body : new ReadableStream()),
+				(input && input instanceof Request
+					? input.body
+					: input && input instanceof KlaverRequest
+						? input.stream()
+						: void 0),
 		);
 
 		if (input && input instanceof Request) {

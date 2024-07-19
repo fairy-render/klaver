@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = ["reqwest"]
 reqwest = ["reggie/reqwest", "dep:reqwest"]
 
 [dependencies]

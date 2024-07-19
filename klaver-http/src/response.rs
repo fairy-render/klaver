@@ -1,8 +1,10 @@
 use futures::TryStreamExt;
+use klaver::{throw, throw_if};
 use klaver_streams::{async_byte_iterator, AsyncByteIterError};
 // use klaver_base::streams::{async_byte_iterator, AsyncByteIterError};
 use reggie::{Body, ResponseExt};
-use rquickjs::{class::Trace, Class, Ctx, Exception, Object, Value};
+use reqwest::{ResponseBuilderExt, Url, Version};
+use rquickjs::{class::Trace, function::Opt, Class, Ctx, Exception, FromJs, Object, Value};
 
 use crate::module::Headers;
 
@@ -14,7 +16,8 @@ pub struct Response<'js> {
     url: rquickjs::String<'js>,
     #[qjs(get)]
     headers: Class<'js, Headers<'js>>,
-    resp: Option<reggie::http::Response<Body>>,
+    body: Option<Body>,
+    version: reggie::http::Version,
 }
 
 impl<'js> Trace<'js> for Response<'js> {
@@ -30,44 +33,103 @@ impl<'js> Response<'js> {
         url: &str,
         mut resp: reggie::http::Response<Body>,
     ) -> rquickjs::Result<Response<'js>> {
-        let status = resp.status();
+        let (parts, body) = resp.into_parts();
+
+        let status = parts.status;
         let url = rquickjs::String::from_str(ctx.clone(), url)?;
-        let headers = Headers::from_headers(&ctx, std::mem::take(resp.headers_mut()))?;
+        let headers = Headers::from_headers(&ctx, parts.headers)?;
 
         Ok(Response {
             status: status.as_u16(),
             url,
             headers,
-            resp: Some(resp),
+            body: body.into(),
+            version: parts.version,
         })
     }
 
-    pub fn to_reggie(&mut self) -> rquickjs::Result<reggie::Response<Body>> {
-        todo!()
+    pub fn to_reggie(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<reggie::Response<Body>> {
+        let mut builder = reggie::http::Response::builder()
+            .status(self.status)
+            .url(throw_if!(ctx, Url::parse(&self.url.to_string()?)))
+            .version(self.version);
+
+        for (k, vals) in self.headers.borrow().inner.iter() {
+            for v in vals {
+                builder = builder.header(k, v.to_string()?);
+            }
+        }
+
+        let body = self
+            .take_body(ctx.clone())
+            .unwrap_or_else(|_| Body::empty());
+        let resp = throw_if!(ctx, builder.body(body));
+
+        Ok(resp)
+    }
+
+    fn take_body(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Body> {
+        let Some(body) = self.body.take() else {
+            throw!(ctx, "body is exhausted")
+        };
+
+        Ok(body)
+    }
+}
+
+pub struct ResponseOptions<'js> {
+    status: Option<u16>,
+    headers: Option<Class<'js, Headers<'js>>>,
+}
+
+impl<'js> FromJs<'js> for ResponseOptions<'js> {
+    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+        let Some(object) = value.as_object() else {
+            return Err(rquickjs::Error::new_from_js(value.type_name(), "object"));
+        };
+
+        Ok(ResponseOptions {
+            status: object.get("stataus")?,
+            headers: object.get("headers")?,
+        })
     }
 }
 
 #[rquickjs::methods]
 impl<'js> Response<'js> {
     #[qjs(constructor)]
-    pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<Self> {
+    pub fn new(
+        ctx: Ctx<'js>,
+        body: Opt<rquickjs::ArrayBuffer<'js>>,
+        options: Opt<ResponseOptions<'js>>,
+    ) -> rquickjs::Result<Self> {
+        let body = body
+            .0
+            .as_ref()
+            .and_then(|m| m.as_bytes())
+            .and_then(|m| Some(Body::from(m.to_vec())));
+
+        let (status, headers) = match options.0 {
+            Some(ret) => (ret.status.unwrap_or(200), ret.headers),
+            None => (200, None),
+        };
+
         Ok(Response {
-            status: 200,
+            status,
             url: rquickjs::String::from_str(ctx.clone(), "")?,
-            headers: Class::instance(ctx.clone(), Headers::default())?,
-            resp: None,
+            headers: match headers {
+                Some(header) => header,
+                None => Class::instance(ctx.clone(), Headers::default())?,
+            },
+            body,
+            version: Version::HTTP_11,
         })
     }
 
     pub async fn text(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<String> {
-        let Some(resp) = self.resp.take() else {
-            return Err(ctx.throw(Value::from_exception(Exception::from_message(
-                ctx.clone(),
-                "body is exhausted",
-            )?)));
-        };
+        let body = self.take_body(ctx.clone())?;
 
-        match resp.text().await {
+        match reggie::body::to_text(body).await {
             Ok(ret) => Ok(ret),
             Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
                 ctx.clone(),
@@ -77,14 +139,9 @@ impl<'js> Response<'js> {
     }
 
     pub async fn json(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
-        let Some(resp) = self.resp.take() else {
-            return Err(ctx.throw(Value::from_exception(Exception::from_message(
-                ctx.clone(),
-                "body is exhausted",
-            )?)));
-        };
+        let body = self.take_body(ctx.clone())?;
 
-        match resp.json::<serde_json::Value>().await {
+        match reggie::body::to_json::<serde_json::Value, _>(body).await {
             Ok(ret) => Ok(crate::convert::from_json(ctx.clone(), ret)?),
             Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
                 ctx.clone(),
@@ -94,15 +151,9 @@ impl<'js> Response<'js> {
     }
 
     pub fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
-        let Some(resp) = self.resp.take() else {
-            return Err(ctx.throw(Value::from_exception(Exception::from_message(
-                ctx.clone(),
-                "body is exhausted",
-            )?)));
-        };
+        let body = self.take_body(ctx.clone())?;
 
-        let stream = resp.bytes_stream();
-
+        let stream = reggie::body::to_stream(body);
         let stream = stream
             .map_ok(|m| m.to_vec())
             .map_err(|_| AsyncByteIterError);

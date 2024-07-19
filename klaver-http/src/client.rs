@@ -34,7 +34,7 @@ impl Client {
         ctx: Ctx<'js>,
         request: Class<'js, Request<'js>>,
     ) -> rquickjs::Result<Class<'js, Response<'js>>> {
-        let req = request.borrow();
+        let mut req = request.borrow_mut();
         let (req, cancel) = req.into_request(ctx.clone()).await?;
 
         let url = req.uri().clone();

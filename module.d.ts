@@ -67,7 +67,7 @@ declare module "@klaver/http" {
 	}
 
 	export interface RequestInit {
-		body?: any;
+		body?: ArrayBuffer;
 		method?: Method;
 		headers?: Headers | Record<string, string>;
 		cancel?: Cancel;
@@ -77,6 +77,10 @@ declare module "@klaver/http" {
 		readonly url: string;
 		readonly method: Method;
 		constructor(url: string, opts?: RequestInit);
+
+		text(): Promise<string>;
+		json<T = unknown>(): Promise<T>;
+		stream(): AsyncIterable<ArrayBuffer>;
 	}
 
 	export class Response {
@@ -85,6 +89,7 @@ declare module "@klaver/http" {
 		readonly headers: Headers;
 
 		text(): Promise<string>;
+		json<T = unknown>(): Promise<T>;
 		stream(): AsyncIterable<ArrayBuffer>;
 	}
 

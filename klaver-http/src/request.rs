@@ -1,8 +1,13 @@
 use core::fmt;
-
+use futures::TryStreamExt;
+use klaver::{throw, throw_if};
+use klaver_streams::{async_byte_iterator, AsyncByteIterError};
 use reggie::Body;
 // use reqwest::{Client, Response};
-use rquickjs::{class::Trace, function::Opt, Class, Ctx, Error, FromJs, IntoJs, Value};
+use rquickjs::{
+    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, IntoJs, Object,
+    Value,
+};
 use tokio::sync::oneshot::Receiver;
 
 use crate::{headers::Headers, module::Cancel};
@@ -70,7 +75,7 @@ impl<'js> FromJs<'js> for Method {
 pub struct Options<'js> {
     cancel: Option<Class<'js, Cancel>>,
     method: Option<Method>,
-    body: (),
+    body: Option<ArrayBuffer<'js>>,
     headers: Option<Class<'js, Headers<'js>>>,
 }
 
@@ -91,12 +96,12 @@ impl<'js> FromJs<'js> for Options<'js> {
             cancel,
             method,
             headers,
-            body: (),
+            body: obj.get("body")?,
         })
     }
 }
 
-#[derive(Trace)]
+// #[derive(Trace)]
 #[rquickjs::class]
 pub struct Request<'js> {
     #[qjs(get)]
@@ -107,61 +112,22 @@ pub struct Request<'js> {
     cancel: Option<Class<'js, Cancel>>,
     #[qjs(get)]
     headers: Class<'js, Headers<'js>>,
+    body: Option<Body>,
+}
+
+impl<'js> Trace<'js> for Request<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.url.trace(tracer);
+        self.method.trace(tracer);
+        self.cancel.trace(tracer);
+        self.headers.trace(tracer);
+    }
 }
 
 impl<'js> Request<'js> {
-    // pub async fn exec(&self, ctx: Ctx<'js>, client: &Client) -> rquickjs::Result<Response> {
-    //     let url = self.url.to_string()?;
-
-    //     let mut builder = reggie::http::Request::builder();
-    //     let mut builder = match self.method {
-    //         Method::GET => builder.method("GET"),
-    //         Method::POST => builder.me,
-    //         Method::PUT => client.put(url),
-    //         Method::DELETE => client.delete(url),
-    //         Method::HEAD => client.head(url),
-    //         Method::OPTION => client.request(reqwest::Method::OPTIONS, url),
-    //     };
-
-    //     for (k, vals) in self.headers.borrow().inner.iter() {
-    //         for v in vals {
-    //             builder = builder.header(k, v.to_string()?);
-    //         }
-    //     }
-
-    //     let run = || async {
-    //         let resp = match builder.send().await {
-    //             Ok(ret) => ret,
-    //             Err(err) => {
-    //                 return Err(ctx.throw(Value::from_exception(Exception::from_message(
-    //                     ctx.clone(),
-    //                     &err.to_string(),
-    //                 )?)))
-    //             }
-    //         };
-
-    //         Ok(resp)
-    //     };
-    //     if let Some(mut cancel) = self.cancel.as_ref().and_then(|m| m.borrow_mut().create()) {
-    //         tokio::select! {
-    //             _ = &mut cancel => {
-    //                  Err(ctx.throw(Value::from_exception(Exception::from_message(
-    //                     ctx.clone(),
-    //                     "CANCEL",
-    //                 )?)))
-    //             }
-    //             resp = run() => {
-    //                  resp
-    //             }
-    //         }
-    //     } else {
-    //         run().await
-    //     }
-    // }
-
-    pub fn from_request<B>(
+    pub fn from_request(
         ctx: &Ctx<'js>,
-        request: reggie::http::Request<B>,
+        request: reggie::http::Request<Body>,
     ) -> rquickjs::Result<Class<'js, Request<'js>>> {
         let (parts, body) = request.into_parts();
 
@@ -186,12 +152,13 @@ impl<'js> Request<'js> {
                 method,
                 headers,
                 cancel: None,
+                body: Some(body),
             },
         )
     }
 
     pub async fn into_request(
-        &self,
+        &mut self,
         ctx: Ctx<'js>,
     ) -> rquickjs::Result<(reggie::http::Request<Body>, Option<Receiver<()>>)> {
         let mut url = self.url.to_string()?;
@@ -212,7 +179,20 @@ impl<'js> Request<'js> {
 
         let cancel = self.cancel.as_ref().and_then(|m| m.borrow_mut().create());
 
-        Ok((builder.body(Body::empty()).unwrap(), cancel))
+        let body = self
+            .take_body(ctx.clone())
+            .unwrap_or_else(|_| Body::empty());
+
+        let body = throw_if!(ctx, builder.body(body));
+        Ok((body, cancel))
+    }
+
+    fn take_body(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Body> {
+        let Some(body) = self.body.take() else {
+            throw!(ctx, "body is exhausted")
+        };
+
+        Ok(body)
     }
 }
 
@@ -224,11 +204,16 @@ impl<'js> Request<'js> {
         url: rquickjs::String<'js>,
         Opt(opts): Opt<Options<'js>>,
     ) -> rquickjs::Result<Self> {
-        let (method, headers, cancel) = if let Some(opts) = opts {
-            (opts.method, opts.headers, opts.cancel)
+        let (method, headers, cancel, body) = if let Some(opts) = opts {
+            (opts.method, opts.headers, opts.cancel, opts.body)
         } else {
-            (None, None, None)
+            (None, None, None, None)
         };
+
+        let body = body
+            .as_ref()
+            .and_then(|m| m.as_bytes())
+            .and_then(|m| Some(Body::from(m.to_vec())));
 
         Ok(Request {
             url,
@@ -238,6 +223,42 @@ impl<'js> Request<'js> {
                 Some(ret) => ret,
                 None => Class::instance(ctx.clone(), Headers::default())?,
             },
+            body,
         })
+    }
+
+    pub async fn text(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<String> {
+        let body = self.take_body(ctx.clone())?;
+
+        match reggie::body::to_text(body).await {
+            Ok(ret) => Ok(ret),
+            Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
+                ctx.clone(),
+                &err.to_string(),
+            )?))),
+        }
+    }
+
+    pub async fn json(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
+        let body = self.take_body(ctx.clone())?;
+
+        match reggie::body::to_json::<serde_json::Value, _>(body).await {
+            Ok(ret) => Ok(crate::convert::from_json(ctx.clone(), ret)?),
+            Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
+                ctx.clone(),
+                &err.to_string(),
+            )?))),
+        }
+    }
+
+    pub fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
+        let body = self.take_body(ctx.clone())?;
+
+        let stream = reggie::body::to_stream(body);
+        let stream = stream
+            .map_ok(|m| m.to_vec())
+            .map_err(|_| AsyncByteIterError);
+
+        async_byte_iterator(ctx, stream)
     }
 }

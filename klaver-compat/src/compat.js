@@ -1,4 +1,4 @@
-import { Headers, Response as Response$1, Cancel } from '@klaver/http';
+import { Request as Request$1, Headers, Response as Response$1, Cancel } from '@klaver/http';
 import { TextDecoder as TextDecoder$1 } from '@klaver/encoding';
 
 function writeProp(out, name, value) {
@@ -1404,20 +1404,20 @@ class Body {
         return this.#used;
     }
     constructor(body, length) {
-        if (body instanceof ReadableStream$1) {
+        if (body && body instanceof ReadableStream$1) {
             this.#body = body;
         }
-        else if (body[Symbol.asyncIterator]) {
+        else if (body?.[Symbol.asyncIterator]) {
             // const iter = body[Symbol.asyncIterator]();
             let stream;
             this.#body = new ReadableStream$1({
                 async pull(controller) {
                     const { done, value } = await stream.next();
+                    if (value) {
+                        controller.enqueue(value);
+                    }
                     if (done) {
                         controller.close();
-                    }
-                    else {
-                        controller.enqueue(value);
                     }
                 },
                 async start(controller) {
@@ -1425,7 +1425,16 @@ class Body {
                 },
             });
         }
-        else {
+        else if (body && body instanceof ArrayBuffer) {
+            this.#body = new ReadableStream$1({
+                async pull(controller) {
+                    controller.enqueue(body);
+                    controller.close();
+                },
+            });
+        }
+        else if (body != null) {
+            // console.log(body);
             throw new TypeError(`Body type "${typeof body}" is not implemented`);
         }
         this.#body ??= new ReadableStream$1();
@@ -1465,7 +1474,11 @@ class Request extends Body {
     }
     constructor(input, init = {}) {
         super(init.body ??
-            (input && input instanceof Request ? input.body : new ReadableStream$1()));
+            (input && input instanceof Request
+                ? input.body
+                : input && input instanceof Request$1
+                    ? input.stream()
+                    : void 0));
         if (input && input instanceof Request) {
             this.#url = input.#url;
             this.#headers = input.#headers;
@@ -1502,6 +1515,25 @@ class Response extends Body {
         if (body && body instanceof Response$1) {
             this.#status = body.status;
             this.#headers = body.headers;
+        }
+        if (init?.headers) {
+            if (init.headers instanceof Headers) {
+                this.#headers = init.headers;
+            }
+            else if (Array.isArray(init.headers)) {
+                const headers = new Headers();
+                for (const [k, v] of init.headers) {
+                    headers.append(k, v);
+                }
+                this.#headers = headers;
+            }
+            else {
+                const headers = new Headers();
+                for (const k in init.headers) {
+                    headers.append(k, init.headers[k]);
+                }
+                this.#headers = headers;
+            }
         }
     }
 }
@@ -1668,8 +1700,8 @@ async function main(global) {
         },
         clearInterval: Core.timers.clearTimer.bind(Core.timers),
     });
-    const { TextEncoder, TextDecoder } = await import('@klaver/encoding');
-    writeProps(global, { TextDecoder, TextEncoder });
+    const { TextEncoder, TextDecoder, btoa, atob } = await import('@klaver/encoding');
+    writeProps(global, { TextDecoder, TextEncoder, btoa, atob });
     init$3(global);
     init$1(global);
     await init$2(global);

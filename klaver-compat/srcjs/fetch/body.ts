@@ -17,25 +17,34 @@ export abstract class Body {
 	}
 
 	constructor(body: BodyInit | AsyncIterable<ArrayBuffer>, length?: number) {
-		if (body instanceof ReadableStream) {
+		if (body && body instanceof ReadableStream) {
 			this.#body = body;
-		} else if (body[Symbol.asyncIterator]) {
+		} else if (body?.[Symbol.asyncIterator]) {
 			// const iter = body[Symbol.asyncIterator]();
 			let stream: AsyncIterator<ArrayBuffer>;
 			this.#body = new ReadableStream({
 				async pull(controller) {
 					const { done, value } = await stream.next();
+					if (value) {
+						controller.enqueue(value);
+					}
 					if (done) {
 						controller.close();
-					} else {
-						controller.enqueue(value);
 					}
 				},
 				async start(controller) {
 					stream = body[Symbol.asyncIterator]();
 				},
 			});
-		} else {
+		} else if (body && body instanceof ArrayBuffer) {
+			this.#body = new ReadableStream({
+				async pull(controller) {
+					controller.enqueue(body);
+					controller.close();
+				},
+			});
+		} else if (body != null) {
+			// console.log(body);
 			throw new TypeError(`Body type "${typeof body}" is not implemented`);
 		}
 
