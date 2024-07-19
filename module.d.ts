@@ -85,10 +85,22 @@ declare module "@klaver/http" {
 		stream(): AsyncIterable<ArrayBuffer>;
 	}
 
+	export type HeadersInit =
+		| [string, string][]
+		| Record<string, string>
+		| Headers;
+
+	export interface ResponseInit {
+		status?: number;
+		headers?: HeadersInit;
+	}
+
 	export class Response {
 		readonly url: string;
 		readonly status: number;
 		readonly headers: Headers;
+
+		constructor(body?: ArrayBuffer, options?: ResponseInit);
 
 		text(): Promise<string>;
 		json<T = unknown>(): Promise<T>;

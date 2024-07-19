@@ -1558,6 +1558,13 @@ class Response extends Body {
             }
         }
     }
+    async toKlaver() {
+        const body = await this.arrayBuffer();
+        return new Response$1(body, {
+            status: this.status,
+            headers: this.headers,
+        });
+    }
 }
 
 async function init$2(global) {

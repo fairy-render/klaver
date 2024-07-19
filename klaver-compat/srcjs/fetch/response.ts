@@ -45,4 +45,12 @@ export class Response extends Body {
 			}
 		}
 	}
+
+	async toKlaver() {
+		const body = await this.arrayBuffer();
+		return new KlaverResponse(body, {
+			status: this.status,
+			headers: this.headers,
+		});
+	}
 }
