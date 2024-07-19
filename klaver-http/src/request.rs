@@ -5,6 +5,7 @@ use klaver::{throw, throw_if};
 use klaver_streams::{async_byte_iterator, AsyncByteIterError};
 use reggie::Body;
 // use reqwest::{Client, Response};
+use reggie::http_body_util::BodyExt;
 use rquickjs::{
     class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, IntoJs, Object,
     Value,
@@ -131,7 +132,7 @@ impl<'js> Request<'js> {
         request: reggie::http::Request<B>,
     ) -> rquickjs::Result<Class<'js, Request<'js>>>
     where
-        B::Error: Into<reggie::Error>,
+        B::Error: std::error::Error + Send + Sync + 'static,
         B::Data: Into<Bytes>,
     {
         let (parts, body) = request.into_parts();
@@ -150,7 +151,7 @@ impl<'js> Request<'js> {
 
         let headers = Headers::from_headers(ctx, parts.headers)?;
 
-        let body = Body::from_streaming(body);
+        let body = Body::from_streaming(body.map_err(|err| reggie::Error::conn(err)));
 
         Class::instance(
             ctx.clone(),
