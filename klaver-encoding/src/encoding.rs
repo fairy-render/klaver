@@ -2,7 +2,7 @@ use core::fmt;
 use klaver::module_info;
 use rquickjs::{
     class::Trace,
-    function::Opt,
+    function::{Func, Opt},
     module::{Declarations, Exports, ModuleDef},
     Class, Ctx, Exception, Result, Value,
 };
@@ -26,6 +26,8 @@ impl ModuleDef for Encoding {
     fn declare<'js>(decl: &Declarations<'js>) -> Result<()> {
         decl.declare("TextDecoder")?;
         decl.declare("TextEncoder")?;
+        decl.declare("atob")?;
+        decl.declare("btoa")?;
         Ok(())
     }
 
@@ -35,6 +37,9 @@ impl ModuleDef for Encoding {
 
         exports.export("TextDecoder", Class::<TextDecoder>::create_constructor(ctx))?;
         exports.export("TextEncoder", Class::<TextEncoder>::create_constructor(ctx))?;
+
+        exports.export("atob", Func::new(crate::b64::atob))?;
+        exports.export("btoa", Func::new(crate::b64::btoa))?;
 
         Ok(())
     }

@@ -105,6 +105,9 @@ declare module "@klaver/encoding" {
 		readonly encoding: string;
 		decode(input: ArrayBuffer): string;
 	}
+
+	export function atob(input: string): string;
+	export function btoa(input: string): string;
 }
 
 declare function print(...args: unknown[]): void;

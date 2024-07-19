@@ -8,6 +8,8 @@ mod state;
 mod utils;
 pub mod vm;
 
+mod macros;
+
 pub mod core {
     pub use super::base::{get_core, Core, Extensions};
 }

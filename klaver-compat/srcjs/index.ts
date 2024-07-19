@@ -20,9 +20,11 @@ export default async function main(global: Record<string, unknown>) {
 		clearInterval: Core.timers.clearTimer.bind(Core.timers),
 	});
 
-	const { TextEncoder, TextDecoder } = await import("@klaver/encoding");
+	const { TextEncoder, TextDecoder, btoa, atob } = await import(
+		"@klaver/encoding"
+	);
 
-	writeProps(global, { TextDecoder, TextEncoder });
+	writeProps(global, { TextDecoder, TextEncoder, btoa, atob });
 
 	console(global);
 	stream(global);
