@@ -25,7 +25,7 @@ impl<'js> Trace<'js> for Response<'js> {
 }
 
 impl<'js> Response<'js> {
-    pub fn from_reqest(
+    pub fn from_response(
         ctx: Ctx<'js>,
         url: &str,
         mut resp: reggie::http::Response<Body>,

@@ -71,7 +71,7 @@ impl Client {
 
         Class::instance(
             ctx.clone(),
-            Response::from_reqest(ctx.clone(), &url.to_string(), resp)?,
+            Response::from_response(ctx.clone(), &url.to_string(), resp)?,
         )
     }
 }
