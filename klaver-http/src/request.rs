@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use core::fmt;
 use futures::TryStreamExt;
 use klaver::{throw, throw_if};
@@ -125,10 +126,14 @@ impl<'js> Trace<'js> for Request<'js> {
 }
 
 impl<'js> Request<'js> {
-    pub fn from_request(
+    pub fn from_request<B: reggie::http_body::Body + Send + 'static>(
         ctx: &Ctx<'js>,
-        request: reggie::http::Request<Body>,
-    ) -> rquickjs::Result<Class<'js, Request<'js>>> {
+        request: reggie::http::Request<B>,
+    ) -> rquickjs::Result<Class<'js, Request<'js>>>
+    where
+        B::Error: Into<reggie::Error>,
+        B::Data: Into<Bytes>,
+    {
         let (parts, body) = request.into_parts();
 
         let url = rquickjs::String::from_str(ctx.clone(), &parts.uri.to_string())?;
@@ -144,6 +149,8 @@ impl<'js> Request<'js> {
         };
 
         let headers = Headers::from_headers(ctx, parts.headers)?;
+
+        let body = Body::from_streaming(body);
 
         Class::instance(
             ctx.clone(),
