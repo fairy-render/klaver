@@ -51,7 +51,7 @@ impl<'js> Response<'js> {
     pub fn to_reggie(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<reggie::Response<Body>> {
         let mut builder = reggie::http::Response::builder()
             .status(self.status)
-            .url(throw_if!(ctx, Url::parse(&self.url.to_string()?)))
+            // .url(throw_if!(ctx, Url::parse(&self.url.to_string()?)))
             .version(self.version);
 
         for (k, vals) in self.headers.borrow().inner.iter() {
