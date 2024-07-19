@@ -16,7 +16,9 @@ export class Response extends Body {
 		super(
 			body && body instanceof KlaverResponse
 				? body.stream()
-				: new ReadableStream(),
+				: body && body instanceof Response
+					? body.body
+					: (body as any),
 		);
 
 		if (body && body instanceof KlaverResponse) {

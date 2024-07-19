@@ -63,7 +63,9 @@ declare module "@klaver/http" {
 		| "OPTION";
 
 	class Headers {
-		append(key: string, value: string);
+		append(key: string, value: string): void;
+		get(key: string): string;
+		has(key: string): boolean;
 	}
 
 	export interface RequestInit {

@@ -36,4 +36,12 @@ impl<'js> Headers<'js> {
     pub fn append(&mut self, key: String, value: rquickjs::String<'js>) {
         self.inner.entry(key).or_default().push(value);
     }
+
+    pub fn get(&self, key: String) -> rquickjs::Result<Option<rquickjs::String<'js>>> {
+        Ok(self.inner.get(&key).and_then(|m| m.first()).cloned())
+    }
+
+    pub fn has(&self, key: String) -> rquickjs::Result<bool> {
+        Ok(self.inner.contains_key(&key))
+    }
 }

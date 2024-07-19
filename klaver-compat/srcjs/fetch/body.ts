@@ -1,8 +1,9 @@
-import { TextDecoder } from "@klaver/encoding";
+import { TextDecoder, TextEncoder } from "@klaver/encoding";
 import { TextDecoderStream } from "@stardazed/streams-text-encoding";
 import { ReadableStream, type Transformer } from "web-streams-polyfill";
 
 const DECODER = new TextDecoder();
+const ENCODER = new TextEncoder();
 
 export abstract class Body {
 	#body: ReadableStream<ArrayBuffer>;
@@ -19,6 +20,32 @@ export abstract class Body {
 	constructor(body: BodyInit | AsyncIterable<ArrayBuffer>, length?: number) {
 		if (body && body instanceof ReadableStream) {
 			this.#body = body;
+		} else if (body && body instanceof ArrayBuffer) {
+			this.#body = new ReadableStream({
+				async pull(controller) {
+					controller.enqueue(body);
+					controller.close();
+				},
+			});
+		} else if (typeof body === "string") {
+			this.#body = new ReadableStream({
+				async pull(controller) {
+					controller.enqueue(ENCODER.encode(body).buffer);
+					controller.close();
+				},
+			});
+		} else if (
+			body &&
+			(body instanceof Uint8Array ||
+				body instanceof Uint16Array ||
+				body instanceof Uint32Array)
+		) {
+			this.#body = new ReadableStream({
+				async pull(controller) {
+					controller.enqueue(body.buffer);
+					controller.close();
+				},
+			});
 		} else if (body?.[Symbol.asyncIterator]) {
 			// const iter = body[Symbol.asyncIterator]();
 			let stream: AsyncIterator<ArrayBuffer>;
@@ -36,15 +63,8 @@ export abstract class Body {
 					stream = body[Symbol.asyncIterator]();
 				},
 			});
-		} else if (body && body instanceof ArrayBuffer) {
-			this.#body = new ReadableStream({
-				async pull(controller) {
-					controller.enqueue(body);
-					controller.close();
-				},
-			});
 		} else if (body != null) {
-			// console.log(body);
+			console.log(body);
 			throw new TypeError(`Body type "${typeof body}" is not implemented`);
 		}
 

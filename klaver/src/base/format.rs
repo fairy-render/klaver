@@ -1,8 +1,5 @@
-use rquickjs::{
-    function::{Opt},
-    Ctx, FromJs, Object, Type, Value,
-};
-use std::{fmt::Write};
+use rquickjs::{function::Opt, promise::PromiseState, Ctx, FromJs, Object, Type, Value};
+use std::fmt::Write;
 
 #[derive(Debug, Clone, Default)]
 pub struct FormatOptions {
@@ -59,8 +56,20 @@ pub fn format_value<'js, W: Write>(
         }
         Type::Array => todo!(),
         Type::Constructor => todo!(),
-        Type::Function => todo!(),
-        Type::Promise => todo!(),
+        Type::Function => {
+            let func = rest.into_object().unwrap();
+            write!(f, "Function[name = {}]", func.get::<_, String>("name")?)
+        }
+        Type::Promise => {
+            let rest = rest.into_promise().unwrap();
+            let state = match rest.state() {
+                PromiseState::Pending => "pending",
+                PromiseState::Rejected => "rejected",
+                PromiseState::Resolved => "resolved",
+            };
+
+            write!(f, "Promise[state = {state}]")
+        }
         Type::Exception => todo!(),
         Type::Object => {
             format_object(ctx, rest.into_object().unwrap(), f, options)?;
@@ -81,6 +90,14 @@ fn format_object<'js, W: Write>(
     o: &mut W,
     options: &FormatOptions,
 ) -> rquickjs::Result<()> {
+    if let Some(buffer) = rquickjs::ArrayBuffer::from_object(obj.clone()) {
+        write!(o, "ArrayBuffer[len = {}]", buffer.len());
+        return Ok(());
+    } else if let Ok(buffer) = rquickjs::TypedArray::<u8>::from_object(obj.clone()) {
+        write!(o, "UInt8Array[len = {}]", buffer.len());
+        return Ok(());
+    }
+
     o.write_str("{ ");
     for (idx, v) in obj.props::<Value, Value>().enumerate() {
         if idx > 0 {
