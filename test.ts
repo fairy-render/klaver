@@ -1,4 +1,3 @@
-/// <reference path="module.d.ts" />
 import { EXPORT } from "./import.ts";
 
 const i = setInterval(() => {
