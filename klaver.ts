@@ -1,4 +1,5 @@
 import { Client, Request } from "@klaver/http";
+import { sh } from "@klaver/os";
 
 const client = new Client();
 

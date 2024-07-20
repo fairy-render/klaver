@@ -7,7 +7,7 @@ members = [
   "klaver-cli",
   "klaver-compat", "klaver-crypto",
   "klaver-encoding",
-  "klaver-http", "klaver-streams",
+  "klaver-http", "klaver-os", "klaver-shared", "klaver-streams",
 ]
 
 

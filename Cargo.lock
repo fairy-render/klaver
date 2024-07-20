@@ -1084,7 +1084,7 @@ dependencies = [
  "clap",
  "klaver",
  "klaver-compat",
- "klaver-encoding",
+ "klaver-os",
  "tokio",
 ]
 
@@ -1134,6 +1134,26 @@ dependencies = [
  "rquickjs",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "klaver-os"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "klaver",
+ "klaver-streams",
+ "rquickjs",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+]
+
+[[package]]
+name = "klaver-shared"
+version = "0.1.0"
+dependencies = [
+ "rquickjs",
 ]
 
 [[package]]
@@ -2122,6 +2142,15 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "signal-hook-registry"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9e9e0b4211b72e7b8b6e85c807d36c212bdb33ea8587f7569562a84df5465b1"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -3363,6 +3392,7 @@ dependencies = [
  "libc",
  "mio",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys 0.48.0",
@@ -3397,6 +3427,17 @@ checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
 dependencies = [
  "rustls",
  "rustls-pki-types",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-stream"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "267ac89e0bec6e691e5813911606935d77c476ff49024f98abcea3e7b15e37af"
+dependencies = [
+ "futures-core",
+ "pin-project-lite",
  "tokio",
 ]
 

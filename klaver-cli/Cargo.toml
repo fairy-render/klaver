@@ -10,7 +10,8 @@ path = "src/main.rs"
 [dependencies]
 klaver = { path = "../klaver", features = ["typescript"] }
 klaver-compat = { path = "../klaver-compat" }
-klaver-encoding = { path = "../klaver-encoding" }
+klaver-os = { path = "../klaver-os" }
+
 clap = { version = "4", features = ["derive"] }
 
 
