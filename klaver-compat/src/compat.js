@@ -54,7 +54,7 @@ function log(...args) {
     const formatted = args.map((m) => Core.format(m)).join(" ");
     print(`${formatted}`);
 }
-function init$3(global) {
+function init$4(global) {
     Object.defineProperties(global, {
         Console: { value: Console },
         console: { value: new Console() },
@@ -1567,7 +1567,7 @@ class Response extends Body {
     }
 }
 
-async function init$2(global) {
+async function init$3(global) {
     const { Request: KlaverRequest, Response: KlaverResponse, Headers, Client, createCancel, } = await import('@klaver/http');
     const client = lazy(() => new Client());
     writeProps(global, {
@@ -1700,7 +1700,7 @@ class TextEncoderStream {
     }
 }
 
-function init$1(global) {
+function init$2(global) {
     Object.defineProperties(global, {
         ReadableStream: { value: ReadableStream },
         WritableStream: { value: WritableStream },
@@ -1710,10 +1710,25 @@ function init$1(global) {
     });
 }
 
-function init(global) {
+function init$1(global) {
     writeProp(global, "process", {
         env: {},
     });
+}
+
+async function init(global) {
+    const { getRandomValues, randomUUID, Digest } = await import('@klaver/crypto');
+    const crypto = {};
+    const subtle = {};
+    writeProps(subtle, {
+        digest: async function digest(algo, data) {
+            const hasher = new Digest(algo);
+            hasher.update(data);
+            return hasher.digest();
+        },
+    });
+    writeProps(crypto, { getRandomValues, randomUUID, subtle });
+    writeProps(global, { crypto });
 }
 
 /// <reference path="../../module.d.ts" />
@@ -1731,10 +1746,11 @@ async function main(global) {
     });
     const { TextEncoder, TextDecoder, btoa, atob } = await import('@klaver/encoding');
     writeProps(global, { TextDecoder, TextEncoder, btoa, atob });
-    init$3(global);
+    init$4(global);
+    init$2(global);
+    await init(global);
+    await init$3(global);
     init$1(global);
-    await init$2(global);
-    init(global);
 }
 
 export { main as default };

@@ -5,7 +5,7 @@ resolver = "2"
 members = [
   "klaver",
   "klaver-cli",
-  "klaver-compat",
+  "klaver-compat", "klaver-crypto",
   "klaver-encoding",
   "klaver-http", "klaver-streams",
 ]

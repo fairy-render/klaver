@@ -7,3 +7,4 @@ edition = "2021"
 klaver = { path = "../klaver" }
 klaver-encoding = { path = "../klaver-encoding" }
 klaver-http = { path = "../klaver-http", features = ["reqwest"] }
+klaver-crypto = { path = "../klaver-crypto" }

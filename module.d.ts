@@ -129,6 +129,37 @@ declare module "@klaver/encoding" {
 	export function btoa(input: string): string;
 }
 
+declare module "@klaver/crypto" {
+	export type Buffer =
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array;
+
+	export function randomUUID(): string;
+	export function getRandomValues(
+		buffer:
+			| Uint8Array
+			| Int8Array
+			| Uint16Array
+			| Int16Array
+			| Uint32Array
+			| Int32Array,
+	): void;
+
+	export type Algo = "sha1" | "sha256";
+
+	export class Digest {
+		constructor(algo: Algo);
+
+		update(data: Buffer): void;
+		digest(): ArrayBuffer;
+	}
+}
+
 declare function print(...args: unknown[]): void;
 
 declare type TimeId = number;

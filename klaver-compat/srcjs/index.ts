@@ -5,6 +5,7 @@ import console from "./console.js";
 import fetch from "./fetch/index.js";
 import stream from "./streams.js";
 import process from "./process.js";
+import crypto from "./crypto.js";
 
 // const Core = globalThis.Core;
 
@@ -28,6 +29,7 @@ export default async function main(global: Record<string, unknown>) {
 
 	console(global);
 	stream(global);
+	await crypto(global);
 	await fetch(global);
 	process(global);
 }
