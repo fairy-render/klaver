@@ -12,7 +12,7 @@ macro_rules! throw_if {
     ($ctx: ident, $ret: expr) => {
         match $ret {
             Ok(ret) => ret,
-            Err(err) => throw!($ctx, err),
+            Err(err) => $crate::throw!($ctx, err),
         }
     };
 }

@@ -1,0 +1,16 @@
+[package]
+name = "klaver-gerning"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rquickjs-vaerdi = { git = "https://github.com/kildevaeld/vaerdi-rs" }
+klaver = { path = "../klaver" }
+rquickjs.workspace = true
+futures.workspace = true
+gerning = { git = "https://github.com/kildevaeld/gerning-rs", features = [
+  "service",
+] }
+vaerdi = { git = "https://github.com/kildevaeld/vaerdi-rs", features = [
+  "gerning",
+] }
