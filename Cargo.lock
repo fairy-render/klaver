@@ -1084,6 +1084,7 @@ version = "0.1.0"
 dependencies = [
  "deadpool",
  "extensions",
+ "klaver-shared",
  "once_cell",
  "pin-project-lite",
  "relative-path",
@@ -1141,6 +1142,7 @@ dependencies = [
  "base64 0.21.7",
  "encoding_rs",
  "klaver",
+ "klaver-shared",
  "rquickjs",
 ]
 
@@ -1151,8 +1153,8 @@ dependencies = [
  "futures",
  "gerning",
  "klaver",
+ "klaver-shared",
  "rquickjs",
- "rquickjs-vaerdi",
  "vaerdi",
 ]
 
@@ -1163,6 +1165,7 @@ dependencies = [
  "bytes",
  "futures",
  "klaver",
+ "klaver-shared",
  "klaver-streams",
  "reggie",
  "reqwest",
@@ -1188,7 +1191,9 @@ dependencies = [
 name = "klaver-shared"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "rquickjs",
+ "vaerdi",
 ]
 
 [[package]]
@@ -1968,15 +1973,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf6f2288d8e7fbb5130f62cf720451641e99d55f6fde9db86aa2914ecb553fd2"
 dependencies = [
  "cc",
-]
-
-[[package]]
-name = "rquickjs-vaerdi"
-version = "0.1.0"
-source = "git+https://github.com/kildevaeld/vaerdi-rs#3ddb2b940d04ecaa2a905fcd99869d6b82decb65"
-dependencies = [
- "rquickjs",
- "vaerdi",
 ]
 
 [[package]]

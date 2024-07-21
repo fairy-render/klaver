@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use klaver::{
-    modules::typescript::Compiler,
+    modules::typescript::{CompileOptions, Compiler},
     quick::{CatchResultExt, Module},
     vm::VmOptions,
 };
@@ -34,7 +34,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match cli.command {
         Some(Commands::Compile { path }) => {
             let content = tokio::fs::read_to_string(&path).await?;
-            let source = compiler.compile(&path.display().to_string(), &content)?;
+            let source = compiler.compile(
+                &path.display().to_string(),
+                &content,
+                CompileOptions {
+                    tsx: true,
+                    jsx_import_source: None,
+                },
+            )?;
             println!("{}", source.code);
             return Ok(());
         }
@@ -59,7 +66,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let content = std::fs::read_to_string(&args[0])?;
 
-    let source = compiler.compile(&args[0], &content)?;
+    let source = compiler.compile(
+        &args[0],
+        &content,
+        CompileOptions {
+            jsx_import_source: None,
+            tsx: true,
+        },
+    )?;
 
     let ret = klaver::async_with!(vm => |ctx| {
 

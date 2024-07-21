@@ -10,6 +10,7 @@ reqwest = ["reggie/reqwest", "dep:reqwest"]
 [dependencies]
 klaver = { path = "../klaver" }
 klaver-streams = { path = "../klaver-streams" }
+klaver-shared = { path = "../klaver-shared" }
 rquickjs.workspace = true
 futures = { version = "0.3" }
 bytes = "1"

@@ -5,9 +5,14 @@ resolver = "2"
 members = [
   "klaver",
   "klaver-cli",
-  "klaver-compat", "klaver-crypto",
-  "klaver-encoding", "klaver-gerning",
-  "klaver-http", "klaver-os", "klaver-shared", "klaver-streams",
+  "klaver-compat",
+  "klaver-crypto",
+  "klaver-encoding",
+  "klaver-gerning",
+  "klaver-http",
+  "klaver-os",
+  "klaver-shared",
+  "klaver-streams",
 ]
 
 
@@ -25,3 +30,5 @@ futures = { version = "0.3" }
 [profile.release]
 lto = "fat"
 panic = "abort"
+codegen-units = 1
+strip = "debuginfo"

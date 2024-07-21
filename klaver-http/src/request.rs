@@ -12,7 +12,10 @@ use rquickjs::{
 };
 use tokio::sync::oneshot::Receiver;
 
-use crate::{headers::Headers, module::Cancel};
+use crate::{
+    headers::{Headers, HeadersInit},
+    module::Cancel,
+};
 
 #[derive(Trace, Clone, Copy)]
 pub enum Method {
@@ -78,7 +81,7 @@ pub struct Options<'js> {
     cancel: Option<Class<'js, Cancel>>,
     method: Option<Method>,
     body: Option<ArrayBuffer<'js>>,
-    headers: Option<Class<'js, Headers<'js>>>,
+    headers: Option<HeadersInit<'js>>,
 }
 
 impl<'js> FromJs<'js> for Options<'js> {
@@ -90,9 +93,9 @@ impl<'js> FromJs<'js> for Options<'js> {
             return Err(Error::new_from_js("value", "object"));
         };
 
-        let cancel = obj.get("cancel").ok();
-        let method = obj.get("method").ok();
-        let headers = obj.get("headers").ok();
+        let cancel = obj.get("cancel")?;
+        let method = obj.get("method")?;
+        let headers = obj.get("headers")?;
 
         Ok(Options {
             cancel,
@@ -228,7 +231,7 @@ impl<'js> Request<'js> {
             cancel,
             method: method.unwrap_or(Method::GET),
             headers: match headers {
-                Some(ret) => ret,
+                Some(ret) => ret.inner,
                 None => Class::instance(ctx.clone(), Headers::default())?,
             },
             body,

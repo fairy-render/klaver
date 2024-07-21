@@ -4,18 +4,13 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use rquickjs::{
-    class::Trace, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs,
-    Value,
-};
+use rquickjs::{class::Trace, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs, Value};
 use slotmap::{new_key_type, KeyData, SlotMap};
 use tokio::time::{Instant, Sleep};
 
 use crate::Error;
 
 use super::core::get_core;
-
-const CORE_KEY: &str = "$_klvar";
 
 new_key_type! {
   pub struct TimeId;

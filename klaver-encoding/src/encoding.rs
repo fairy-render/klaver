@@ -1,5 +1,6 @@
 use core::fmt;
 use klaver::module_info;
+use klaver_shared::buffer::Buffer;
 use rquickjs::{
     class::Trace,
     function::{Func, Opt},
@@ -92,19 +93,15 @@ impl TextDecoder {
         self.decoder.output_encoding().name().to_string()
     }
 
-    pub fn decode<'js>(
-        &self,
-        ctx: Ctx<'js>,
-        input: rquickjs::ArrayBuffer<'js>,
-    ) -> Result<rquickjs::String<'js>> {
-        let Some(bytes) = input.as_bytes() else {
+    pub fn decode<'js>(&self, ctx: Ctx<'js>, input: Buffer<'js>) -> Result<rquickjs::String<'js>> {
+        let Some(bytes) = input.as_raw() else {
             return Err(ctx.throw(Value::from_exception(Exception::from_message(
                 ctx.clone(),
                 "buffer disconnected",
             )?)));
         };
 
-        let (ret, _, _) = self.decoder.decode(bytes);
+        let (ret, _, _) = self.decoder.decode(bytes.slice());
 
         rquickjs::String::from_str(ctx, &*ret)
     }

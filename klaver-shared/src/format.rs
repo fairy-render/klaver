@@ -1,5 +1,7 @@
-use rquickjs::{function::Opt, promise::PromiseState, Ctx, FromJs, Object, Type, Value};
+use rquickjs::{function::Opt, promise::PromiseState, Array, Ctx, FromJs, Object, Type, Value};
 use std::fmt::Write;
+
+use crate::{buffer::Buffer, date::Date};
 
 #[derive(Debug, Clone, Default)]
 pub struct FormatOptions {
@@ -25,7 +27,7 @@ impl<'js> FromJs<'js> for FormatOptions {
 pub fn format<'js>(
     ctx: Ctx<'js>,
     rest: Value<'js>,
-    Opt(options): Opt<FormatOptions>,
+    options: Option<FormatOptions>,
 ) -> rquickjs::Result<String> {
     let mut f = String::default();
     let options = options.unwrap_or_default();
@@ -35,7 +37,7 @@ pub fn format<'js>(
     Ok(f)
 }
 
-pub fn format_value<'js, W: Write>(
+fn format_value<'js, W: Write>(
     ctx: &Ctx<'js>,
     rest: Value<'js>,
     f: &mut W,
@@ -54,7 +56,11 @@ pub fn format_value<'js, W: Write>(
             format_value(ctx, rest.as_symbol().unwrap().description()?, f, options)?;
             write!(f, r#"")"#)
         }
-        Type::Array => todo!(),
+        Type::Array => {
+            let array = rest.into_array().unwrap();
+            format_array(ctx, array, f, options)?;
+            Ok(())
+        }
         Type::Constructor => todo!(),
         Type::Function => {
             let func = rest.into_object().unwrap();
@@ -70,14 +76,20 @@ pub fn format_value<'js, W: Write>(
 
             write!(f, "Promise[state = {state}]")
         }
-        Type::Exception => todo!(),
+        Type::Exception => {
+            let excp = rest.into_exception().unwrap();
+
+            write!(f, "{}", excp);
+
+            Ok(())
+        }
         Type::Object => {
             format_object(ctx, rest.into_object().unwrap(), f, options)?;
             Ok(())
         }
-        Type::Module => todo!(),
-        Type::BigInt => todo!(),
-        Type::Unknown => todo!(),
+        _ => {
+            write!(f, "Unknown")
+        }
     }
     .unwrap();
 
@@ -90,11 +102,11 @@ fn format_object<'js, W: Write>(
     o: &mut W,
     options: &FormatOptions,
 ) -> rquickjs::Result<()> {
-    if let Some(buffer) = rquickjs::ArrayBuffer::from_object(obj.clone()) {
-        write!(o, "ArrayBuffer[len = {}]", buffer.len());
+    if Date::is(ctx, obj.as_value())? {
+        write!(o, "{}", Date::from_js(ctx, obj.into_value())?.to_string()?);
         return Ok(());
-    } else if let Ok(buffer) = rquickjs::TypedArray::<u8>::from_object(obj.clone()) {
-        write!(o, "UInt8Array[len = {}]", buffer.len());
+    } else if Buffer::is(ctx, obj.as_value())? {
+        write!(o, "{}", Buffer::from_js(ctx, obj.into_value())?);
         return Ok(());
     }
 
@@ -106,6 +118,26 @@ fn format_object<'js, W: Write>(
         let (k, v) = v?;
         format_value(ctx, k, o, options)?;
         o.write_str(" : ");
+        format_value(ctx, v, o, options)?;
+    }
+
+    o.write_str(" }");
+
+    Ok(())
+}
+
+fn format_array<'js, W: Write>(
+    ctx: &Ctx<'js>,
+    obj: Array<'js>,
+    o: &mut W,
+    options: &FormatOptions,
+) -> rquickjs::Result<()> {
+    o.write_str("{ ");
+    for (idx, v) in obj.iter::<rquickjs::Value>().enumerate() {
+        if idx > 0 {
+            write!(o, ", ");
+        }
+        let v = v?;
         format_value(ctx, v, o, options)?;
     }
 

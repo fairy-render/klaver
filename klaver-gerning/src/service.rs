@@ -4,8 +4,8 @@ use gerning::{
     service::{AsyncService, AsyncState, SendAsync},
 };
 use klaver::throw_if;
+use klaver_shared::val::Val;
 use rquickjs::{class::Trace, function::Rest, Ctx, FromJs};
-use rquickjs_vaerdi::Val;
 use vaerdi::Value;
 
 #[rquickjs::class]

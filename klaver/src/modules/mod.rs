@@ -51,6 +51,7 @@ pub struct Modules {
     search_paths: Vec<PathBuf>,
     patterns: Vec<String>,
     inits: Vec<Arc<dyn Init + Send + Sync>>,
+    jsx_import_source: Option<String>,
 }
 
 impl Modules {
@@ -96,7 +97,7 @@ impl Modules {
         let mut builtin_resolver = BuiltinResolver::default();
         let mut file_resolver = file::FileResolver::default();
         #[cfg(feature = "typescript")]
-        let script_loader = typescript::TsLoader::default();
+        let script_loader = typescript::TsLoader::new(self.jsx_import_source);
         #[cfg(feature = "typescript")]
         {
             file_resolver.add_pattern("{}.ts");

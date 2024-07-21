@@ -6,7 +6,7 @@ use reggie::{Body, ResponseExt};
 use reqwest::{ResponseBuilderExt, Url, Version};
 use rquickjs::{class::Trace, function::Opt, Class, Ctx, Exception, FromJs, Object, Value};
 
-use crate::module::Headers;
+use crate::{headers::HeadersInit, module::Headers};
 
 #[rquickjs::class]
 pub struct Response<'js> {
@@ -79,7 +79,7 @@ impl<'js> Response<'js> {
 
 pub struct ResponseOptions<'js> {
     status: Option<u16>,
-    headers: Option<Class<'js, Headers<'js>>>,
+    headers: Option<HeadersInit<'js>>,
 }
 
 impl<'js> FromJs<'js> for ResponseOptions<'js> {
@@ -118,7 +118,7 @@ impl<'js> Response<'js> {
             status,
             url: rquickjs::String::from_str(ctx.clone(), "")?,
             headers: match headers {
-                Some(header) => header,
+                Some(header) => header.inner,
                 None => Class::instance(ctx.clone(), Headers::default())?,
             },
             body,

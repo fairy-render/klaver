@@ -19,14 +19,23 @@ export type Method =
 	| "HEAD"
 	| "OPTION";
 
-class Headers {
+export class Headers {
 	append(key: string, value: string): void;
 	get(key: string): string;
 	has(key: string): boolean;
 }
 
+export type Body =
+	| ArrayBuffer
+	| Uint8Array
+	| Int8Array
+	| Uint16Array
+	| Int16Array
+	| Int32Array
+	| Uint32Array;
+
 export interface RequestInit {
-	body?: ArrayBuffer;
+	body?: Body;
 	method?: Method;
 	headers?: Headers | Record<string, string>;
 	cancel?: Cancel;
@@ -54,7 +63,7 @@ export class Response {
 	readonly status: number;
 	readonly headers: Headers;
 
-	constructor(body?: ArrayBuffer, options?: ResponseInit);
+	constructor(body?: Body, options?: ResponseInit);
 
 	text(): Promise<string>;
 	json<T = unknown>(): Promise<T>;

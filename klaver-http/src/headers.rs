@@ -1,8 +1,42 @@
 use reggie::http::HeaderMap;
-use rquickjs::{class::Trace, function::Opt, Class, Ctx};
+use rquickjs::{class::Trace, function::Opt, Class, Ctx, FromJs};
 use std::collections::HashMap;
 
-#[derive(Trace, Default)]
+#[derive(Trace)]
+pub struct HeadersInit<'js> {
+    pub inner: Class<'js, Headers<'js>>,
+}
+
+impl<'js> FromJs<'js> for HeadersInit<'js> {
+    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+        if let Ok(ret) = Class::<'js, Headers<'js>>::from_js(ctx, value.clone()) {
+            return Ok(HeadersInit { inner: ret });
+        }
+
+        let Some(obj) = value.into_object() else {
+            return Err(rquickjs::Error::new_from_js("value", "oject"));
+        };
+
+        let mut inner = HashMap::default();
+
+        for k in obj.keys::<String>() {
+            let k = k?;
+            let v: rquickjs::String = obj.get(&k)?;
+            inner
+                .entry(k)
+                .and_modify(|ve: &mut Vec<rquickjs::String<'js>>| {
+                    ve.push(v.clone());
+                })
+                .or_insert_with(|| vec![v]);
+        }
+
+        Ok(HeadersInit {
+            inner: Class::instance(ctx.clone(), Headers { inner })?,
+        })
+    }
+}
+
+#[derive(Trace, Debug, Default)]
 #[rquickjs::class]
 pub struct Headers<'js> {
     pub inner: HashMap<String, Vec<rquickjs::String<'js>>>,

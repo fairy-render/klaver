@@ -1,5 +1,5 @@
-use core::{marker::PhantomData, ptr::NonNull};
-use rquickjs::{class::Trace, function::Func, Ctx, FromJs, IntoJs, Type};
+use core::{fmt, marker::PhantomData, ptr::NonNull};
+use rquickjs::{class::Trace, ArrayBuffer, Ctx, FromJs, IntoJs};
 
 pub enum Buffer<'js> {
     ArrayBuffer(rquickjs::ArrayBuffer<'js>),
@@ -15,6 +15,29 @@ impl<'js> Buffer<'js> {
                 life: PhantomData,
             }),
             Self::TypedArray(b) => b.as_raw(),
+        }
+    }
+
+    pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
+        Ok(Self::from_js(ctx, value.clone()).is_ok())
+    }
+
+    pub fn detach(&self) -> rquickjs::Result<()> {
+        self.array_buffer()?.detach();
+        Ok(())
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            Self::ArrayBuffer(b) => b.len(),
+            Self::TypedArray(b) => b.len(),
+        }
+    }
+
+    pub fn array_buffer(&self) -> rquickjs::Result<ArrayBuffer<'js>> {
+        match self {
+            Self::ArrayBuffer(b) => Ok(b.clone()),
+            Self::TypedArray(b) => b.as_array_buffer(),
         }
     }
 }
@@ -52,6 +75,15 @@ impl<'js> Trace<'js> for Buffer<'js> {
         match self {
             Self::ArrayBuffer(b) => b.trace(tracer),
             Self::TypedArray(b) => b.trace(tracer),
+        }
+    }
+}
+
+impl<'js> fmt::Display for Buffer<'js> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ArrayBuffer(b) => write!(f, "ArrayBuffer[len={}]", b.len()),
+            Self::TypedArray(b) => b.fmt(f),
         }
     }
 }
@@ -98,6 +130,30 @@ impl<'js> TypedArray<'js> {
             ptr: m.ptr,
             life: PhantomData,
         })
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            Self::I16(m) => m.len(),
+            Self::I32(m) => m.len(),
+            Self::U16(m) => m.len(),
+            Self::U32(m) => m.len(),
+            Self::I8(m) => m.len(),
+            Self::U8(m) => m.len(),
+        }
+    }
+
+    pub fn as_array_buffer(&self) -> rquickjs::Result<ArrayBuffer<'js>> {
+        let raw = match self {
+            Self::I16(m) => m.arraybuffer(),
+            Self::I32(m) => m.arraybuffer(),
+            Self::U16(m) => m.arraybuffer(),
+            Self::U32(m) => m.arraybuffer(),
+            Self::I8(m) => m.arraybuffer(),
+            Self::U8(m) => m.arraybuffer(),
+        };
+
+        raw
     }
 
     pub fn into_value(self) -> rquickjs::Value<'js> {
@@ -153,6 +209,19 @@ impl<'js> Trace<'js> for TypedArray<'js> {
             TypedArray::U16(b) => b.trace(tracer),
             TypedArray::I32(b) => b.trace(tracer),
             TypedArray::U32(b) => b.trace(tracer),
+        }
+    }
+}
+
+impl<'js> fmt::Display for TypedArray<'js> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::I16(m) => write!(f, "I16Array[len={}]", m.len()),
+            Self::I32(m) => write!(f, "I32Array[len={}]", m.len()),
+            Self::U16(m) => write!(f, "U16Array[len={}]", m.len()),
+            Self::U32(m) => write!(f, "U21Array[len={}]", m.len()),
+            Self::I8(m) => write!(f, "I8Array[len={}]", m.len()),
+            Self::U8(m) => write!(f, "U8Array[len={}]", m.len()),
         }
     }
 }

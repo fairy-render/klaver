@@ -1,14 +1,12 @@
 pub use extensions::Extensions;
+use klaver_shared::{format, FormatOptions};
 use rquickjs::{
     class::{Trace, Tracer},
     function::Opt,
     Class, Ctx, Value,
 };
 
-use super::{
-    format::{format, FormatOptions},
-    timers::Timers,
-};
+use super::timers::Timers;
 
 const CORE_KEY: &str = "Core";
 
@@ -59,6 +57,6 @@ impl<'js> Core<'js> {
         value: Value<'js>,
         opt: Opt<FormatOptions>,
     ) -> rquickjs::Result<String> {
-        format(ctx, value, opt)
+        format(ctx, value, opt.0)
     }
 }
