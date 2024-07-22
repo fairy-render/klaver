@@ -79,20 +79,20 @@ impl Compiler {
                 let top_level_mark = Mark::new();
                 let mut program = program.fold_with(&mut strip(unresolved_mark, top_level_mark));
                 if config.tsx {
-                    program = program
-                        .fold_with(&mut jsx(
-                            self.cm.clone(),
-                            Some(self.compiler.comments()),
-                            Options {
-                                runtime: Some(Runtime::Automatic),
-                                import_source: config.jsx_import_source.map(Into::into),
-                                ..Default::default()
-                            },
-                            top_level_mark,
-                            unresolved_mark,
-                        ))
-                        .fold_with(&mut resolver(unresolved_mark, top_level_mark, true));
+                    program = program.fold_with(&mut jsx(
+                        self.cm.clone(),
+                        Some(self.compiler.comments()),
+                        Options {
+                            runtime: Some(Runtime::Automatic),
+                            import_source: config.jsx_import_source.map(Into::into),
+                            ..Default::default()
+                        },
+                        top_level_mark,
+                        unresolved_mark,
+                    ));
                 }
+
+                program = program.fold_with(&mut resolver(unresolved_mark, top_level_mark, true));
 
                 // https://rustdoc.swc.rs/swc/struct.Compiler.html#method.print
                 self.compiler
@@ -157,6 +157,8 @@ impl rquickjs::loader::Loader for TsLoader {
         let rel_path = RelativePath::new(path);
 
         let tsx = rel_path.extension() == Some("tsx") || rel_path.extension() == Some("jsx");
+
+        tracing::debug!(path = %path, tsx = %tsx, "compiling path");
 
         let source = self
             .compiler
