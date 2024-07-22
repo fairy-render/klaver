@@ -149,7 +149,10 @@ impl rquickjs::loader::Loader for TsLoader {
         path: &str,
     ) -> rquickjs::Result<rquickjs::Module<'js, rquickjs::module::Declared>> {
         if !check_extensions(path, &self.extensions) {
-            return Err(rquickjs::Error::new_loading(path));
+            return Err(rquickjs::Error::new_loading_message(
+                path,
+                "unknown extension",
+            ));
         }
 
         let content = std::fs::read_to_string(path)?;
