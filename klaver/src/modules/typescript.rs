@@ -120,9 +120,8 @@ pub struct TsLoader {
 impl TsLoader {
     pub fn new(jsx_import_source: Option<String>) -> TsLoader {
         TsLoader {
-            extensions: Default::default(),
-            compiler: Compiler::new(),
             jsx_import_source,
+            ..Default::default()
         }
     }
 }
@@ -161,7 +160,7 @@ impl rquickjs::loader::Loader for TsLoader {
 
         let tsx = rel_path.extension() == Some("tsx") || rel_path.extension() == Some("jsx");
 
-        tracing::debug!(path = %path, tsx = %tsx, "compiling path");
+        tracing::trace!(path = %path, tsx = %tsx, "compiling path");
 
         let source = self
             .compiler

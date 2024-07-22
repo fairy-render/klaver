@@ -149,7 +149,7 @@ impl Resolver for FileResolver {
         }
         .ok_or_else(|| Error::new_resolving(base, name))?;
 
-        tracing::debug!(base = %base, name = %name, path = %path, "resolved path");
+        tracing::trace!(base = %base, name = %name, path = %path, "resolved path");
 
         Ok(path.to_string())
     }
