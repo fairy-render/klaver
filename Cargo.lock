@@ -1174,6 +1174,7 @@ dependencies = [
  "rquickjs",
  "serde_json",
  "tokio",
+ "url",
 ]
 
 [[package]]

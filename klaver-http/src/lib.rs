@@ -8,6 +8,7 @@ pub mod client;
 mod convert;
 pub mod headers;
 mod module;
+mod url;
 
 pub mod request;
 pub mod response;

@@ -1,12 +1,12 @@
 use klaver::throw;
 use rquickjs::{class::Trace, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs, Object, Value};
-use std::{collections::VecDeque, sync::Arc};
+use std::{collections::VecDeque, rc::Rc};
 use tokio::sync::Notify;
 
 #[rquickjs::class]
 pub struct ReadableStream<'js> {
     v: ReadableStreamInit<'js>,
-    ctrl: Class<'js, Controller<'js>>,
+    ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
 }
 
 impl<'js> Trace<'js> for ReadableStream<'js> {
@@ -47,12 +47,12 @@ impl<'js> ReadableStream<'js> {
         // let (sx_ready, mut rx_ready) = futures::channel::mpsc::channel(1);
         // let (sx_wait, rx_wait) = futures::channel::mpsc::channel(1);
 
-        let notify = Arc::new(Notify::new());
-        let ready = Arc::new(Notify::new());
+        let notify = Rc::new(Notify::new());
+        let ready = Rc::new(Notify::new());
 
         let controller = Class::instance(
             ctx.clone(),
-            Controller {
+            ReadableStreamDefaultController {
                 queue: Default::default(),
                 ready: ready.clone(),
                 wait: notify.clone(),
@@ -73,8 +73,6 @@ impl<'js> ReadableStream<'js> {
         let class_clone = class.clone();
 
         let ctx_clone = ctx.clone();
-
-        let (sx, rx) = futures::channel::oneshot::channel::<()>();
 
         ctx.spawn(async move {
             //
@@ -110,43 +108,43 @@ impl<'js> ReadableStream<'js> {
     }
 
     #[qjs(rename = "getReader")]
-    pub fn get_reader(&self, ctx: Ctx<'js>) -> rquickjs::Result<Reader<'js>> {
+    pub fn get_reader(&self, ctx: Ctx<'js>) -> rquickjs::Result<ReadableStreamDefaultReader<'js>> {
         if self.ctrl.borrow().locked {
             throw!(ctx, "Readable stream already locked")
         }
 
         self.ctrl.borrow_mut().locked = true;
 
-        Ok(Reader {
+        Ok(ReadableStreamDefaultReader {
             ctrl: self.ctrl.clone(),
         })
     }
 }
 
 #[rquickjs::class]
-pub struct Controller<'js> {
+pub struct ReadableStreamDefaultController<'js> {
     queue: VecDeque<Value<'js>>,
     highwater_mark: u32,
     locked: bool,
-    ready: Arc<Notify>,
-    wait: Arc<Notify>,
+    ready: Rc<Notify>,
+    wait: Rc<Notify>,
     done: bool,
 }
 
-impl<'js> Controller<'js> {
+impl<'js> ReadableStreamDefaultController<'js> {
     pub fn is_filled(&self) -> bool {
         self.queue.len() > self.highwater_mark as usize
     }
 }
 
-impl<'js> Trace<'js> for Controller<'js> {
+impl<'js> Trace<'js> for ReadableStreamDefaultController<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.queue.trace(tracer)
     }
 }
 
 #[rquickjs::methods]
-impl<'js> Controller<'js> {
+impl<'js> ReadableStreamDefaultController<'js> {
     pub fn enqueue(&mut self, chunk: Value<'js>) -> rquickjs::Result<()> {
         self.queue.push_back(chunk);
         self.wait.notify_one();
@@ -161,12 +159,12 @@ impl<'js> Controller<'js> {
 
 #[derive(Trace)]
 #[rquickjs::class]
-pub struct Reader<'js> {
-    ctrl: Class<'js, Controller<'js>>,
+pub struct ReadableStreamDefaultReader<'js> {
+    ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
 }
 
 #[rquickjs::methods]
-impl<'js> Reader<'js> {
+impl<'js> ReadableStreamDefaultReader<'js> {
     pub async fn read(&self) -> rquickjs::Result<Chunk<'js>> {
         if self.ctrl.borrow().done {
             return Ok(Chunk {
