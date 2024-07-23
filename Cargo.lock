@@ -1110,6 +1110,7 @@ dependencies = [
  "klaver",
  "klaver-compat",
  "klaver-os",
+ "klaver-streams",
  "tokio",
 ]
 
@@ -1204,6 +1205,7 @@ dependencies = [
  "futures",
  "klaver",
  "rquickjs",
+ "tokio",
 ]
 
 [[package]]

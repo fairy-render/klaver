@@ -11,6 +11,7 @@ path = "src/main.rs"
 klaver = { path = "../klaver", features = ["typescript"] }
 klaver-compat = { path = "../klaver-compat" }
 klaver-os = { path = "../klaver-os" }
+klaver-streams = { path = "../klaver-streams" }
 
 clap = { version = "4", features = ["derive"] }
 

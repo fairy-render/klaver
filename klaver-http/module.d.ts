@@ -32,12 +32,13 @@ export type Body =
 	| Uint16Array
 	| Int16Array
 	| Int32Array
-	| Uint32Array;
+	| Uint32Array
+	| string;
 
 export interface RequestInit {
 	body?: Body;
 	method?: Method;
-	headers?: Headers | Record<string, string>;
+	headers?: HeadersInit;
 	cancel?: Cancel;
 }
 

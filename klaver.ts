@@ -1,8 +1,37 @@
-import { Client, Request } from "@klaver/http";
-import { sh } from "@klaver/os";
+import { ReadableStream } from "@klaver/streams";
 
-const client = new Client();
+function delay(n: number) {
+	return new Promise((res) => setTimeout(res, n));
+}
 
-const resp = await client.send(new Request("https://github.com"));
+let times = 0;
 
-console.log(await resp.text());
+const stream = new ReadableStream({
+	async pull(controller) {
+		if (times > 20) {
+			controller.close();
+			return;
+		}
+		await delay(100);
+		times++;
+		controller.enqueue("Rapper " + times);
+	},
+});
+
+const reader = stream.getReader();
+
+let count = 0;
+
+while (true) {
+	const { value, done } = await reader.read();
+
+	if (done) break;
+
+	if (count++ == 5) {
+		await reader.cancel("");
+	}
+
+	console.log("value", value);
+}
+
+console.log("done");

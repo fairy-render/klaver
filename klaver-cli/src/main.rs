@@ -50,6 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let vm = VmOptions::default()
         .search_path(".")
+        .module::<klaver_streams::Module>()
         .module::<klaver_os::shell::Module>()
         .module::<klaver_compat::Compat>()
         .build()

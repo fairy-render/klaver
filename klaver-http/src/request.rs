@@ -13,6 +13,7 @@ use rquickjs::{
 use tokio::sync::oneshot::Receiver;
 
 use crate::{
+    body::BodyInit,
     headers::{Headers, HeadersInit},
     module::Cancel,
 };
@@ -80,7 +81,7 @@ impl<'js> FromJs<'js> for Method {
 pub struct Options<'js> {
     cancel: Option<Class<'js, Cancel>>,
     method: Option<Method>,
-    body: Option<ArrayBuffer<'js>>,
+    body: Option<BodyInit<'js>>,
     headers: Option<HeadersInit<'js>>,
 }
 
@@ -221,10 +222,7 @@ impl<'js> Request<'js> {
             (None, None, None, None)
         };
 
-        let body = body
-            .as_ref()
-            .and_then(|m| m.as_bytes())
-            .and_then(|m| Some(Body::from(m.to_vec())));
+        let body = body.map(|m| Body::from(m.to_vec()));
 
         Ok(Request {
             url,

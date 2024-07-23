@@ -2,6 +2,7 @@ use klaver::core::get_core;
 use reggie::{Body, HttpClient, HttpClientFactory, SharedClientFactory};
 use rquickjs::Ctx;
 
+mod body;
 mod cancel;
 pub mod client;
 mod convert;

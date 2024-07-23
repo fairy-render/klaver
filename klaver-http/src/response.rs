@@ -6,7 +6,7 @@ use reggie::{Body, ResponseExt};
 use reqwest::{ResponseBuilderExt, Url, Version};
 use rquickjs::{class::Trace, function::Opt, Class, Ctx, Exception, FromJs, Object, Value};
 
-use crate::{headers::HeadersInit, module::Headers};
+use crate::{body::BodyInit, headers::HeadersInit, module::Headers};
 
 #[rquickjs::class]
 pub struct Response<'js> {
@@ -100,14 +100,10 @@ impl<'js> Response<'js> {
     #[qjs(constructor)]
     pub fn new(
         ctx: Ctx<'js>,
-        body: Opt<rquickjs::ArrayBuffer<'js>>,
+        body: Opt<BodyInit<'js>>,
         options: Opt<ResponseOptions<'js>>,
     ) -> rquickjs::Result<Self> {
-        let body = body
-            .0
-            .as_ref()
-            .and_then(|m| m.as_bytes())
-            .and_then(|m| Some(Body::from(m.to_vec())));
+        let body = body.0.map(|m| Body::from(m.to_vec()));
 
         let (status, headers) = match options.0 {
             Some(ret) => (ret.status.unwrap_or(200), ret.headers),
