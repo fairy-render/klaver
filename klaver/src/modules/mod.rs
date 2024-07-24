@@ -62,6 +62,11 @@ impl Modules {
         Module::declare_def::<D, _>(ctx, name)
     }
 
+    pub fn set_jsx_import_source(&mut self, path: &str) -> &mut Self {
+        self.jsx_import_source = Some(path.to_string());
+        self
+    }
+
     pub fn register_module<T: ModuleInfo>(&mut self) -> &mut Self {
         T::register(&mut Builder::new(self));
         self
