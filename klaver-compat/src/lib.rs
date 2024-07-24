@@ -1,4 +1,9 @@
-use klaver::{modules::ModuleInfo, quick::CatchResultExt, vm::Vm};
+use klaver::{
+    modules::ModuleInfo,
+    quick::{CatchResultExt, Class},
+    vm::Vm,
+};
+use klaver_shared::console::Console;
 
 pub struct Compat;
 
@@ -16,6 +21,8 @@ impl ModuleInfo for Compat {
 
 pub async fn init(vm: &Vm) -> Result<(), klaver::Error> {
     klaver::async_with!(vm => |ctx| {
+        let console = Class::instance(ctx.clone(), Console::new());
+        ctx.globals().set("console", console)?;
         ctx.eval_promise(r#"await (await import("@klaver/compat")).default(globalThis)"#).catch(&ctx)?.into_future().await.catch(&ctx)?;
         Ok(())
     })

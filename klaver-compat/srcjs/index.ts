@@ -27,7 +27,7 @@ export default async function main(global: Record<string, unknown>) {
 
 	writeProps(global, { TextDecoder, TextEncoder, btoa, atob });
 
-	console(global);
+	// console(global);
 	stream(global);
 	await crypto(global);
 	await fetch(global);

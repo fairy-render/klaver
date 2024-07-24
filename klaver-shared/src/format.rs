@@ -37,7 +37,7 @@ pub fn format<'js>(
     Ok(f)
 }
 
-fn format_value<'js, W: Write>(
+pub fn format_value<'js, W: Write>(
     ctx: &Ctx<'js>,
     rest: Value<'js>,
     f: &mut W,

@@ -1,4 +1,5 @@
 pub mod buffer;
+pub mod console;
 pub mod date;
 mod format;
 #[cfg(feature = "vaerdi")]

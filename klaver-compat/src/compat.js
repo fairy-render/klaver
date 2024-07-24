@@ -26,72 +26,6 @@ function lazy(init) {
     };
 }
 
-class Console {
-    #target;
-    constructor(target = "") {
-        this.#target = target;
-    }
-    log(...args) {
-        log(...args);
-    }
-    warn(...args) {
-        this.#print("warn", args);
-    }
-    error(...args) {
-        this.#print("warn", args);
-    }
-    assert(condition, ...data) {
-        if (condition) {
-            this.log(...data);
-        }
-    }
-    #print(level, args) {
-        const formatted = args.map((m) => Core.format(m)).join(" ");
-        print(`[${level}] ${formatted}`);
-    }
-}
-function log(...args) {
-    const formatted = args.map((m) => Core.format(m)).join(" ");
-    print(`${formatted}`);
-}
-function init$4(global) {
-    Object.defineProperties(global, {
-        Console: { value: Console },
-        console: { value: new Console() },
-    });
-}
-// function format(value: unknown, embed = false): string {
-// 	if (Array.isArray(value)) {
-// 		return formatArray(value);
-// 	}
-// 	switch (typeof value) {
-// 		case "string":
-// 			return embed ? `"${value}"` : value;
-// 		case "number":
-// 		case "undefined":
-// 			return `${value}`;
-// 		case "function":
-// 			return `<Function ${value.name}>`;
-// 		case "object":
-// 			return formatObject(value);
-// 	}
-// }
-// function formatObject(value: object) {
-// 	let output = "{";
-// 	let count = 0;
-// 	for (const key in value) {
-// 		if (count++ > 0) {
-// 			output += ",";
-// 		}
-// 		output += ` ${format(key, true)}: ${format(value[key], true)}`;
-// 	}
-// 	output += " }";
-// 	return output;
-// }
-// function formatArray(value: unknown[]) {
-// 	return `[${value.map((m) => format(m, true)).join(", ")}]`;
-// }
-
 /**
  * @author Toru Nagashima <https://github.com/mysticatea>
  * @copyright 2015 Toru Nagashima. All rights reserved.
@@ -1746,7 +1680,7 @@ async function main(global) {
     });
     const { TextEncoder, TextDecoder, btoa, atob } = await import('@klaver/encoding');
     writeProps(global, { TextDecoder, TextEncoder, btoa, atob });
-    init$4(global);
+    // console(global);
     init$2(global);
     await init(global);
     await init$3(global);
