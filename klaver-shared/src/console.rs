@@ -66,6 +66,14 @@ impl Console {
         }
     }
 
+    pub fn set_writer<W>(&mut self, writer: W) -> rquickjs::Result<()>
+    where
+        W: ConsoleWriter + 'static,
+    {
+        self.writer = Box::new(writer);
+        Ok(())
+    }
+
     fn log_inner<'js>(
         &self,
         ctx: Ctx<'js>,
