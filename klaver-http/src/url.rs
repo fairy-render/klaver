@@ -1,5 +1,31 @@
 use klaver::throw_if;
-use rquickjs::{class::Trace, function::Opt, Ctx};
+use rquickjs::{class::Trace, function::Opt, Class, Ctx, FromJs};
+
+pub enum StringOrUrl<'js> {
+    String(String),
+    Url(Class<'js, Url>),
+}
+
+impl<'js> StringOrUrl<'js> {
+    fn as_str(&self) -> String {
+        match self {
+            Self::String(s) => s.as_str().to_string(),
+            Self::Url(u) => u.borrow().i.to_string(),
+        }
+    }
+}
+
+impl<'js> FromJs<'js> for StringOrUrl<'js> {
+    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+        if let Ok(ret) = Class::<'js, Url>::from_js(ctx, value.clone()) {
+            Ok(StringOrUrl::Url(ret))
+        } else if let Ok(ret) = String::from_js(ctx, value) {
+            Ok(StringOrUrl::String(ret))
+        } else {
+            Err(rquickjs::Error::new_from_js("value", "string or url"))
+        }
+    }
+}
 
 #[derive(Debug)]
 #[rquickjs::class]
@@ -14,11 +40,25 @@ impl<'js> Trace<'js> for Url {
 #[rquickjs::methods]
 impl Url {
     #[qjs(constructor)]
-    pub fn new<'js>(ctx: Ctx<'js>, url: String, base: Opt<String>) -> rquickjs::Result<Url> {
+    pub fn new<'js>(
+        ctx: Ctx<'js>,
+        url: StringOrUrl<'js>,
+        base: Opt<StringOrUrl<'js>>,
+    ) -> rquickjs::Result<Url> {
         let i = if let Some(base) = base.0 {
-            throw_if!(ctx, url::Url::parse(&base).and_then(|m| m.join(&url)))
+            match base {
+                StringOrUrl::String(s) => {
+                    throw_if!(ctx, url::Url::parse(&s).and_then(|m| m.join(&url.as_str())))
+                }
+                StringOrUrl::Url(b) => throw_if!(ctx, b.borrow().i.join(&url.as_str())),
+            }
         } else {
-            throw_if!(ctx, url::Url::parse(&url))
+            match url {
+                StringOrUrl::String(s) => {
+                    throw_if!(ctx, url::Url::parse(&s))
+                }
+                StringOrUrl::Url(url) => url.borrow().i.clone(),
+            }
         };
 
         Ok(Url { i })
