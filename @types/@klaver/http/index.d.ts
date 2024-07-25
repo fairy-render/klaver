@@ -72,14 +72,14 @@ export class Response {
 }
 
 export class Url {
-	constructor(url: string, base?: string);
+	constructor(url: string | Url, base?: string | Url);
 
-	readonly href: string;
-	readonly port: string;
-	readonly hash: string;
-	readonly password: string;
-	readonly protocol: string;
-	readonly search: string;
+	href: string;
+	port: string;
+	hash: string;
+	password: string;
+	protocol: string;
+	search: string;
 }
 
 export function createCancel(): Cancel;
