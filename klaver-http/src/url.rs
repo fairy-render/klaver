@@ -98,7 +98,12 @@ impl Url {
 
     #[qjs(set, rename = "username")]
     pub fn set_username(&mut self, ctx: Ctx<'_>, search: String) -> rquickjs::Result<()> {
-        throw_if!(ctx, self.i.set_username(&*search));
+        throw_if!(
+            ctx,
+            self.i
+                .set_username(&*search)
+                .map_err(|_| "invalid username")
+        );
         Ok(())
     }
 
