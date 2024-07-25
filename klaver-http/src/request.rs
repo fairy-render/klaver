@@ -173,11 +173,7 @@ impl<'js> Request<'js> {
         &mut self,
         ctx: Ctx<'js>,
     ) -> rquickjs::Result<(reggie::http::Request<Body>, Option<Receiver<()>>)> {
-        let mut url = self.url.to_string()?;
-
-        if url.starts_with("/") {
-            url = format!("internal://{url}");
-        }
+        let url = self.url.to_string()?;
 
         let mut builder = reggie::http::Request::builder()
             .method(self.method.as_str())

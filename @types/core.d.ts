@@ -11,9 +11,9 @@ declare interface FormatOptions {
 	colors: boolean;
 }
 
-declare interface CoreApi {
+declare interface Core {
 	readonly timers: Timers;
 	readonly format: (value: unknown, options?: FormatOptions) => string;
 }
 
-declare const Core: CoreApi;
+declare const Core: Core;

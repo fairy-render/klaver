@@ -1,11 +1,15 @@
-import { Headers, type Method, Request as KlaverRequest } from "@klaver/http";
-import { URL } from "./url.js";
+import {
+	Headers,
+	type Method,
+	Request as KlaverRequest,
+	Url,
+} from "@klaver/http";
 import type { AbortSignal } from "abort-controller";
 import { Body } from "./body.js";
 import { ReadableStream } from "web-streams-polyfill";
 
 export class Request extends Body {
-	#url: URL;
+	#url: Url;
 	#headers: Headers;
 	#method: Method;
 	#signal?: AbortSignal;
@@ -14,7 +18,7 @@ export class Request extends Body {
 		return this.#method;
 	}
 
-	get url(): URL {
+	get url(): Url {
 		return this.#url;
 	}
 
@@ -22,7 +26,7 @@ export class Request extends Body {
 		return this.#headers;
 	}
 
-	constructor(input: Request | string | URL, init: RequestInit = {}) {
+	constructor(input: Request | string | Url, init: RequestInit = {}) {
 		super(
 			init.body ??
 				(input && input instanceof Request
@@ -37,10 +41,10 @@ export class Request extends Body {
 			this.#headers = input.#headers;
 			this.#method = input.#method;
 			this.#signal = this.#signal;
-		} else if (input && input instanceof URL) {
+		} else if (input && input instanceof Url) {
 			this.#url = input;
 		} else if (typeof input === "string") {
-			this.#url = new URL(input);
+			this.#url = new Url(input);
 		}
 
 		this.#headers ??= new Headers();

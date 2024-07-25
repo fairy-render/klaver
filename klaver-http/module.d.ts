@@ -71,4 +71,15 @@ export class Response {
 	stream(): AsyncIterable<ArrayBuffer>;
 }
 
+export class Url {
+	constructor(url: string, base?: string);
+
+	readonly href: string;
+	readonly port: string;
+	readonly hash: string;
+	readonly password: string;
+	readonly protocol: string;
+	readonly search: string;
+}
+
 export function createCancel(): Cancel;

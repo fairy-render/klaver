@@ -1,5 +1,5 @@
 use klaver::throw_if;
-use rquickjs::{class::Trace, Ctx};
+use rquickjs::{class::Trace, function::Opt, Ctx};
 
 #[derive(Debug)]
 #[rquickjs::class]
@@ -14,8 +14,8 @@ impl<'js> Trace<'js> for Url {
 #[rquickjs::methods]
 impl Url {
     #[qjs(constructor)]
-    pub fn new<'js>(ctx: Ctx<'js>, url: String, base: Option<String>) -> rquickjs::Result<Url> {
-        let i = if let Some(base) = base {
+    pub fn new<'js>(ctx: Ctx<'js>, url: String, base: Opt<String>) -> rquickjs::Result<Url> {
+        let i = if let Some(base) = base.0 {
             throw_if!(ctx, url::Url::parse(&base).and_then(|m| m.join(&url)))
         } else {
             throw_if!(ctx, url::Url::parse(&url))
