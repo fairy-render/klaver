@@ -1,6 +1,9 @@
 use klaver::throw;
-use rquickjs::{class::Trace, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs, Object, Value};
-use std::{collections::VecDeque, rc::Rc};
+use rquickjs::{
+    class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx, Exception, FromJs,
+    Function, IntoJs, Object, Value,
+};
+use std::{clone, collections::VecDeque, rc::Rc};
 use tokio::sync::Notify;
 
 #[rquickjs::class]
@@ -37,6 +40,28 @@ impl<'js> FromJs<'js> for ReadableStreamInit<'js> {
     }
 }
 
+macro_rules! catch {
+    ($ctrl: expr, $ctx: expr, $ret: expr) => {
+        match $ret.catch(&$ctx) {
+            Ok(ret) => ret,
+            Err(err) => {
+                $ctrl.borrow_mut().state = State::Error(err);
+                return;
+            }
+        }
+    };
+}
+
+macro_rules! call {
+    ($ctrl: expr, $ctx: expr, $func: expr) => {
+        catch!(
+            $ctrl,
+            $ctx,
+            $func.call::<_, rquickjs::Value>(($ctrl.clone(),))
+        )
+    };
+}
+
 #[rquickjs::methods]
 impl<'js> ReadableStream<'js> {
     #[qjs(constructor)]
@@ -44,9 +69,6 @@ impl<'js> ReadableStream<'js> {
         ctx: Ctx<'js>,
         options: ReadableStreamInit<'js>,
     ) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
-        // let (sx_ready, mut rx_ready) = futures::channel::mpsc::channel(1);
-        // let (sx_wait, rx_wait) = futures::channel::mpsc::channel(1);
-
         let notify = Rc::new(Notify::new());
         let ready = Rc::new(Notify::new());
 
@@ -58,7 +80,7 @@ impl<'js> ReadableStream<'js> {
                 wait: notify.clone(),
                 highwater_mark: options.highwater_mark,
                 locked: false,
-                done: false,
+                state: State::Running,
             },
         )?;
 
@@ -75,12 +97,20 @@ impl<'js> ReadableStream<'js> {
         let ctx_clone = ctx.clone();
 
         ctx.spawn(async move {
-            //
             let ctrl = class_clone.borrow().ctrl.clone();
-            if let Some(func) = &class_clone.borrow().v.start {
-                let called = func.call::<_, rquickjs::Value>((ctrl.clone(),)).unwrap();
+            if let Some(func) = &class_clone.borrow().v.start.clone() {
+                // let called = match func
+                //     .call::<_, rquickjs::Value>((ctrl.clone(),))
+                //     .catch(&ctx_clone)
+                // {
+                //     Ok(ret) => ret,
+                //     Err(err) => ctrl.borrow_mut().state = State::Error(err),
+                // };
+
+                let called = call!(ctrl, ctx_clone, func);
+
                 if let Some(promise) = called.into_promise() {
-                    promise.into_future::<()>().await.unwrap();
+                    catch!(ctrl, ctx_clone, promise.into_future::<()>().await);
                 }
             }
 
@@ -90,13 +120,16 @@ impl<'js> ReadableStream<'js> {
                         ready.notified().await;
                     }
 
-                    let called = func.call::<_, rquickjs::Value>((ctrl.clone(),)).unwrap();
-
-                    if let Some(promise) = called.into_promise() {
-                        promise.into_future::<()>().await.catch(&ctx_clone).unwrap();
+                    if !ctrl.borrow().state.is_running() {
+                        break;
                     }
 
-                    if ctrl.borrow().done {
+                    let called = call!(ctrl, ctx_clone, func);
+                    if let Some(promise) = called.into_promise() {
+                        catch!(ctrl, ctx_clone, promise.into_future::<()>().await);
+                    }
+
+                    if !ctrl.borrow().state.is_running() {
                         ctrl.borrow().wait.notify_waiters();
                         break;
                     }
@@ -121,6 +154,40 @@ impl<'js> ReadableStream<'js> {
     }
 }
 
+enum State<'js> {
+    Done,
+    Running,
+    Canceled(Option<rquickjs::String<'js>>),
+    Error(CaughtError<'js>),
+}
+
+impl<'js> State<'js> {
+    fn is_running(&self) -> bool {
+        matches!(self, Self::Running)
+    }
+
+    fn as_error(&self) -> Option<&CaughtError<'js>> {
+        match self {
+            Self::Error(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
+impl<'js> Trace<'js> for State<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        match self {
+            Self::Canceled(reason) => reason.trace(tracer),
+            Self::Error(err) => match err {
+                CaughtError::Exception(err) => err.trace(tracer),
+                CaughtError::Value(v) => v.trace(tracer),
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+}
+
 #[rquickjs::class]
 pub struct ReadableStreamDefaultController<'js> {
     queue: VecDeque<Value<'js>>,
@@ -128,7 +195,7 @@ pub struct ReadableStreamDefaultController<'js> {
     locked: bool,
     ready: Rc<Notify>,
     wait: Rc<Notify>,
-    done: bool,
+    state: State<'js>,
 }
 
 impl<'js> ReadableStreamDefaultController<'js> {
@@ -139,7 +206,8 @@ impl<'js> ReadableStreamDefaultController<'js> {
 
 impl<'js> Trace<'js> for ReadableStreamDefaultController<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.queue.trace(tracer)
+        self.queue.trace(tracer);
+        self.state.trace(tracer);
     }
 }
 
@@ -152,7 +220,10 @@ impl<'js> ReadableStreamDefaultController<'js> {
     }
 
     pub fn close(&mut self) -> rquickjs::Result<()> {
-        self.done = true;
+        if !self.state.is_running() {
+            return Ok(());
+        }
+        self.state = State::Done;
         Ok(())
     }
 }
@@ -165,14 +236,27 @@ pub struct ReadableStreamDefaultReader<'js> {
 
 #[rquickjs::methods]
 impl<'js> ReadableStreamDefaultReader<'js> {
-    pub async fn read(&self) -> rquickjs::Result<Chunk<'js>> {
-        if self.ctrl.borrow().done {
+    pub async fn read(&self, ctx: Ctx<'js>) -> rquickjs::Result<Chunk<'js>> {
+        if let Some(err) = self.ctrl.borrow().state.as_error() {
+            match err {
+                CaughtError::Error(err) => {
+                    return Err(ctx
+                        .clone()
+                        .throw(rquickjs::String::from_str(ctx, &err.to_string())?.into_value()))
+                }
+                CaughtError::Exception(err) => {
+                    return Err(ctx.throw(Value::from_exception(err.clone())))
+                }
+                CaughtError::Value(value) => return Err(ctx.throw(value.clone())),
+            }
+        } else if !self.ctrl.borrow().state.is_running() {
             return Ok(Chunk {
                 value: None,
                 done: true,
             });
         }
 
+        // Wait for new items
         if self.ctrl.borrow().queue.is_empty() {
             let waiter = self.ctrl.borrow().wait.clone();
             waiter.notified().await;
@@ -190,8 +274,16 @@ impl<'js> ReadableStreamDefaultReader<'js> {
         })
     }
 
-    pub async fn cancel(&self, reason: Option<String>) -> rquickjs::Result<()> {
-        self.ctrl.borrow_mut().done = true;
+    pub async fn cancel(
+        &self,
+        ctx: Ctx<'js>,
+        reason: Opt<rquickjs::String<'js>>,
+    ) -> rquickjs::Result<()> {
+        if !self.ctrl.borrow().state.is_running() {
+            throw!(ctx, "stream not running");
+        }
+        self.ctrl.borrow_mut().state = State::Canceled(reason.0);
+        self.ctrl.borrow().ready.notify_one();
         Ok(())
     }
 }
