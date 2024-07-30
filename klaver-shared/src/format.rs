@@ -61,7 +61,10 @@ pub fn format_value<'js, W: Write>(
             format_array(ctx, array, f, options)?;
             Ok(())
         }
-        Type::Constructor => todo!(),
+        Type::Constructor => {
+            let ctor = rest.into_function().unwrap();
+            write!(f, "Class[name = {}]", ctor.get::<_, String>("name")?)
+        }
         Type::Function => {
             let func = rest.into_object().unwrap();
             write!(f, "Function[name = {}]", func.get::<_, String>("name")?)
