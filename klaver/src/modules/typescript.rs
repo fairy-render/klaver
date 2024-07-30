@@ -111,6 +111,7 @@ impl Compiler {
                             self.cm.clone(),
                             Some(self.compiler.comments()),
                             react::Options {
+                                runtime: Some(react::Runtime::Automatic),
                                 import_source: config.jsx_import_source.map(|m| m.to_string()),
                                 ..Default::default()
                             },

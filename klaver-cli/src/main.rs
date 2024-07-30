@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 &content,
                 CompileOptions {
                     jsx: true,
-                    jsx_import_source: None,
+                    jsx_import_source: Some("@wilbur/template"),
                     typescript: true,
                 },
             )?;
