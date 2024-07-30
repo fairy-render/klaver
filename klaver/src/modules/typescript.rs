@@ -85,6 +85,12 @@ impl Compiler {
                 let helpers = Helpers::new(false);
 
                 let program = HELPERS.set(&helpers, || {
+                    let program = program.fold_with(&mut decorators(DecoratorsConfig {
+                        emit_metadata: false,
+                        legacy: false,
+                        use_define_for_class_fields: true,
+                    }));
+
                     let mut program = if config.typescript {
                         if config.jsx {
                             program.fold_with(&mut ts::tsx(
@@ -121,7 +127,6 @@ impl Compiler {
                     }
 
                     program
-                        .fold_with(&mut decorators(DecoratorsConfig::default()))
                         .fold_with(&mut fixer(Some(self.compiler.comments())))
                         .fold_with(&mut hygiene())
                         .fold_with(&mut inject_helpers(top_level_mark))
