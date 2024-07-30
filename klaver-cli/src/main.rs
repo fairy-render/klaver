@@ -38,8 +38,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 &path.display().to_string(),
                 &content,
                 CompileOptions {
-                    tsx: true,
+                    jsx: true,
                     jsx_import_source: None,
+                    typescript: true,
                 },
             )?;
             println!("{}", source.code);
@@ -72,7 +73,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         &content,
         CompileOptions {
             jsx_import_source: None,
-            tsx: true,
+            jsx: true,
+            typescript: true,
         },
     )?;
 

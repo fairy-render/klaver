@@ -7,10 +7,19 @@ use swc_common::{errors::Handler, source_map::SourceMap, sync::Lrc, Mark, GLOBAL
 use swc_ecma_ast::EsVersion;
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::TsSyntax;
-use swc_ecma_transforms_base::resolver;
-use swc_ecma_transforms_react::Runtime;
-use swc_ecma_transforms_react::{jsx, Options};
-use swc_ecma_transforms_typescript::strip;
+// use swc_ecma_transforms_typescript::Config;
+// use swc_ecma_transforms_typescript::TsxConfig;
+// use swc_ecma_transforms_typescript::{strip, tsx, typescript};
+
+use swc_ecma_transforms::fixer;
+use swc_ecma_transforms::hygiene;
+use swc_ecma_transforms::{
+    compat::es2022,
+    helpers::{inject_helpers, Helpers, HELPERS},
+    proposals::{decorators, decorators::Config as DecoratorsConfig},
+    react, resolver, typescript as ts,
+};
+
 use swc_ecma_visit::FoldWith;
 
 use crate::Error;
@@ -25,7 +34,8 @@ pub struct Compiler {
 
 #[derive(Debug, Default)]
 pub struct CompileOptions<'a> {
-    pub tsx: bool,
+    pub jsx: bool,
+    pub typescript: bool,
     pub jsx_import_source: Option<&'a str>,
 }
 
@@ -66,7 +76,7 @@ impl Compiler {
                     &self.handler,
                     EsVersion::Es2022,
                     Syntax::Typescript(TsSyntax {
-                        tsx: config.tsx,
+                        tsx: config.jsx,
                         decorators: true,
                         ..Default::default()
                     }),
@@ -74,31 +84,66 @@ impl Compiler {
                     Some(self.compiler.comments()),
                 )?;
 
-                // Add TypeScript type stripping transform
                 let unresolved_mark = Mark::new();
                 let top_level_mark = Mark::new();
-                let mut program = program.fold_with(&mut strip(unresolved_mark, top_level_mark));
-                if config.tsx {
-                    program = program.fold_with(&mut jsx(
-                        self.cm.clone(),
-                        Some(self.compiler.comments()),
-                        Options {
-                            runtime: Some(Runtime::Automatic),
-                            import_source: config.jsx_import_source.map(Into::into),
-                            ..Default::default()
-                        },
-                        top_level_mark,
-                        unresolved_mark,
-                    ));
-                }
 
-                program = program.fold_with(&mut resolver(unresolved_mark, top_level_mark, true));
+                let helpers = Helpers::new(false);
+
+                let program = HELPERS.set(&helpers, || {
+                    let mut program = if config.typescript {
+                        if config.jsx {
+                            program.fold_with(&mut ts::tsx(
+                                self.cm.clone(),
+                                ts::Config::default(),
+                                ts::TsxConfig::default(),
+                                self.compiler.comments(),
+                                unresolved_mark,
+                                top_level_mark,
+                            ))
+                        } else {
+                            program.fold_with(&mut ts::typescript(
+                                ts::Config::default(),
+                                unresolved_mark,
+                                top_level_mark,
+                            ))
+                        }
+                    } else {
+                        program
+                    };
+
+                    if config.jsx {
+                        program = program.fold_with(&mut react::jsx(
+                            self.cm.clone(),
+                            Some(self.compiler.comments()),
+                            react::Options {
+                                import_source: config.jsx_import_source.map(|m| m.to_string()),
+                                ..Default::default()
+                            },
+                            top_level_mark,
+                            unresolved_mark,
+                        ))
+                    }
+
+                    program
+                        .fold_with(&mut decorators(DecoratorsConfig::default()))
+                        .fold_with(&mut fixer(Some(self.compiler.comments())))
+                        .fold_with(&mut hygiene())
+                        .fold_with(&mut inject_helpers(top_level_mark))
+                        .fold_with(&mut resolver(
+                            unresolved_mark,
+                            top_level_mark,
+                            config.typescript,
+                        ))
+                });
 
                 // https://rustdoc.swc.rs/swc/struct.Compiler.html#method.print
                 self.compiler
                     .print(
                         &program, // ast to print
-                        PrintArgs::default(),
+                        PrintArgs {
+                            // codegen_config: CodegenConfig::default().with_target(EsVersion::Es2022),
+                            ..Default::default()
+                        },
                     )
                     .map(|ret| (ret.code, ret.map))
             })
@@ -158,9 +203,10 @@ impl rquickjs::loader::Loader for TsLoader {
 
         let rel_path = RelativePath::new(path);
 
-        let tsx = rel_path.extension() == Some("tsx") || rel_path.extension() == Some("jsx");
+        let jsx = rel_path.extension() == Some("tsx") || rel_path.extension() == Some("jsx");
+        let typescript = rel_path.extension() == Some("ts") || rel_path.extension() == Some("tsx");
 
-        tracing::trace!(path = %path, tsx = %tsx, "compiling path");
+        tracing::trace!(path = %path, jsx = %jsx, "compiling path");
 
         let source = self
             .compiler
@@ -168,7 +214,8 @@ impl rquickjs::loader::Loader for TsLoader {
                 path,
                 &content,
                 CompileOptions {
-                    tsx,
+                    jsx,
+                    typescript,
                     jsx_import_source: self.jsx_import_source.as_ref().map(|m| m.as_str()),
                 },
             )
