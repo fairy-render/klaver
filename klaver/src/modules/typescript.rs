@@ -7,14 +7,9 @@ use swc_common::{errors::Handler, source_map::SourceMap, sync::Lrc, Mark, GLOBAL
 use swc_ecma_ast::EsVersion;
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::TsSyntax;
-// use swc_ecma_transforms_typescript::Config;
-// use swc_ecma_transforms_typescript::TsxConfig;
-// use swc_ecma_transforms_typescript::{strip, tsx, typescript};
-
 use swc_ecma_transforms::fixer;
 use swc_ecma_transforms::hygiene;
 use swc_ecma_transforms::{
-    compat::es2022,
     helpers::{inject_helpers, Helpers, HELPERS},
     proposals::{decorators, decorators::Config as DecoratorsConfig},
     react, resolver, typescript as ts,
