@@ -3,7 +3,7 @@ use klaver::{throw, throw_if};
 use klaver_streams::{async_byte_iterator, AsyncByteIterError};
 // use klaver_base::streams::{async_byte_iterator, AsyncByteIterError};
 use reggie::{Body, ResponseExt};
-use reqwest::{ResponseBuilderExt, Url, Version};
+use reqwest::{ResponseBuilderExt, Version};
 use rquickjs::{class::Trace, function::Opt, Class, Ctx, Exception, FromJs, Object, Value};
 
 use crate::{body::BodyInit, headers::HeadersInit, module::Headers};
@@ -31,7 +31,7 @@ impl<'js> Response<'js> {
     pub fn from_response(
         ctx: Ctx<'js>,
         url: &str,
-        mut resp: reggie::http::Response<Body>,
+        resp: reggie::http::Response<Body>,
     ) -> rquickjs::Result<Response<'js>> {
         let (parts, body) = resp.into_parts();
 

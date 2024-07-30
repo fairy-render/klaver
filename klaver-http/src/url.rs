@@ -1,5 +1,5 @@
 use klaver::throw_if;
-use rquickjs::{class::Trace, function::Opt, qjs, Class, Ctx, FromJs};
+use rquickjs::{class::Trace, function::Opt, Class, Ctx, FromJs};
 
 pub enum StringOrUrl<'js> {
     String(String),

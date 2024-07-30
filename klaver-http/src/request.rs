@@ -7,7 +7,7 @@ use reggie::Body;
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
 use rquickjs::{
-    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, IntoJs, Object,
+    class::Trace, function::Opt, Class, Ctx, Error, Exception, FromJs, IntoJs, Object,
     Value,
 };
 use tokio::sync::oneshot::Receiver;

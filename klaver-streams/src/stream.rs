@@ -1,9 +1,9 @@
 use klaver::throw;
 use rquickjs::{
-    class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx, Exception, FromJs,
+    class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx, FromJs,
     Function, IntoJs, Object, Value,
 };
-use std::{clone, collections::VecDeque, rc::Rc};
+use std::{collections::VecDeque, rc::Rc};
 use tokio::sync::Notify;
 
 #[rquickjs::class]

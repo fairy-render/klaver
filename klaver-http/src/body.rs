@@ -1,5 +1,5 @@
 use klaver_shared::buffer::Buffer;
-use rquickjs::{class::Trace, FromJs, IntoJs};
+use rquickjs::{class::Trace, FromJs};
 
 #[derive(Trace)]
 pub enum BodyInit<'js> {
