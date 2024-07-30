@@ -1,10 +1,9 @@
-use std::ptr::NonNull;
 
 use buffer::TypedArray;
 use digest::Digest;
 use klaver::{module_info, throw};
 use rand::RngCore;
-use rquickjs::{function::Func, Class, Ctx, FromJs};
+use rquickjs::{function::Func, Class, Ctx};
 
 mod buffer;
 mod digest;

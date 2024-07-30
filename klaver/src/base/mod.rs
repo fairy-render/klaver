@@ -1,6 +1,6 @@
 use klaver_shared::format;
 use rquickjs::{
-    function::{Func, Opt, Rest},
+    function::{Func, Rest},
     Ctx, Value,
 };
 

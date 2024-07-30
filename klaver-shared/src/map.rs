@@ -1,4 +1,3 @@
-use core::fmt;
 
 use rquickjs::{class::Trace, function::This, Ctx, FromJs, Function, IntoJs, Object, Value};
 

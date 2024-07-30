@@ -1,7 +1,7 @@
-use futures::{future::BoxFuture, io::Sink, FutureExt};
+use futures::{future::BoxFuture, FutureExt};
 use gerning::{
     arguments::Arguments,
-    service::{AsyncService, AsyncState, SendAsync},
+    service::AsyncService,
 };
 use klaver::throw_if;
 use klaver_shared::val::Val;

@@ -1,4 +1,4 @@
-use rquickjs::{function::Opt, promise::PromiseState, Array, Ctx, FromJs, Object, Type, Value};
+use rquickjs::{promise::PromiseState, Array, Ctx, FromJs, Object, Type, Value};
 use std::fmt::Write;
 
 use crate::{buffer::Buffer, date::Date};
