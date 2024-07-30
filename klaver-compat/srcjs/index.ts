@@ -1,7 +1,6 @@
 /// <reference path="../../module.d.ts" />
 
 import { writeProps } from "./util.js";
-import console from "./console.js";
 import fetch from "./fetch/index.js";
 import stream from "./streams.js";
 import process from "./process.js";
