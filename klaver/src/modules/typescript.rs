@@ -169,12 +169,14 @@ pub struct TsLoader {
     extensions: Vec<String>,
     compiler: Compiler,
     jsx_import_source: Option<String>,
+    ts_decorators: bool,
 }
 
 impl TsLoader {
-    pub fn new(jsx_import_source: Option<String>) -> TsLoader {
+    pub fn new(jsx_import_source: Option<String>, legacy_decorators: bool) -> TsLoader {
         TsLoader {
             jsx_import_source,
+            ts_decorators: legacy_decorators,
             ..Default::default()
         }
     }
@@ -191,6 +193,7 @@ impl Default for TsLoader {
             ],
             compiler: Compiler::new(),
             jsx_import_source: None,
+            ts_decorators: false,
         }
     }
 }
@@ -226,7 +229,7 @@ impl rquickjs::loader::Loader for TsLoader {
                     jsx,
                     typescript,
                     jsx_import_source: self.jsx_import_source.as_ref().map(|m| m.as_str()),
-                    ts_decorators: false,
+                    ts_decorators: self.ts_decorators,
                 },
             )
             .map_err(|err| rquickjs::Error::new_loading_message(path, err.to_string()))?;

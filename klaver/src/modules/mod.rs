@@ -52,6 +52,7 @@ pub struct Modules {
     patterns: Vec<String>,
     inits: Vec<Arc<dyn Init + Send + Sync>>,
     jsx_import_source: Option<String>,
+    ts_decorators: bool,
 }
 
 impl Modules {
@@ -64,6 +65,11 @@ impl Modules {
 
     pub fn set_jsx_import_source(&mut self, path: &str) -> &mut Self {
         self.jsx_import_source = Some(path.to_string());
+        self
+    }
+
+    pub fn use_legacy_decorators(&mut self, on: bool) -> &mut Self {
+        self.ts_decorators = on;
         self
     }
 
@@ -102,7 +108,7 @@ impl Modules {
         let mut builtin_resolver = BuiltinResolver::default();
         let mut file_resolver = file::FileResolver::default();
         #[cfg(feature = "typescript")]
-        let script_loader = typescript::TsLoader::new(self.jsx_import_source);
+        let script_loader = typescript::TsLoader::new(self.jsx_import_source, self.ts_decorators);
         #[cfg(feature = "typescript")]
         {
             file_resolver.add_pattern("{}.ts");

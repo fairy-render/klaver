@@ -16,4 +16,4 @@ class Test {
 	}
 }
 
-console.log("hhelo", new Test(""), typeof Reflect.defineMetadata);
+console.log("hhelo", new Test(""), typeof Reflect);
