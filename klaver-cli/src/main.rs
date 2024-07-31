@@ -41,6 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     jsx: true,
                     jsx_import_source: Some("@wilbur/template"),
                     typescript: true,
+                    ts_decorators: false,
                 },
             )?;
             println!("{}", source.code);
@@ -75,6 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             jsx_import_source: None,
             jsx: true,
             typescript: true,
+            ts_decorators: false,
         },
     )?;
 

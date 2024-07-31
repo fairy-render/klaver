@@ -9,9 +9,10 @@ use swc_ecma_parser::Syntax;
 use swc_ecma_parser::TsSyntax;
 use swc_ecma_transforms::fixer;
 use swc_ecma_transforms::hygiene;
+use swc_ecma_transforms::proposals::decorator_2022_03::decorator_2022_03;
 use swc_ecma_transforms::{
     helpers::{inject_helpers, Helpers, HELPERS},
-    proposals::{decorators, decorators::Config as DecoratorsConfig},
+    proposals::{decorator_2022_03, decorators, decorators::Config as DecoratorsConfig},
     react, resolver, typescript as ts,
 };
 
@@ -32,6 +33,7 @@ pub struct CompileOptions<'a> {
     pub jsx: bool,
     pub typescript: bool,
     pub jsx_import_source: Option<&'a str>,
+    pub ts_decorators: bool,
 }
 
 pub struct Source {
@@ -66,7 +68,7 @@ impl Compiler {
 
         let (code, map) = GLOBALS
             .set(&Default::default(), || {
-                let program = self.compiler.parse_js(
+                let mut program = self.compiler.parse_js(
                     source,
                     &self.handler,
                     EsVersion::Es2022,
@@ -85,13 +87,15 @@ impl Compiler {
                 let helpers = Helpers::new(false);
 
                 let program = HELPERS.set(&helpers, || {
-                    let program = program.fold_with(&mut decorators(DecoratorsConfig {
-                        emit_metadata: false,
-                        legacy: false,
-                        use_define_for_class_fields: true,
-                    }));
+                    if config.ts_decorators {
+                        program = program.fold_with(&mut decorators(DecoratorsConfig {
+                            emit_metadata: true,
+                            legacy: true,
+                            use_define_for_class_fields: false,
+                        }));
+                    }
 
-                    let mut program = if config.typescript {
+                    program = if config.typescript {
                         if config.jsx {
                             program.fold_with(&mut ts::tsx(
                                 self.cm.clone(),
@@ -124,6 +128,10 @@ impl Compiler {
                             top_level_mark,
                             unresolved_mark,
                         ))
+                    }
+
+                    if !config.ts_decorators {
+                        program = program.fold_with(&mut decorator_2022_03());
                     }
 
                     program
@@ -218,6 +226,7 @@ impl rquickjs::loader::Loader for TsLoader {
                     jsx,
                     typescript,
                     jsx_import_source: self.jsx_import_source.as_ref().map(|m| m.as_str()),
+                    ts_decorators: false,
                 },
             )
             .map_err(|err| rquickjs::Error::new_loading_message(path, err.to_string()))?;
