@@ -1,7 +1,7 @@
 use klaver::throw;
 use rquickjs::{
-    class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx, FromJs,
-    Function, IntoJs, Object, Value,
+    class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx, FromJs, Function, IntoJs,
+    Object, Value,
 };
 use std::{collections::VecDeque, rc::Rc};
 use tokio::sync::Notify;
@@ -99,14 +99,6 @@ impl<'js> ReadableStream<'js> {
         ctx.spawn(async move {
             let ctrl = class_clone.borrow().ctrl.clone();
             if let Some(func) = &class_clone.borrow().v.start.clone() {
-                // let called = match func
-                //     .call::<_, rquickjs::Value>((ctrl.clone(),))
-                //     .catch(&ctx_clone)
-                // {
-                //     Ok(ret) => ret,
-                //     Err(err) => ctrl.borrow_mut().state = State::Error(err),
-                // };
-
                 let called = call!(ctrl, ctx_clone, func);
 
                 if let Some(promise) = called.into_promise() {

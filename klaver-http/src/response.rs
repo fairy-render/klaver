@@ -1,9 +1,8 @@
 use futures::TryStreamExt;
 use klaver::{throw, throw_if};
 use klaver_streams::{async_byte_iterator, AsyncByteIterError};
-// use klaver_base::streams::{async_byte_iterator, AsyncByteIterError};
-use reggie::{Body, ResponseExt};
-use reqwest::{ResponseBuilderExt, Version};
+use reggie::Body;
+use reqwest::Version;
 use rquickjs::{class::Trace, function::Opt, Class, Ctx, Exception, FromJs, Object, Value};
 
 use crate::{body::BodyInit, headers::HeadersInit, module::Headers};
@@ -83,7 +82,7 @@ pub struct ResponseOptions<'js> {
 }
 
 impl<'js> FromJs<'js> for ResponseOptions<'js> {
-    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+    fn from_js(_ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let Some(object) = value.as_object() else {
             return Err(rquickjs::Error::new_from_js(value.type_name(), "object"));
         };

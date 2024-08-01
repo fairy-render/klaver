@@ -7,8 +7,7 @@ use reggie::Body;
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
 use rquickjs::{
-    class::Trace, function::Opt, Class, Ctx, Error, Exception, FromJs, IntoJs, Object,
-    Value,
+    class::Trace, function::Opt, Class, Ctx, Error, Exception, FromJs, IntoJs, Object, Value,
 };
 use tokio::sync::oneshot::Receiver;
 
@@ -87,7 +86,7 @@ pub struct Options<'js> {
 
 impl<'js> FromJs<'js> for Options<'js> {
     fn from_js(
-        ctx: &rquickjs::prelude::Ctx<'js>,
+        _ctx: &rquickjs::prelude::Ctx<'js>,
         value: rquickjs::Value<'js>,
     ) -> rquickjs::Result<Self> {
         let Ok(obj) = value.try_into_object() else {

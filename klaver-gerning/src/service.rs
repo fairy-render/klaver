@@ -1,11 +1,8 @@
 use futures::{future::BoxFuture, FutureExt};
-use gerning::{
-    arguments::Arguments,
-    service::AsyncService,
-};
+use gerning::{arguments::Arguments, service::AsyncService};
 use klaver::throw_if;
 use klaver_shared::val::Val;
-use rquickjs::{class::Trace, function::Rest, Ctx, FromJs};
+use rquickjs::{class::Trace, function::Rest, Ctx};
 use vaerdi::Value;
 
 #[rquickjs::class]

@@ -20,15 +20,6 @@ impl Client {
         })
     }
 
-    // pub async fn get<'js>(
-    //     &self,
-    //     ctx: Ctx<'js>,
-    //     url: String,
-    // ) -> rquickjs::Result<Class<'js, Response<'js>>> {
-    //     let ret = self.inner.get(url).send().await.unwrap();
-    //     Class::instance(ctx.clone(), Response::from_reqwest(ctx.clone(), ret)?)
-    // }
-
     pub async fn send<'js>(
         &self,
         ctx: Ctx<'js>,

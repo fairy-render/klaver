@@ -70,7 +70,7 @@ impl Url {
     }
 
     #[qjs(set, rename = "hash")]
-    pub fn set_hash(&mut self, ctx: Ctx<'_>, search: Opt<String>) -> rquickjs::Result<()> {
+    pub fn set_hash(&mut self, _ctx: Ctx<'_>, search: Opt<String>) -> rquickjs::Result<()> {
         self.i.set_fragment(search.0.as_ref().map(|m| m.as_str()));
         Ok(())
     }
@@ -113,7 +113,7 @@ impl Url {
     }
 
     #[qjs(set, rename = "pathname")]
-    pub fn set_pathname(&mut self, ctx: Ctx<'_>, search: String) -> rquickjs::Result<()> {
+    pub fn set_pathname(&mut self, _ctx: Ctx<'_>, search: String) -> rquickjs::Result<()> {
         self.i.set_path(&*search);
         Ok(())
     }

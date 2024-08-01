@@ -1,8 +1,4 @@
-use std::{
-    cell::RefCell,
-    ops::Add,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::{cell::RefCell, ops::Add, time::Duration};
 
 use rquickjs::{class::Trace, CatchResultExt, Class, Ctx, FromJs, Function, IntoJs, Value};
 use slotmap::{new_key_type, KeyData, SlotMap};
@@ -30,13 +26,6 @@ impl<'js> IntoJs<'js> for TimeId {
     fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
         Ok(Value::new_int(ctx.clone(), self.0.as_ffi() as i32))
     }
-}
-
-fn get_current_time_millis() -> usize {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis() as usize
 }
 
 #[derive(Debug)]

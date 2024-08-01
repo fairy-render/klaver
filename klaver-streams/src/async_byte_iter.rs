@@ -8,28 +8,6 @@ use rquickjs::{
 
 pub struct AsyncByteIterError;
 
-// pub struct RustStream<T> {
-//     stream: Option<T>,
-// }
-
-// impl<'js, T: 'static> rquickjs::class::JsClass<'js> for RustStream<T> {
-//     const NAME: &'static str = std::any::type_name::<T>();
-
-//     type Mutable;
-
-//     fn class_id() -> &'static ClassId {
-//         todo!()
-//     }
-
-//     fn prototype(ctx: &Ctx<'js>) -> Result<Option<Object<'js>>> {
-//         todo!()
-//     }
-
-//     fn constructor(ctx: &Ctx<'js>) -> Result<Option<Constructor<'js>>> {
-//         todo!()
-//     }
-// }
-
 pub fn async_byte_iterator<'js, S>(ctx: Ctx<'js>, stream: S) -> rquickjs::Result<Object<'js>>
 where
     S: Stream<Item = Result<Vec<u8>, AsyncByteIterError>> + Send + 'static,
@@ -69,7 +47,7 @@ pub struct AsyncByteIter {
 }
 
 impl<'js> Trace<'js> for AsyncByteIter {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {}
+    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
 
 #[rquickjs::methods]
@@ -85,7 +63,7 @@ impl AsyncByteIter {
 
         let ret = match next {
             Ok(ret) => ret,
-            Err(err) => {
+            Err(_) => {
                 return Err(ctx.throw(Value::from_exception(Exception::from_message(
                     ctx.clone(),
                     "could not stuff",

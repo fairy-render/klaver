@@ -1,14 +1,11 @@
 use std::{
-    future::{Future},
-    path::{PathBuf},
+    future::Future,
+    path::PathBuf,
     pin::{pin, Pin},
     task::Poll,
 };
 
-use rquickjs::{
-    context::EvalOptions,
-    AsyncContext, AsyncRuntime, CatchResultExt, Ctx, FromJs,
-};
+use rquickjs::{context::EvalOptions, AsyncContext, AsyncRuntime, CatchResultExt, Ctx, FromJs};
 
 use crate::{
     base::{
@@ -124,23 +121,6 @@ impl Vm {
 
         future.await
     }
-
-    // pub fn import_module(&self, name: &str) -> Result<(), Error> {
-    //   async_with!(self => |ctx| {
-
-    //   })
-    // }
-
-    // pub async fn run_file(&self, filename: &Path) -> Result<(), Error> {
-    //     crate::async_with!(self => |ctx| {
-    //       ctx.eval_promise(format!(
-    //         r#"await import("{}")"#,
-    //         filename.to_string_lossy()
-    //       ))?.into_future().await
-    //     })
-    //     .await
-    //     .map_err(Into::into)
-    // }
 
     pub fn idle(&self) -> Idle<'_> {
         Idle {

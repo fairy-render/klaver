@@ -5,6 +5,7 @@ use crate::{buffer::Buffer, date::Date};
 
 #[derive(Debug, Clone, Default)]
 pub struct FormatOptions {
+    #[allow(unused)]
     colors: bool,
 }
 
@@ -81,10 +82,7 @@ pub fn format_value<'js, W: Write>(
         }
         Type::Exception => {
             let excp = rest.into_exception().unwrap();
-
-            write!(f, "{}", excp);
-
-            Ok(())
+            write!(f, "{}", excp)
         }
         Type::Object => {
             format_object(ctx, rest.into_object().unwrap(), f, options)?;
@@ -106,25 +104,25 @@ fn format_object<'js, W: Write>(
     options: &FormatOptions,
 ) -> rquickjs::Result<()> {
     if Date::is(ctx, obj.as_value())? {
-        write!(o, "{}", Date::from_js(ctx, obj.into_value())?.to_string()?);
+        write!(o, "{}", Date::from_js(ctx, obj.into_value())?.to_string()?).expect("write");
         return Ok(());
     } else if Buffer::is(ctx, obj.as_value())? {
-        write!(o, "{}", Buffer::from_js(ctx, obj.into_value())?);
+        write!(o, "{}", Buffer::from_js(ctx, obj.into_value())?).expect("write");
         return Ok(());
     }
 
-    o.write_str("{ ");
+    o.write_str("{ ").expect("write");
     for (idx, v) in obj.props::<Value, Value>().enumerate() {
         if idx > 0 {
-            write!(o, ", ");
+            write!(o, ", ").expect("write");
         }
         let (k, v) = v?;
         format_value(ctx, k, o, options)?;
-        o.write_str(" : ");
+        o.write_str(" : ").expect("write");
         format_value(ctx, v, o, options)?;
     }
 
-    o.write_str(" }");
+    o.write_str(" }").expect("write");
 
     Ok(())
 }
@@ -135,16 +133,16 @@ fn format_array<'js, W: Write>(
     o: &mut W,
     options: &FormatOptions,
 ) -> rquickjs::Result<()> {
-    o.write_str("{ ");
+    o.write_str("{ ").expect("write");
     for (idx, v) in obj.iter::<rquickjs::Value>().enumerate() {
         if idx > 0 {
-            write!(o, ", ");
+            write!(o, ", ").expect("write");
         }
         let v = v?;
         format_value(ctx, v, o, options)?;
     }
 
-    o.write_str(" }");
+    o.write_str(" }").expect("write");
 
     Ok(())
 }

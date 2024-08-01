@@ -18,11 +18,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// does testing things
-    Compile {
-        /// lists test values
-        path: PathBuf,
-    },
+    ///Compile scripts
+    Compile { path: PathBuf },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -39,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 &content,
                 CompileOptions {
                     jsx: true,
-                    jsx_import_source: Some("@wilbur/template"),
+                    jsx_import_source: None,
                     typescript: true,
                     ts_decorators: false,
                 },
@@ -80,67 +77,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         },
     )?;
 
-    let ret = klaver::async_with!(vm => |ctx| {
+    klaver::async_with!(vm => |ctx| {
 
-        let _ = Module::evaluate(ctx.clone(), &*args[0], source.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
+        Module::evaluate(ctx.clone(), &*args[0], source.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
 
-       Ok(())
+        Ok(())
     })
     .await?;
 
     vm.idle().await?;
-
-    // if let Err(Error::Exception) = ret {
-    //     context
-    //         .with(|ctx| {
-    //             let catch = ctx.catch();
-
-    //             if !catch.is_null() {
-    //                 println!(
-    //                     "catch: {:?}",
-    //                     catch.try_into_exception().unwrap().to_string()
-    //                 );
-    //             }
-
-    //             rquickjs::Result::Ok(())
-    //         })
-    //         .await?;
-    // }
-
-    // runtime.idle().await;
-
-    // let ret = context
-    //     .with(|ctx| {
-    //         let base = get_base(&ctx)?;
-    //         let mut base = base.try_borrow_mut()?;
-
-    //         base.uncaught(ctx)
-    //     })
-    //     .await;
-
-    // if let Err(Error::Exception) = ret {
-    //     context
-    //         .with(|ctx| {
-    //             let catch = ctx.catch();
-
-    //             if !catch.is_null() {
-    //                 println!(
-    //                     "catch: {:?}",
-    //                     catch
-    //                         .try_into_exception()
-    //                         .map(|m| m.to_string())
-    //                         .or_else(|v| v
-    //                             .try_into_string()
-    //                             .map_err(|_| rquickjs::Error::new_from_js("not", "to"))
-    //                             .and_then(|m| m.to_string()))
-    //                         .unwrap()
-    //                 );
-    //             }
-
-    //             rquickjs::Result::Ok(())
-    //         })
-    //         .await?;
-    // }
 
     Ok(())
 }

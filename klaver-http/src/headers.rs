@@ -64,7 +64,7 @@ impl<'js> Headers<'js> {
 #[rquickjs::methods]
 impl<'js> Headers<'js> {
     #[qjs(constructor)]
-    pub fn new(init: Opt<rquickjs::Array<'js>>) -> Self {
+    pub fn new(_init: Opt<rquickjs::Array<'js>>) -> Self {
         Self::default()
     }
     pub fn append(&mut self, key: String, value: rquickjs::String<'js>) {

@@ -19,7 +19,7 @@ pub type Module = module::js_http_mod;
 
 klaver::module_info!("@klaver/http" => Module);
 
-pub struct Factory(pub SharedClientFactory);
+struct Factory(pub SharedClientFactory);
 
 pub fn set_client<T>(ctx: &Ctx<'_>, factory: T) -> rquickjs::Result<()>
 where
@@ -28,18 +28,7 @@ where
     for<'a> <T::Client<reggie::Body> as HttpClient<reggie::Body>>::Future<'a>: Send,
     <T::Client<Body> as HttpClient<reggie::Body>>::Body: Into<Body>,
 {
-    let base = get_core(ctx)?;
-    let mut base_mut = base.borrow_mut();
-
-    if base_mut.extensions().contains::<Factory>() {
-        base_mut.extensions_mut().remove::<Factory>();
-    }
-
-    base_mut
-        .extensions_mut()
-        .insert(Factory(reggie::factory_arc::<T>(factory)));
-
-    Ok(())
+    set_client_box(ctx, reggie::factory_arc::<T>(factory))
 }
 
 pub fn set_client_box(ctx: &Ctx<'_>, client: SharedClientFactory) -> rquickjs::Result<()> {

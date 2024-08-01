@@ -5,17 +5,17 @@ use rquickjs::Module;
 use swc::{config::IsModule, Compiler as SwcCompiler, PrintArgs};
 use swc_common::{errors::Handler, source_map::SourceMap, sync::Lrc, Mark, GLOBALS};
 use swc_ecma_ast::EsVersion;
-use swc_ecma_parser::Syntax;
-use swc_ecma_parser::TsSyntax;
-use swc_ecma_transforms::fixer;
-use swc_ecma_transforms::hygiene;
-use swc_ecma_transforms::proposals::decorator_2022_03::decorator_2022_03;
+use swc_ecma_parser::{Syntax, TsSyntax};
 use swc_ecma_transforms::{
+    fixer,
     helpers::{inject_helpers, Helpers, HELPERS},
-    proposals::{decorator_2022_03, decorators, decorators::Config as DecoratorsConfig},
+    hygiene,
+    proposals::{
+        decorator_2022_03::decorator_2022_03,
+        decorators::{decorators, Config as DecoratorsConfig},
+    },
     react, resolver, typescript as ts,
 };
-
 use swc_ecma_visit::FoldWith;
 
 use crate::Error;
