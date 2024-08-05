@@ -133,7 +133,7 @@ fn format_array<'js, W: Write>(
     o: &mut W,
     options: &FormatOptions,
 ) -> rquickjs::Result<()> {
-    o.write_str("{ ").expect("write");
+    o.write_str("[ ").expect("write");
     for (idx, v) in obj.iter::<rquickjs::Value>().enumerate() {
         if idx > 0 {
             write!(o, ", ").expect("write");
@@ -142,7 +142,7 @@ fn format_array<'js, W: Write>(
         format_value(ctx, v, o, options)?;
     }
 
-    o.write_str(" }").expect("write");
+    o.write_str(" ]").expect("write");
 
     Ok(())
 }
