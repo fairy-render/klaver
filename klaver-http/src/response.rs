@@ -88,7 +88,7 @@ impl<'js> FromJs<'js> for ResponseOptions<'js> {
         };
 
         Ok(ResponseOptions {
-            status: object.get("stataus")?,
+            status: object.get("status")?,
             headers: object.get("headers")?,
         })
     }
