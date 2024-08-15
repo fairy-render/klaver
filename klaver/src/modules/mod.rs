@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
+use parking_lot::Mutex;
 use rquickjs::{
     loader::{BuiltinResolver, Loader, Resolver},
     module::ModuleDef,
@@ -53,6 +54,8 @@ pub struct Modules {
     inits: Vec<Arc<dyn Init + Send + Sync>>,
     jsx_import_source: Option<String>,
     ts_decorators: bool,
+    resolvers: ResolverList,
+    loaders: LoaderList,
 }
 
 impl Modules {
@@ -100,6 +103,22 @@ impl Modules {
         self
     }
 
+    pub fn add_loader<T: rquickjs::loader::Loader + Send + Sync + 'static>(
+        &mut self,
+        loader: T,
+    ) -> &mut Self {
+        self.loaders.loaders.lock().push(Box::new(loader));
+        self
+    }
+
+    pub fn add_resolver<T: rquickjs::loader::Resolver + Send + Sync + 'static>(
+        &mut self,
+        resolver: T,
+    ) -> &mut Self {
+        self.resolvers.resolvers.lock().push(Box::new(resolver));
+        self
+    }
+
     pub(crate) async fn attach<T: Runtime>(
         self,
         runtime: &T,
@@ -137,8 +156,8 @@ impl Modules {
 
         runtime
             .set_loader(
-                (builtin_resolver, file_resolver),
-                (script_loader, module_loader),
+                (builtin_resolver, file_resolver, self.resolvers.clone()),
+                (script_loader, module_loader, self.loaders.clone()),
             )
             .await;
 
@@ -174,5 +193,46 @@ impl Loader for ModuleLoader {
         } else {
             Err(Error::new_loading(path))
         }
+    }
+}
+
+#[derive(Clone, Default)]
+struct LoaderList {
+    loaders: Arc<Mutex<Vec<Box<dyn rquickjs::loader::Loader + Send + Sync>>>>,
+}
+
+impl rquickjs::loader::Loader for LoaderList {
+    fn load<'js>(
+        &mut self,
+        ctx: &Ctx<'js>,
+        name: &str,
+    ) -> rquickjs::Result<Module<'js, rquickjs::module::Declared>> {
+        let mut loaders = self.loaders.lock();
+        for loader in &mut *loaders {
+            if let Ok(module) = loader.load(ctx, name) {
+                return Ok(module);
+            }
+        }
+
+        Err(rquickjs::Error::new_loading(name))
+    }
+}
+
+#[derive(Clone, Default)]
+struct ResolverList {
+    resolvers: Arc<Mutex<Vec<Box<dyn rquickjs::loader::Resolver + Send + Sync>>>>,
+}
+
+impl rquickjs::loader::Resolver for ResolverList {
+    fn resolve<'js>(&mut self, ctx: &Ctx<'js>, base: &str, name: &str) -> rquickjs::Result<String> {
+        let mut resolvers = self.resolvers.lock();
+
+        for resolver in &mut *resolvers {
+            if let Ok(url) = resolver.resolve(ctx, base, name) {
+                return Ok(url);
+            }
+        }
+
+        Err(rquickjs::Error::new_resolving(base, name))
     }
 }

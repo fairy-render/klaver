@@ -1091,6 +1091,7 @@ dependencies = [
  "extensions",
  "klaver-shared",
  "once_cell",
+ "parking_lot",
  "pin-project-lite",
  "relative-path",
  "rquickjs",
