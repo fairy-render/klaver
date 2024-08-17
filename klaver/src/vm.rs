@@ -134,16 +134,11 @@ impl Vm {
 
                     let sleep = self.ctx.with(|ctx| poll_timers(&ctx)).await?;
 
-                    tokio::select! {
-                      _ = self.rt.drive() => {
-                        tokio::task::yield_now().await;
-                        continue;
-                      }
-                      _ = sleep => {
-                        tokio::task::yield_now().await;
-                        continue;
-                      }
+                    if !has_timers {
+                        self.rt.execute_pending_job().await.ok();
                     }
+
+                    sleep.await
                 }
 
                 Ok(())
