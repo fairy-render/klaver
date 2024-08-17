@@ -29,7 +29,7 @@ relative-path = { version = "1" }
 tracing = { version = "0.1" }
 parking_lot = { version = "0.12" }
 # Typescript
-swc = { version = "0.283.0", optional = true }
+swc = { version = "0.284.0", optional = true }
 swc_common = { version = "0.37.2", optional = true }
 swc_ecma_ast = { version = "0.118.1", optional = true }
 swc_ecma_parser = { version = "0.149.0", features = [
@@ -37,4 +37,4 @@ swc_ecma_parser = { version = "0.149.0", features = [
   "typescript",
 ], optional = true }
 swc_ecma_visit = { version = "0.104.5", optional = true }
-swc_ecma_transforms = { version = "0.236.0", optional = true }
+swc_ecma_transforms = { version = "0.238.0", optional = true }
