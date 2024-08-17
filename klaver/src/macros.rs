@@ -1,8 +1,8 @@
 #[macro_export]
 macro_rules! throw {
     ($ctx: ident, $err: expr) => {
-        return Err($ctx.throw(rquickjs::Value::from_exception(
-            rquickjs::Exception::from_message($ctx.clone(), &*$err.to_string())?,
+        return Err($ctx.throw($crate::quick::Value::from_exception(
+            $crate::quick::Exception::from_message($ctx.clone(), &*$err.to_string())?,
         )))
     };
 }
