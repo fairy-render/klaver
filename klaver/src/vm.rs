@@ -136,9 +136,11 @@ impl Vm {
 
                     tokio::select! {
                       _ = self.rt.drive() => {
+                        tokio::task::yield_now().await;
                         continue;
                       }
                       _ = sleep => {
+                        tokio::task::yield_now().await;
                         continue;
                       }
                     }
