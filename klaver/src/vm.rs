@@ -135,9 +135,9 @@ impl Vm {
 
                     let sleep = self.ctx.with(|ctx| poll_timers(&ctx)).await?;
 
-                    if !has_timers {
-                        self.rt.execute_pending_job().await.ok();
-                    }
+                    // if !has_timers {
+                    //     self.rt.execute_pending_job().await.ok();
+                    // }
 
                     sleep.await;
 
