@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use relative_path::{RelativePath, RelativePathBuf};
 use rquickjs::{loader::Resolver, Ctx, Error, Result};
@@ -10,6 +13,7 @@ use rquickjs::{loader::Resolver, Ctx, Error, Result};
 pub struct FileResolver {
     paths: Vec<PathBuf>,
     patterns: Vec<String>,
+    cache: HashMap<String, String>,
 }
 
 impl FileResolver {
@@ -114,12 +118,19 @@ impl Default for FileResolver {
         Self {
             paths: vec![],
             patterns: vec!["{}.js".into()],
+            cache: Default::default(),
         }
     }
 }
 
 impl Resolver for FileResolver {
     fn resolve<'js>(&mut self, _ctx: &Ctx<'js>, base: &str, name: &str) -> Result<String> {
+        let key = format!("{base}_{name}");
+
+        if let Some(path) = self.cache.get(&key) {
+            return Ok(path.clone());
+        }
+
         let path = if !name.starts_with('.') {
             self.paths.iter().find_map(|path| {
                 let path = RelativePathBuf::from(path.display().to_string()).join_normalized(name);
@@ -150,6 +161,8 @@ impl Resolver for FileResolver {
         .ok_or_else(|| Error::new_resolving(base, name))?;
 
         tracing::trace!(base = %base, name = %name, path = %path, "resolved path");
+
+        self.cache.insert(key, path.to_string());
 
         Ok(path.to_string())
     }

@@ -125,23 +125,26 @@ impl Vm {
     pub fn idle(&self) -> Idle<'_> {
         Idle {
             inner: Box::pin(async move {
-                let mut i = 0;
+                let mut driver = self.rt.drive();
+                let mut driver = pin!(driver);
+
                 loop {
                     let has_timers = self.ctx.with(|ctx| process_timers(&ctx)).await?;
 
-                    if !has_timers && i > 0 {
+                    if !self.rt.is_job_pending().await && !has_timers {
                         break;
                     }
 
                     let sleep = self.ctx.with(|ctx| poll_timers(&ctx)).await?;
 
-                    // if !has_timers {
-                    //     self.rt.execute_pending_job().await.ok();
-                    // }
-
-                    sleep.await;
-
-                    i += 1;
+                    tokio::select! {
+                      _ = driver.as_mut() => {
+                        continue;
+                      }
+                      _ = sleep => {
+                        continue;
+                      }
+                    }
                 }
 
                 Ok(())
