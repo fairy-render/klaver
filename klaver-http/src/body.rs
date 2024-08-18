@@ -29,7 +29,7 @@ impl<'js> FromJs<'js> for BodyInit<'js> {
         } else if value.is_string() {
             let str = value
                 .try_into_string()
-                .map_err(|_| rquickjs::Error::new_from_js("vallue", "string"))?;
+                .map_err(|_| rquickjs::Error::new_from_js("value", "string"))?;
             BodyInit::String(str.to_string()?)
         } else {
             return Err(rquickjs::Error::new_from_js("value", "string or buffer"));

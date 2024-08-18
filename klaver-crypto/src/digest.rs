@@ -1,9 +1,8 @@
 use klaver::throw;
+use klaver_shared::buffer::Buffer;
 use rquickjs::{class::Trace, Ctx, FromJs, IntoJs};
 use sha1::{digest::Digest as _, Sha1};
 use sha2::Sha256;
-
-use crate::buffer::Buffer;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Trace)]
 pub enum Algo {

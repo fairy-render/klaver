@@ -1,5 +1,5 @@
 use klaver::throw_if;
-use rquickjs::{class::Trace, function::Opt, Class, Ctx, FromJs};
+use rquickjs::{atom::PredefinedAtom, class::Trace, function::Opt, Class, Ctx, FromJs};
 
 pub enum StringOrUrl<'js> {
     String(String),
@@ -185,12 +185,12 @@ impl Url {
         Ok(self.i.origin().unicode_serialization())
     }
 
-    #[qjs(rename = "toString")]
+    #[qjs(rename = PredefinedAtom::ToString)]
     pub fn to_string(&self) -> rquickjs::Result<String> {
         self.href()
     }
 
-    #[qjs(rename = "toJSON")]
+    #[qjs(rename = PredefinedAtom::ToJSON)]
     pub fn to_json(&self) -> rquickjs::Result<String> {
         self.href()
     }

@@ -1134,6 +1134,7 @@ name = "klaver-crypto"
 version = "0.1.0"
 dependencies = [
  "klaver",
+ "klaver-shared",
  "rand",
  "rquickjs",
  "rquickjs-core",
@@ -1200,6 +1201,7 @@ name = "klaver-shared"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "futures",
  "rquickjs",
  "vaerdi",
 ]

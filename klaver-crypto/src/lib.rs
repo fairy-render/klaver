@@ -1,11 +1,11 @@
-
-use buffer::TypedArray;
+// use buffer::TypedArray;
 use digest::Digest;
 use klaver::{module_info, throw};
+use klaver_shared::buffer::TypedArray;
 use rand::RngCore;
 use rquickjs::{function::Func, Class, Ctx};
 
-mod buffer;
+// mod buffer;
 mod digest;
 
 pub struct Crypto;

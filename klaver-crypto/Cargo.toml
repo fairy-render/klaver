@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 klaver = { path = "../klaver" }
+klaver-shared = { path = "../klaver-shared" }
 rquickjs.workspace = true
 rquickjs-core = { version = "0.6" }
 

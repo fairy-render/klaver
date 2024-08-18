@@ -7,7 +7,9 @@ edition = "2021"
 default = []
 chrono = ["dep:chrono"]
 vaerdi = ["dep:vaerdi", "chrono"]
+
 [dependencies]
 rquickjs.workspace = true
 chrono = { version = "0.4", optional = true }
 vaerdi = { git = "https://github.com/kildevaeld/vaerdi-rs", optional = true }
+futures.workspace = true

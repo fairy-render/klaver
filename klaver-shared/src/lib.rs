@@ -6,4 +6,6 @@ pub mod map;
 #[cfg(feature = "vaerdi")]
 pub mod val;
 
+mod iter;
+
 pub use format::*;
