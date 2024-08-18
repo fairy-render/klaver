@@ -1,5 +1,50 @@
-use klaver_shared::date::Date;
-use rquickjs::{CatchResultExt, Context, Runtime};
+use std::convert::Infallible;
+
+use futures::stream::BoxStream;
+use klaver_shared::{
+    date::Date,
+    iter::{AsyncIter, AsyncIterable, Iter, Iterable},
+    Static,
+};
+use rquickjs::{
+    class::Trace, function::Func, CatchResultExt, Class, Context, Ctx, Function, Runtime,
+};
+
+#[derive(Trace)]
+#[rquickjs::class]
+pub struct Test {
+    list: Option<Vec<String>>,
+}
+
+impl<'js> Iterable<'js> for Test {
+    type Item = String;
+
+    type Iter = std::vec::IntoIter<String>;
+
+    fn entries(&mut self) -> klaver_shared::iter::Iter<Self::Iter> {
+        Iter::new(self.list.take().unwrap_or_default().into_iter())
+    }
+}
+
+impl<'js> AsyncIterable<'js> for Test {
+    type Item = String;
+
+    type Error = Infallible;
+
+    type Stream = Static<BoxStream<'static, Result<Self::Item, Self::Error>>>;
+
+    fn stream(&mut self, ctx: &Ctx<'js>) -> klaver_shared::iter::AsyncIter<Self::Stream> {
+        let iter = self
+            .list
+            .take()
+            .unwrap_or_default()
+            .into_iter()
+            .map(Result::<_, Infallible>::Ok);
+        let stream = futures::stream::iter(iter);
+
+        AsyncIter::new(Static(Box::pin(stream)))
+    }
+}
 
 fn main() {
     let runtime = Runtime::new().unwrap();
@@ -7,13 +52,31 @@ fn main() {
 
     context
         .with(|ctx| {
-            let date = ctx.eval::<Date, _>("new Date")?;
+            ctx.globals().set(
+                "print",
+                Func::new(|arg: String| {
+                    println!("{arg}");
+                    rquickjs::Result::Ok(())
+                }),
+            )?;
 
-            println!("Date {}", date.year()?);
+            Class::<Test>::register(&ctx)?;
+            Test::add_iterable_prototype(&ctx)?;
+            Test::add_async_iterable_prototype(&ctx)?;
 
-            // let date = Date::from_chrono(&ctx, chrono::Utc::now())?;
+            let fun = ctx.eval::<Function, _>(
+                r#"(arg) => {
+                for (const item of arg) {
+                    print(item)
+                }
+            }"#,
+            )?;
 
-            println!("Date {}", date.to_string().catch(&ctx).unwrap());
+            fun.call::<_, ()>((Test {
+                list: vec!["Hello".to_string(), "World".to_string()].into(),
+            },))
+                .catch(&ctx)
+                .unwrap();
 
             rquickjs::Result::Ok(())
         })

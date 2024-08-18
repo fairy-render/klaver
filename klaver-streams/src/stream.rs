@@ -1,4 +1,11 @@
-use klaver::throw;
+use futures::stream::{BoxStream, LocalBoxStream};
+use klaver::{
+    shared::{
+        iter::{AsyncIter, AsyncIterable},
+        Static,
+    },
+    throw,
+};
 use rquickjs::{
     class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx, FromJs, Function, IntoJs,
     Object, Value,
@@ -60,6 +67,41 @@ macro_rules! call {
             $func.call::<_, rquickjs::Value>(($ctrl.clone(),))
         )
     };
+}
+
+impl<'js> ReadableStream<'js> {
+    pub fn to_stream(
+        &self,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<LocalBoxStream<'js, rquickjs::Result<Value<'js>>>> {
+        let reader = self.get_reader(ctx.clone())?;
+
+        let stream = async_stream::try_stream! {
+            loop {
+                let next = reader.read(ctx.clone()).await?;
+
+                if  let Some(value) = next.value {
+                    yield value
+                } else {
+                    break;
+                }
+
+            }
+        };
+        Ok(Box::pin(stream))
+    }
+}
+
+impl<'js> AsyncIterable<'js> for ReadableStream<'js> {
+    type Item = Value<'js>;
+
+    type Error = rquickjs::Error;
+
+    type Stream = Static<LocalBoxStream<'js, Result<Self::Item, Self::Error>>>;
+
+    fn stream(&mut self, ctx: &Ctx<'js>) -> klaver::shared::iter::AsyncIter<Self::Stream> {
+        AsyncIter::new(Static(self.to_stream(ctx.clone()).unwrap()))
+    }
 }
 
 #[rquickjs::methods]

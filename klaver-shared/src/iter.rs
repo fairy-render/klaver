@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
-use futures::{future::BoxFuture, Stream, StreamExt, TryStream, TryStreamExt};
+use futures::{future::LocalBoxFuture, Stream, StreamExt, TryStream, TryStreamExt};
 use rquickjs::{
     atom::PredefinedAtom,
     class::{JsClass, Trace},
     function::{Async, Func, MutFn, This},
-    Class, Ctx, Exception, IntoJs, Object, Value,
+    Class, Ctx, Exception, IntoJs, Object, Symbol, Value,
 };
 
 #[derive(Debug, Clone)]
@@ -46,7 +46,11 @@ pub struct Iter<T> {
     i: T,
 }
 
-impl<T> Iter<T> {}
+impl<T> Iter<T> {
+    pub fn new(iter: T) -> Iter<T> {
+        Iter { i: iter }
+    }
+}
 
 impl<'js, T> IntoJs<'js> for Iter<T>
 where
@@ -64,6 +68,11 @@ where
             })),
         )?;
 
+        obj.set(
+            PredefinedAtom::SymbolIterator,
+            Func::new(|this: This<Object<'js>>| rquickjs::Result::Ok(this.0)),
+        )?;
+
         Ok(obj.into_value())
     }
 }
@@ -74,9 +83,9 @@ where
 {
     type Item: IntoJs<'js>;
     type Iter: Iterator<Item = Self::Item>;
-    fn entries(&self) -> Iter<Self::Iter>;
+    fn entries(&mut self) -> Iter<Self::Iter>;
 
-    fn add_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+    fn add_iterable_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         let proto = Class::<Self>::prototype(ctx.clone()).unwrap();
 
         proto.set(
@@ -91,28 +100,31 @@ where
         this: This<Class<'js, Self>>,
         ctx: Ctx<'js>,
     ) -> rquickjs::Result<Value<'js>> {
-        this.borrow().entries().into_js(&ctx)
+        this.borrow_mut().entries().into_js(&ctx)
     }
 }
 
 struct StreamContainer<T>(T);
 
-impl<T> StreamContainer<T> {
-    async fn next<'js>(&mut self, ctx: Ctx<'js>) -> Option<rquickjs::Result<Value<'js>>> {
-        todo!()
+impl<'js, T: Trace<'js>> Trace<'js> for StreamContainer<T> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.0.trace(tracer)
     }
 }
 
-impl<T> DynamicStream for StreamContainer<T>
+impl<'js, T: Trace<'js>> DynamicStream<'js> for StreamContainer<T>
 where
-    T: TryStream + Unpin + Send,
+    T: TryStream + Unpin,
     T::Error: std::error::Error,
-    for<'js> T::Ok: IntoJs<'js>,
+    T::Ok: IntoJs<'js>,
 {
-    fn next<'a, 'js: 'a>(
+    fn next<'a>(
         &'a mut self,
         ctx: Ctx<'js>,
-    ) -> BoxFuture<'a, rquickjs::Result<Option<Value<'js>>>> {
+    ) -> LocalBoxFuture<'a, rquickjs::Result<Option<Value<'js>>>>
+    where
+        'js: 'a,
+    {
         Box::pin(async move {
             let next = self.0.try_next().await;
 
@@ -130,26 +142,38 @@ where
     }
 }
 
-trait DynamicStream {
-    fn next<'a, 'js: 'a>(
+pub trait DynamicStream<'js>: Trace<'js> {
+    fn next<'a>(
         &'a mut self,
         ctx: Ctx<'js>,
-    ) -> BoxFuture<'a, rquickjs::Result<Option<Value<'js>>>>;
+    ) -> LocalBoxFuture<'a, rquickjs::Result<Option<Value<'js>>>>
+    where
+        'js: 'a;
 }
 
 pub struct AsyncIter<T> {
     i: T,
 }
 
-impl<T> AsyncIter<T> {}
+impl<'js, T: Trace<'js>> Trace<'js> for AsyncIter<T> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.i.trace(tracer)
+    }
+}
+
+impl<T> AsyncIter<T> {
+    pub fn new(stream: T) -> AsyncIter<T> {
+        AsyncIter { i: stream }
+    }
+}
 
 impl<'js, T> IntoJs<'js> for AsyncIter<T>
 where
-    T: TryStream + Send + Unpin + 'static,
+    T: TryStream + Trace<'js> + Unpin + 'js,
     T::Error: std::error::Error,
-    for<'a> T::Ok: IntoJs<'a>,
+    T::Ok: IntoJs<'js>,
 {
-    fn into_js(mut self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         Ok(Class::instance(
             ctx.clone(),
             AsyncIterator {
@@ -161,19 +185,56 @@ where
 }
 
 #[rquickjs::class]
-struct AsyncIterator {
-    stream: Box<dyn DynamicStream>,
+struct AsyncIterator<'js> {
+    stream: Box<dyn DynamicStream<'js> + 'js>,
 }
 
-impl<'js> Trace<'js> for AsyncIterator {
-    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
+impl<'js> Trace<'js> for AsyncIterator<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.stream.trace(tracer)
+    }
 }
 
 #[rquickjs::methods]
-impl AsyncIterator {
+impl<'js> AsyncIterator<'js> {
     #[qjs(rename = PredefinedAtom::Next)]
-    pub async fn next<'js>(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+    pub async fn next(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let next = self.stream.next(ctx.clone()).await?;
         IterResult::new(next).into_js(&ctx)
+    }
+
+    #[qjs(rename = PredefinedAtom::Return)]
+    pub async fn returns(&self) -> rquickjs::Result<()> {
+        println!("Return");
+        Ok(())
+    }
+}
+
+pub trait AsyncIterable<'js>
+where
+    Self: JsClass<'js> + Sized + 'js,
+{
+    type Item: IntoJs<'js>;
+    type Error: std::error::Error;
+
+    type Stream: Stream<Item = Result<Self::Item, Self::Error>> + Trace<'js> + Unpin + 'js;
+
+    fn stream(&mut self, ctx: &Ctx<'js>) -> AsyncIter<Self::Stream>;
+
+    fn add_async_iterable_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+        let proto = Class::<Self>::prototype(ctx.clone()).unwrap();
+
+        let symbol = Symbol::async_iterator(ctx.clone());
+
+        proto.set(symbol, Func::new(Self::return_iterator))?;
+
+        Ok(())
+    }
+
+    fn return_iterator(
+        this: This<Class<'js, Self>>,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<Value<'js>> {
+        this.borrow_mut().stream(&ctx).into_js(&ctx)
     }
 }

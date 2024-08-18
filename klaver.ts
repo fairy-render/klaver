@@ -18,20 +18,27 @@ const stream = new ReadableStream({
 	},
 });
 
-const reader = stream.getReader();
+// const reader = stream.getReader();
 
 let count = 0;
 
-while (true) {
-	const { value, done } = await reader.read();
-
-	if (done) break;
-
-	if (count++ == 5) {
-		await reader.cancel("");
+for await (const value of stream) {
+	if (count++ > 5) {
+		break;
 	}
-
 	console.log("value", value);
 }
+
+// while (true) {
+// 	const { value, done } = await reader.read();
+
+// 	if (done) break;
+
+// 	if (count++ == 5) {
+// 		await reader.cancel("");
+// 	}
+
+// 	console.log("value", value);
+// }
 
 console.log("done");

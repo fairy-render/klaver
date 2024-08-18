@@ -7,6 +7,8 @@ pub mod vm;
 
 mod macros;
 
+pub use klaver_shared as shared;
+
 pub use self::{
     error::Error,
     vm::{Vm, VmOptions},

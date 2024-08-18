@@ -8,3 +8,4 @@ klaver = { path = "../klaver" }
 futures = { version = "0.3" }
 rquickjs.workspace = true
 tokio = { version = "1", features = ["sync"] }
+async-stream = { version = "0.3" }
