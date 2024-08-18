@@ -125,10 +125,11 @@ impl Vm {
     pub fn idle(&self) -> Idle<'_> {
         Idle {
             inner: Box::pin(async move {
+                let mut i = 0;
                 loop {
                     let has_timers = self.ctx.with(|ctx| process_timers(&ctx)).await?;
 
-                    if !self.rt.is_job_pending().await && !has_timers {
+                    if !has_timers && i > 0 {
                         break;
                     }
 
@@ -138,7 +139,9 @@ impl Vm {
                         self.rt.execute_pending_job().await.ok();
                     }
 
-                    sleep.await
+                    sleep.await;
+
+                    i += 1;
                 }
 
                 Ok(())
