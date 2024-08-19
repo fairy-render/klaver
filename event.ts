@@ -15,3 +15,11 @@ ctr.signal.onabort = () => {
 };
 
 ctr.abort();
+
+const blob = new Blob(["Hello", "World"]);
+
+console.log(Object.getOwnPropertyDescriptors(blob));
+
+console.log(blob.size);
+
+console.log(await blob.text());

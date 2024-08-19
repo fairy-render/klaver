@@ -3,6 +3,7 @@ use rquickjs::{module::ModuleDef, Class};
 
 use crate::{
     abort_controller::{AbortController, AbortSignal},
+    blob::Blob,
     dom_exception::{self, DOMException},
     event_target::{Emitter, Event, EventTarget},
 };
@@ -18,6 +19,7 @@ impl ModuleDef for Module {
         decl.declare("DOMException")?;
         decl.declare(stringify!(AbortController))?;
         decl.declare(stringify!(AbortSignal))?;
+        decl.declare(stringify!(Blob))?;
 
         Ok(())
     }
@@ -50,6 +52,10 @@ impl ModuleDef for Module {
         let signal = Class::<AbortSignal>::create_constructor(ctx)?.expect("AbortSignal");
         exports.export(stringify!(AbortSignal), signal)?;
         AbortSignal::add_event_target_prototype(ctx)?;
+
+        // Blob
+        let blob = Class::<Blob>::create_constructor(ctx)?.expect("Blob");
+        exports.export(stringify!(Blob), blob)?;
 
         Ok(())
     }

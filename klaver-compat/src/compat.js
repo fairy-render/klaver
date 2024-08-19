@@ -13,6 +13,7 @@ function writeProps(out, value) {
     for (const key in value) {
         writeProp(out, key, value[key]);
     }
+    return out;
 }
 function lazy(init) {
     let value;
@@ -689,12 +690,13 @@ async function init$1(global) {
 }
 
 async function init(globals) {
-    const { EventTarget, Event, AbortController, AbortSignal } = await import('@klaver/base');
+    const { EventTarget, Event, AbortController, AbortSignal, Blob } = await import('@klaver/base');
     writeProps(globals, {
         EventTarget,
         Event,
         AbortController,
         AbortSignal,
+        Blob,
     });
 }
 
