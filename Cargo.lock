@@ -1129,6 +1129,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-base"
+version = "0.1.0"
+dependencies = [
+ "klaver",
+ "rquickjs",
+]
+
+[[package]]
 name = "klaver-cli"
 version = "0.1.0"
 dependencies = [
@@ -1145,6 +1153,7 @@ name = "klaver-compat"
 version = "0.1.0"
 dependencies = [
  "klaver",
+ "klaver-base",
  "klaver-crypto",
  "klaver-encoding",
  "klaver-http",

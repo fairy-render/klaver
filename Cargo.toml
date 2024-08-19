@@ -3,7 +3,7 @@
 resolver = "2"
 
 members = [
-  "klaver",
+  "klaver", "klaver-base",
   "klaver-cli",
   "klaver-compat",
   "klaver-crypto",

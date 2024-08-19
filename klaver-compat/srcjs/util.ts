@@ -18,6 +18,8 @@ export function writeProps(
 	for (const key in value) {
 		writeProp(out, key, value[key]);
 	}
+
+	return out;
 }
 
 export function lazy<T>(init: () => T): () => T {

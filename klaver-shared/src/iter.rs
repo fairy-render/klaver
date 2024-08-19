@@ -205,7 +205,6 @@ impl<'js> AsyncIterator<'js> {
 
     #[qjs(rename = PredefinedAtom::Return)]
     pub async fn returns(&self) -> rquickjs::Result<()> {
-        println!("Return");
         Ok(())
     }
 }

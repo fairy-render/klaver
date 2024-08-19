@@ -1,4 +1,4 @@
-import AbortController, { AbortSignal } from "abort-controller";
+// import AbortController, { AbortSignal } from "abort-controller";
 import { lazy, writeProps } from "../util.js";
 import { Request } from "./request.js";
 import { Response } from "./response.js";
@@ -22,8 +22,8 @@ export default async function init(global: Record<string, unknown>) {
 		Request,
 		Headers,
 		URLSearchParams,
-		AbortController,
-		AbortSignal,
+		// AbortController,
+		// AbortSignal,
 		fetch(url: string | Request | Url, init?: RequestInit): Promise<Response> {
 			return fetchImpl(url, init);
 		},

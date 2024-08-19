@@ -19,7 +19,7 @@ impl rquickjs::module::ModuleDef for Module {
     ) -> rquickjs::Result<()> {
         let ctor = Class::<ReadableStream>::create_constructor(ctx)?;
         exports.export("ReadableStream", ctor)?;
-        // ReadableStream::add_async_iterable_prototype(ctx)?;
+        ReadableStream::add_async_iterable_prototype(ctx)?;
 
         Ok(())
     }

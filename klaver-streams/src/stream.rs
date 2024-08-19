@@ -42,7 +42,7 @@ impl<'js> FromJs<'js> for ReadableStreamInit<'js> {
             start: obj.get("start")?,
             pull: obj.get("pull")?,
             cancel: obj.get("cancel")?,
-            highwater_mark: obj.get::<_, Option<u32>>("highwaterMark")?.unwrap_or(1),
+            highwater_mark: obj.get::<_, Option<u32>>("highWaterMark")?.unwrap_or(1),
         })
     }
 }
@@ -150,12 +150,15 @@ impl<'js> ReadableStream<'js> {
 
             if let Some(func) = class_clone.borrow().v.pull.clone() {
                 loop {
-                    if ctrl.borrow().is_filled() {
-                        ready.notified().await;
-                    }
-
                     if !ctrl.borrow().state.is_running() {
                         break;
+                    }
+
+                    if ctrl.borrow().is_filled() {
+                        ready.notified().await;
+                        if !ctrl.borrow().state.is_running() {
+                            break;
+                        }
                     }
 
                     let called = call!(ctrl, ctx_clone, func);
@@ -183,7 +186,9 @@ impl<'js> ReadableStream<'js> {
         self.ctrl.borrow_mut().locked = true;
 
         Ok(ReadableStreamDefaultReader {
-            ctrl: self.ctrl.clone(),
+            ctrl: ControllerWrap {
+                ctrl: Some(self.ctrl.clone()),
+            },
         })
     }
 }
@@ -265,13 +270,56 @@ impl<'js> ReadableStreamDefaultController<'js> {
 #[derive(Trace)]
 #[rquickjs::class]
 pub struct ReadableStreamDefaultReader<'js> {
-    ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
+    ctrl: ControllerWrap<'js>,
+}
+
+impl<'js> Drop for ReadableStreamDefaultReader<'js> {
+    fn drop(&mut self) {
+        self.ctrl.release()
+    }
+}
+
+#[derive(Trace)]
+struct ControllerWrap<'js> {
+    ctrl: Option<Class<'js, ReadableStreamDefaultController<'js>>>,
+}
+
+impl<'js> ControllerWrap<'js> {
+    fn release(&mut self) {
+        if let Some(ctrl) = self.ctrl.take() {
+            ctrl.borrow_mut().locked = false;
+        }
+    }
+
+    fn borrow<'a>(
+        &'a self,
+        ctx: &Ctx<'js>,
+    ) -> rquickjs::Result<rquickjs::class::Borrow<'a, 'js, ReadableStreamDefaultController<'js>>>
+    {
+        if let Some(ctrl) = self.ctrl.as_ref() {
+            Ok(ctrl.borrow())
+        } else {
+            throw!(ctx, "Lock released")
+        }
+    }
+
+    fn borrow_mut<'a>(
+        &'a self,
+        ctx: &Ctx<'js>,
+    ) -> rquickjs::Result<rquickjs::class::BorrowMut<'a, 'js, ReadableStreamDefaultController<'js>>>
+    {
+        if let Some(ctrl) = self.ctrl.as_ref() {
+            Ok(ctrl.borrow_mut())
+        } else {
+            throw!(ctx, "Lock released")
+        }
+    }
 }
 
 #[rquickjs::methods]
 impl<'js> ReadableStreamDefaultReader<'js> {
     pub async fn read(&self, ctx: Ctx<'js>) -> rquickjs::Result<Chunk<'js>> {
-        if let Some(err) = self.ctrl.borrow().state.as_error() {
+        if let Some(err) = self.ctrl.borrow(&ctx)?.state.as_error() {
             match err {
                 CaughtError::Error(err) => {
                     return Err(ctx
@@ -283,7 +331,7 @@ impl<'js> ReadableStreamDefaultReader<'js> {
                 }
                 CaughtError::Value(value) => return Err(ctx.throw(value.clone())),
             }
-        } else if !self.ctrl.borrow().state.is_running() {
+        } else if !self.ctrl.borrow(&ctx)?.state.is_running() {
             return Ok(Chunk {
                 value: None,
                 done: true,
@@ -291,15 +339,15 @@ impl<'js> ReadableStreamDefaultReader<'js> {
         }
 
         // Wait for new items
-        if self.ctrl.borrow().queue.is_empty() {
-            let waiter = self.ctrl.borrow().wait.clone();
+        if self.ctrl.borrow(&ctx)?.queue.is_empty() {
+            let waiter = self.ctrl.borrow(&ctx)?.wait.clone();
             waiter.notified().await;
         }
 
-        let ret = self.ctrl.borrow_mut().queue.pop_front();
+        let ret = self.ctrl.borrow_mut(&ctx)?.queue.pop_front();
 
-        if !self.ctrl.borrow().is_filled() {
-            self.ctrl.borrow().ready.notify_one();
+        if !self.ctrl.borrow(&ctx)?.is_filled() {
+            self.ctrl.borrow(&ctx)?.ready.notify_one();
         }
 
         Ok(Chunk {
@@ -313,11 +361,17 @@ impl<'js> ReadableStreamDefaultReader<'js> {
         ctx: Ctx<'js>,
         reason: Opt<rquickjs::String<'js>>,
     ) -> rquickjs::Result<()> {
-        if !self.ctrl.borrow().state.is_running() {
+        if !self.ctrl.borrow(&ctx)?.state.is_running() {
             throw!(ctx, "stream not running");
         }
-        self.ctrl.borrow_mut().state = State::Canceled(reason.0);
-        self.ctrl.borrow().ready.notify_one();
+        self.ctrl.borrow_mut(&ctx)?.state = State::Canceled(reason.0);
+        self.ctrl.borrow(&ctx)?.ready.notify_one();
+        Ok(())
+    }
+
+    #[qjs(rename = "releaseLock")]
+    pub fn release_lock(&mut self) -> rquickjs::Result<()> {
+        self.ctrl.release();
         Ok(())
     }
 }

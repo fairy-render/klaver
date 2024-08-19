@@ -5,6 +5,7 @@ import fetch from "./fetch/index.js";
 import stream from "./streams.js";
 import process from "./process.js";
 import crypto from "./crypto.js";
+import base from "./base.js";
 
 // const Core = globalThis.Core;
 
@@ -25,6 +26,8 @@ export default async function main(global: Record<string, unknown>) {
 	);
 
 	writeProps(global, { TextDecoder, TextEncoder, btoa, atob });
+
+	await base(global);
 
 	// console(global);
 	stream(global);

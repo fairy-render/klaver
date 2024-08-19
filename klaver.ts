@@ -6,17 +6,21 @@ function delay(n: number) {
 
 let times = 0;
 
-const stream = new ReadableStream({
-	async pull(controller) {
-		if (times > 20) {
-			controller.close();
-			return;
-		}
-		await delay(100);
-		times++;
-		controller.enqueue("Rapper " + times);
+const stream = new ReadableStream(
+	{
+		async pull(controller) {
+			if (times > 20) {
+				controller.close();
+				return;
+			}
+			await delay(100);
+			times++;
+			controller.enqueue("Rapper " + times);
+		},
+		highWaterMark: 15,
 	},
-});
+	{},
+);
 
 // const reader = stream.getReader();
 

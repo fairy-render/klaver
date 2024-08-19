@@ -9,3 +9,4 @@ klaver-encoding = { path = "../klaver-encoding" }
 klaver-http = { path = "../klaver-http", features = ["reqwest"] }
 klaver-crypto = { path = "../klaver-crypto" }
 klaver-shared = { path = "../klaver-shared" }
+klaver-base = { path = "../klaver-base" }

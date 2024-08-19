@@ -4,9 +4,8 @@ import {
 	Request as KlaverRequest,
 	Url,
 } from "@klaver/http";
-import type { AbortSignal } from "abort-controller";
+import type { AbortSignal } from "@klaver/base";
 import { Body } from "./body.js";
-import { ReadableStream } from "web-streams-polyfill";
 
 export class Request extends Body {
 	#url: Url;

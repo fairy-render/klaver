@@ -15,6 +15,8 @@ impl ModuleInfo for Compat {
         klaver_encoding::Encoding::register(modules);
         klaver_http::Module::register(modules);
         klaver_crypto::Crypto::register(modules);
+        klaver_base::Module::register(modules);
+
         modules.register_src("@klaver/compat", COMPAT.to_vec());
     }
 }
