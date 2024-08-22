@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use klaver::{
     modules::typescript::{CompileOptions, Compiler},
@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     let vm = VmOptions::default()
-        .search_path(".")
+        .search_path(Path::new("."))
         .module::<klaver_streams::Module>()
         .module::<klaver_os::shell::Module>()
         .module::<klaver_compat::Compat>()

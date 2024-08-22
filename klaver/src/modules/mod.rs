@@ -1,15 +1,17 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
-
-use parking_lot::Mutex;
-use rquickjs::{
-    loader::{BuiltinResolver, Loader, Resolver},
-    module::ModuleDef,
-    AsyncContext, Ctx, Error, Module,
-};
-
+use builtin_loader::BuiltinLoader;
+use builtin_resolver::BuiltinResolver;
+use loader::{Loader, Resolver};
+use rquickjs::{module::ModuleDef, Ctx, Error, Module};
+use samling::{fs::FsFileStore, File, FileStore, FileStoreExt};
+use std::{collections::HashMap, path::Path, sync::Arc};
+mod builtin_loader;
+mod builtin_resolver;
 mod file;
+mod file_loader;
 mod init;
+mod loader;
 mod module;
+mod resolver;
 #[cfg(feature = "typescript")]
 pub mod typescript;
 mod util;
@@ -21,15 +23,15 @@ type LoadFn = for<'js> fn(Ctx<'js>, Vec<u8>) -> rquickjs::Result<Module<'js>>;
 pub(crate) trait Runtime {
     async fn set_loader<R, L>(&self, resolver: R, loader: L)
     where
-        R: Resolver + 'static,
-        L: Loader + 'static;
+        R: rquickjs::loader::Resolver + 'static,
+        L: rquickjs::loader::Loader + 'static;
 }
 
 impl Runtime for rquickjs::Runtime {
     async fn set_loader<R, L>(&self, resolver: R, loader: L)
     where
-        R: Resolver + 'static,
-        L: Loader + 'static,
+        R: rquickjs::loader::Resolver + 'static,
+        L: rquickjs::loader::Loader + 'static,
     {
         self.set_loader(resolver, loader)
     }
@@ -38,103 +40,109 @@ impl Runtime for rquickjs::Runtime {
 impl Runtime for rquickjs::AsyncRuntime {
     async fn set_loader<R, L>(&self, resolver: R, loader: L)
     where
-        R: Resolver + 'static,
-        L: Loader + 'static,
+        R: rquickjs::loader::Resolver + 'static,
+        L: rquickjs::loader::Loader + 'static,
     {
         self.set_loader(resolver, loader).await
     }
 }
 
-#[derive(Default, Clone)]
-pub struct Modules {
-    pub(crate) modules: HashMap<String, LoadFn>,
+#[derive(Default)]
+pub struct ModulesBuilder<'a> {
+    modules: HashMap<String, LoadFn>,
     modules_src: HashMap<String, Vec<u8>>,
-    search_paths: Vec<PathBuf>,
-    patterns: Vec<String>,
-    inits: Vec<Arc<dyn Init + Send + Sync>>,
+    search_paths: Vec<&'a Path>,
+    resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
+    loaders: Vec<Box<dyn Loader + Send + Sync>>,
+    routes: samling::SyncComposite,
+
+    #[cfg(feature = "typescript")]
     jsx_import_source: Option<String>,
+    #[cfg(feature = "typescript")]
     ts_decorators: bool,
-    resolvers: ResolverList,
-    loaders: LoaderList,
 }
 
-impl Modules {
-    pub(crate) fn load_func<'js, D: ModuleDef>(
+impl<'a> ModulesBuilder<'a> {
+    pub fn load_func<'js, D: ModuleDef>(
         ctx: Ctx<'js>,
         name: Vec<u8>,
     ) -> rquickjs::Result<Module<'js>> {
         Module::declare_def::<D, _>(ctx, name)
     }
 
+    #[cfg(feature = "typescript")]
     pub fn set_jsx_import_source(&mut self, path: &str) -> &mut Self {
         self.jsx_import_source = Some(path.to_string());
         self
     }
 
+    #[cfg(feature = "typescript")]
     pub fn use_legacy_decorators(&mut self, on: bool) -> &mut Self {
         self.ts_decorators = on;
         self
     }
 
-    pub fn register_module<T: ModuleInfo>(&mut self) -> &mut Self {
-        T::register(&mut Builder::new(self));
-        self
-    }
-
-    pub fn register<T: ModuleDef>(&mut self, name: impl ToString) {
+    pub fn register<T: ModuleDef>(&mut self, name: impl ToString) -> &mut Self {
         self.modules
-            .insert(name.to_string(), Modules::load_func::<T>);
+            .insert(name.to_string(), ModulesBuilder::<'a>::load_func::<T>);
+        self
     }
 
     pub fn register_src(&mut self, name: impl ToString, source: Vec<u8>) {
         self.modules_src.insert(name.to_string(), source);
     }
 
-    pub fn add_search_path(&mut self, path: impl Into<PathBuf>) -> &mut Self {
-        self.search_paths.push(path.into());
-        self
+    pub fn add_search_path(&mut self, path: &'a Path) {
+        self.search_paths.push(path.as_ref());
     }
 
-    pub fn add_init<T>(&mut self, init: T) -> &mut Self
+    pub fn mount_store<T>(&mut self, path: &str, store: T)
     where
-        T: Init + Send + Sync + 'static,
+        T: FileStore + Send + Sync + 'static,
+        T::List: Send,
+        T::File: Send + Sync,
+        <T::File as File>::Body: Send + 'static,
     {
-        self.inits.push(Arc::new(init));
+        self.routes.register(path, store);
+    }
+
+    pub fn add_loader<T>(&mut self, loader: T) -> &mut Self
+    where
+        T: Loader + Send + Sync + 'static,
+    {
+        self.loaders.push(Box::new(loader));
         self
     }
 
-    pub fn add_loader<T: rquickjs::loader::Loader + Send + Sync + 'static>(
-        &mut self,
-        loader: T,
-    ) -> &mut Self {
-        self.loaders.loaders.lock().push(Box::new(loader));
+    pub fn add_resolver<T>(&mut self, resolver: T) -> &mut Self
+    where
+        T: Resolver + Send + Sync + 'static,
+    {
+        self.resolvers.push(Box::new(resolver));
         self
     }
+}
 
-    pub fn add_resolver<T: rquickjs::loader::Resolver + Send + Sync + 'static>(
-        &mut self,
-        resolver: T,
-    ) -> &mut Self {
-        self.resolvers.resolvers.lock().push(Box::new(resolver));
-        self
-    }
+impl<'a> ModulesBuilder<'a> {
+    pub fn build(mut self) -> Result<Modules, Error> {
+        let mut fs = Vec::with_capacity(self.search_paths.len() + 1);
 
-    pub(crate) async fn attach<T: Runtime>(
-        self,
-        runtime: &T,
-        context: &AsyncContext,
-    ) -> Result<(), Error> {
-        let mut builtin_resolver = BuiltinResolver::default();
-        let mut file_resolver = file::FileResolver::default();
-        #[cfg(feature = "typescript")]
-        let script_loader = typescript::TsLoader::new(self.jsx_import_source, self.ts_decorators);
-        #[cfg(feature = "typescript")]
-        {
-            file_resolver.add_pattern("{}.ts");
-            file_resolver.add_pattern("{}.tsx");
+        for path in &self.search_paths {
+            fs.push(FsFileStore::new(path.to_path_buf())?.boxed());
         }
+
+        fs.push(self.routes.boxed());
+
+        let fs = Arc::new(fs);
+
+        let file_resolver = resolver::FileResolver::new(fs.clone());
         #[cfg(not(feature = "typescript"))]
-        let script_loader = rquickjs::loader::ScriptLoader::default();
+        let file_loader = file_loader::FileLoader::new(fs.clone());
+        #[cfg(feature = "typescript")]
+        let file_loader =
+            typescript::TsLoader::new(fs.clone(), self.jsx_import_source, self.ts_decorators);
+
+        let mut builtin_resolver = BuiltinResolver::default();
 
         for k in self.modules.keys() {
             builtin_resolver.add_module(k);
@@ -144,73 +152,48 @@ impl Modules {
             builtin_resolver.add_module(k);
         }
 
-        file_resolver.add_paths(self.search_paths);
-        for pattern in self.patterns {
-            file_resolver.add_pattern(pattern);
-        }
-
-        let module_loader = ModuleLoader {
+        let module_loader = BuiltinLoader {
             modules: self.modules,
             modules_src: self.modules_src,
         };
 
-        runtime
-            .set_loader(
-                (builtin_resolver, file_resolver, self.resolvers.clone()),
-                (script_loader, module_loader, self.loaders.clone()),
-            )
-            .await;
+        self.resolvers.push(Box::new(builtin_resolver));
+        self.resolvers.push(Box::new(file_resolver));
 
-        context
-            .with(|ctx| {
-                for init in self.inits {
-                    init.init(ctx.clone())?
-                }
+        self.loaders.push(Box::new(module_loader));
+        self.loaders.push(Box::new(file_loader));
 
-                rquickjs::Result::Ok(())
-            })
-            .await?;
+        Ok(Modules(Arc::new(ModulesInner {
+            loaders: self.loaders,
+            resolvers: self.resolvers,
+        })))
+    }
+}
 
+struct ModulesInner {
+    resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
+    loaders: Vec<Box<dyn Loader + Send + Sync>>,
+}
+
+#[derive(Clone)]
+pub struct Modules(Arc<ModulesInner>);
+
+impl Modules {
+    pub(crate) async fn attach<T: Runtime>(&self, runtime: &T) -> rquickjs::Result<()> {
+        runtime.set_loader(self.clone(), self.clone()).await;
         Ok(())
     }
 }
 
-struct ModuleLoader {
-    modules: HashMap<String, LoadFn>,
-    modules_src: HashMap<String, Vec<u8>>,
-}
-
-impl Loader for ModuleLoader {
-    fn load<'js>(
-        &mut self,
-        ctx: &Ctx<'js>,
-        path: &str,
-    ) -> rquickjs::Result<Module<'js, rquickjs::module::Declared>> {
-        if let Some(load) = self.modules.remove(path) {
-            (load)(ctx.clone(), Vec::from(path))
-        } else if let Some(source) = self.modules_src.remove(path) {
-            Module::declare(ctx.clone(), path, source)
-        } else {
-            Err(Error::new_loading(path))
-        }
-    }
-}
-
-#[derive(Clone, Default)]
-struct LoaderList {
-    loaders: Arc<Mutex<Vec<Box<dyn rquickjs::loader::Loader + Send + Sync>>>>,
-}
-
-impl rquickjs::loader::Loader for LoaderList {
+impl rquickjs::loader::Loader for Modules {
     fn load<'js>(
         &mut self,
         ctx: &Ctx<'js>,
         name: &str,
     ) -> rquickjs::Result<Module<'js, rquickjs::module::Declared>> {
-        let mut loaders = self.loaders.lock();
-        for loader in &mut *loaders {
-            if let Ok(module) = loader.load(ctx, name) {
-                return Ok(module);
+        for loader in self.0.loaders.iter() {
+            if let Ok(ret) = loader.load(ctx, name) {
+                return Ok(ret);
             }
         }
 
@@ -218,18 +201,11 @@ impl rquickjs::loader::Loader for LoaderList {
     }
 }
 
-#[derive(Clone, Default)]
-struct ResolverList {
-    resolvers: Arc<Mutex<Vec<Box<dyn rquickjs::loader::Resolver + Send + Sync>>>>,
-}
-
-impl rquickjs::loader::Resolver for ResolverList {
+impl rquickjs::loader::Resolver for Modules {
     fn resolve<'js>(&mut self, ctx: &Ctx<'js>, base: &str, name: &str) -> rquickjs::Result<String> {
-        let mut resolvers = self.resolvers.lock();
-
-        for resolver in &mut *resolvers {
-            if let Ok(url) = resolver.resolve(ctx, base, name) {
-                return Ok(url);
+        for resolver in self.0.resolvers.iter() {
+            if let Ok(ret) = resolver.resolve(ctx, base, name) {
+                return Ok(ret);
             }
         }
 

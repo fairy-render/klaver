@@ -1,6 +1,6 @@
 use std::{
     future::Future,
-    path::PathBuf,
+    path::Path,
     pin::{pin, Pin},
     task::Poll,
 };
@@ -13,27 +13,27 @@ use crate::{
         timers::{poll_timers, process_timers},
     },
     error::Error,
-    modules::ModuleInfo,
+    modules::{Builder, ModuleInfo},
 };
 
-#[derive(Default, Clone)]
-pub struct VmOptions {
-    modules: crate::modules::Modules,
-    max_stack_size: Option<usize>,
-    memory_limit: Option<usize>,
+#[derive(Default)]
+pub struct VmOptions<'a> {
+    pub(crate) modules: crate::modules::ModulesBuilder<'a>,
+    pub(crate) max_stack_size: Option<usize>,
+    pub(crate) memory_limit: Option<usize>,
 }
 
-impl VmOptions {
-    pub fn modules(&mut self) -> &mut crate::modules::Modules {
+impl<'a> VmOptions<'a> {
+    pub fn modules(&mut self) -> &mut crate::modules::ModulesBuilder<'a> {
         &mut self.modules
     }
 
     pub fn module<T: ModuleInfo>(mut self) -> Self {
-        self.modules.register_module::<T>();
+        T::register(&mut Builder::new(&mut self.modules));
         self
     }
 
-    pub fn search_path(mut self, search_path: impl Into<PathBuf>) -> Self {
+    pub fn search_path(mut self, search_path: &'a Path) -> Self {
         self.modules.add_search_path(search_path);
         self
     }
@@ -48,7 +48,11 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub async fn new(options: VmOptions) -> Result<Vm, Error> {
+    pub fn with(rt: AsyncRuntime, ctx: AsyncContext) -> Vm {
+        Vm { ctx, rt }
+    }
+
+    pub async fn new(options: VmOptions<'_>) -> Result<Vm, Error> {
         let rt = AsyncRuntime::new()?;
 
         if let Some(stack) = options.max_stack_size {
@@ -63,7 +67,7 @@ impl Vm {
 
         ctx.with(init_base).await?;
 
-        options.modules.attach(&rt, &ctx).await?;
+        options.modules.build()?.attach(&rt).await?;
 
         Ok(Vm { ctx, rt })
     }

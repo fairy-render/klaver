@@ -2,6 +2,7 @@ use std::{io, sync::Arc};
 
 use relative_path::RelativePath;
 use rquickjs::Module;
+use samling::FileStore;
 use swc::{config::IsModule, Compiler as SwcCompiler, PrintArgs};
 use swc_common::{errors::Handler, source_map::SourceMap, sync::Lrc, Mark, GLOBALS};
 use swc_ecma_ast::EsVersion;
@@ -18,9 +19,9 @@ use swc_ecma_transforms::{
 };
 use swc_ecma_visit::FoldWith;
 
-use crate::Error;
+use crate::{modules::file_loader::load, Error};
 
-use super::util::check_extensions;
+use super::{loader::Loader, util::check_extensions};
 
 pub struct Compiler {
     cm: Arc<SourceMap>,
@@ -165,42 +166,36 @@ impl Compiler {
     }
 }
 
-pub struct TsLoader {
+pub struct TsLoader<T> {
     extensions: Vec<String>,
     compiler: Compiler,
     jsx_import_source: Option<String>,
     ts_decorators: bool,
+    fs: T,
 }
 
-impl TsLoader {
-    pub fn new(jsx_import_source: Option<String>, legacy_decorators: bool) -> TsLoader {
+impl<T> TsLoader<T> {
+    pub(crate) fn new(
+        fs: T,
+        jsx_import_source: Option<String>,
+        legacy_decorators: bool,
+    ) -> TsLoader<T> {
         TsLoader {
             jsx_import_source,
             ts_decorators: legacy_decorators,
-            ..Default::default()
-        }
-    }
-}
-
-impl Default for TsLoader {
-    fn default() -> Self {
-        TsLoader {
-            extensions: vec![
-                "js".to_string(),
-                "jsx".to_string(),
-                "ts".to_string(),
-                "tsx".to_string(),
-            ],
+            fs,
+            extensions: vec!["ts".to_string(), "tsx".to_string()],
             compiler: Compiler::new(),
-            jsx_import_source: None,
-            ts_decorators: false,
         }
     }
 }
 
-impl rquickjs::loader::Loader for TsLoader {
+impl<T> Loader for TsLoader<T>
+where
+    T: FileStore,
+{
     fn load<'js>(
-        &mut self,
+        &self,
         ctx: &rquickjs::prelude::Ctx<'js>,
         path: &str,
     ) -> rquickjs::Result<rquickjs::Module<'js, rquickjs::module::Declared>> {
@@ -211,14 +206,15 @@ impl rquickjs::loader::Loader for TsLoader {
             ));
         }
 
-        let content = std::fs::read_to_string(path)?;
-
         let rel_path = RelativePath::new(path);
 
         let jsx = rel_path.extension() == Some("tsx") || rel_path.extension() == Some("jsx");
         let typescript = rel_path.extension() == Some("ts") || rel_path.extension() == Some("tsx");
 
         tracing::trace!(path = %path, jsx = %jsx, "compiling path");
+
+        let content = load(&self.fs, path)?;
+        let content = String::from_utf8(content)?;
 
         let source = self
             .compiler
