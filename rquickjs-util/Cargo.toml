@@ -1,0 +1,19 @@
+[package]
+name = "rquickjs-util"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+vaerdi = ["dep:vaerdi"]
+chrono = ["dep:chrono"]
+
+
+[dependencies]
+rquickjs = { version = "0.6", features = [
+  # "futures",
+  "macro",
+  "classes",
+  "array-buffer",
+] }
+vaerdi = { git = "https://github.com/kildevaeld/vaerdi-rs", optional = true }
+chrono = { version = "0.4", optional = true }
