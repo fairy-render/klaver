@@ -3,7 +3,11 @@ use builtin_resolver::BuiltinResolver;
 use loader::{Loader, Resolver};
 use rquickjs::{module::ModuleDef, Ctx, Error, Module};
 use samling::{fs::FsFileStore, File, FileStore, FileStoreExt};
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 mod builtin_loader;
 mod builtin_resolver;
 // mod file;
@@ -48,10 +52,10 @@ impl Runtime for rquickjs::AsyncRuntime {
 }
 
 #[derive(Default)]
-pub struct ModulesBuilder<'a> {
+pub struct ModulesBuilder {
     modules: HashMap<String, LoadFn>,
     modules_src: HashMap<String, Vec<u8>>,
-    search_paths: Vec<&'a Path>,
+    search_paths: Vec<PathBuf>,
     resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
     loaders: Vec<Box<dyn Loader + Send + Sync>>,
     routes: samling::SyncComposite,
@@ -62,7 +66,7 @@ pub struct ModulesBuilder<'a> {
     ts_decorators: bool,
 }
 
-impl<'a> ModulesBuilder<'a> {
+impl ModulesBuilder {
     pub fn load_func<'js, D: ModuleDef>(
         ctx: Ctx<'js>,
         name: Vec<u8>,
@@ -84,7 +88,7 @@ impl<'a> ModulesBuilder<'a> {
 
     pub fn register<T: ModuleDef>(&mut self, name: impl ToString) -> &mut Self {
         self.modules
-            .insert(name.to_string(), ModulesBuilder::<'a>::load_func::<T>);
+            .insert(name.to_string(), ModulesBuilder::load_func::<T>);
         self
     }
 
@@ -92,8 +96,8 @@ impl<'a> ModulesBuilder<'a> {
         self.modules_src.insert(name.to_string(), source);
     }
 
-    pub fn add_search_path(&mut self, path: &'a Path) {
-        self.search_paths.push(path.as_ref());
+    pub fn add_search_path(&mut self, path: impl Into<PathBuf>) {
+        self.search_paths.push(path.into());
     }
 
     pub fn mount_store<T>(&mut self, path: &str, store: T)
@@ -123,7 +127,7 @@ impl<'a> ModulesBuilder<'a> {
     }
 }
 
-impl<'a> ModulesBuilder<'a> {
+impl ModulesBuilder {
     pub fn build(mut self) -> Result<Modules, Error> {
         let mut fs = Vec::with_capacity(self.search_paths.len() + 1);
 

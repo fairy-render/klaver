@@ -2,19 +2,19 @@ use rquickjs::module::ModuleDef;
 
 use super::ModulesBuilder;
 
-pub struct Builder<'a, 'b> {
-    modules: &'a mut ModulesBuilder<'b>,
+pub struct Builder<'a> {
+    modules: &'a mut ModulesBuilder,
 }
 
-impl<'a, 'b> Builder<'a, 'b> {
-    pub fn new(modules: &'a mut ModulesBuilder<'b>) -> Builder<'a, 'b> {
+impl<'a> Builder<'a> {
+    pub fn new(modules: &'a mut ModulesBuilder) -> Builder<'a> {
         Builder { modules }
     }
 
     pub fn register<T: ModuleDef>(&mut self, name: impl ToString) {
         self.modules
             .modules
-            .insert(name.to_string(), ModulesBuilder::<'a>::load_func::<T>);
+            .insert(name.to_string(), ModulesBuilder::load_func::<T>);
     }
 
     pub fn register_src(&mut self, name: impl ToString, source: Vec<u8>) -> &mut Self {
@@ -24,14 +24,14 @@ impl<'a, 'b> Builder<'a, 'b> {
 }
 
 pub trait ModuleInfo {
-    fn register(modules: &mut Builder<'_, '_>);
+    fn register(modules: &mut Builder<'_>);
 }
 
 #[macro_export]
 macro_rules! module_info {
     ($name: literal => $module: ident) => {
         impl $crate::modules::ModuleInfo for $module {
-            fn register(mut modules: &mut $crate::modules::Builder<'_, '_>) {
+            fn register(mut modules: &mut $crate::modules::Builder<'_>) {
                 modules.register::<$module>($name);
             }
         }

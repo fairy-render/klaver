@@ -32,7 +32,7 @@ struct VmPoolOptions {
 }
 
 impl Manager {
-    pub fn new(options: VmOptions<'_>) -> Result<Manager, Error> {
+    pub fn new(options: VmOptions) -> Result<Manager, Error> {
         let modules = options.modules.build()?;
 
         Ok(Manager {

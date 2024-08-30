@@ -10,7 +10,7 @@ pub struct Compat;
 const COMPAT: &[u8] = include_bytes!("compat.js");
 
 impl ModuleInfo for Compat {
-    fn register(modules: &mut klaver::modules::Builder<'_, '_>) {
+    fn register(modules: &mut klaver::modules::Builder<'_>) {
         // Include deps
         klaver_encoding::Encoding::register(modules);
         klaver_http::Module::register(modules);

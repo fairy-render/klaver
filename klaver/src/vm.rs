@@ -1,6 +1,6 @@
 use std::{
     future::Future,
-    path::Path,
+    path::{Path, PathBuf},
     pin::{pin, Pin},
     task::Poll,
 };
@@ -17,14 +17,14 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct VmOptions<'a> {
-    pub(crate) modules: crate::modules::ModulesBuilder<'a>,
+pub struct VmOptions {
+    pub(crate) modules: crate::modules::ModulesBuilder,
     pub(crate) max_stack_size: Option<usize>,
     pub(crate) memory_limit: Option<usize>,
 }
 
-impl<'a> VmOptions<'a> {
-    pub fn modules(&mut self) -> &mut crate::modules::ModulesBuilder<'a> {
+impl VmOptions {
+    pub fn modules(&mut self) -> &mut crate::modules::ModulesBuilder {
         &mut self.modules
     }
 
@@ -33,7 +33,7 @@ impl<'a> VmOptions<'a> {
         self
     }
 
-    pub fn search_path(mut self, search_path: &'a Path) -> Self {
+    pub fn search_path(mut self, search_path: impl Into<PathBuf>) -> Self {
         self.modules.add_search_path(search_path);
         self
     }
@@ -52,7 +52,7 @@ impl Vm {
         Vm { ctx, rt }
     }
 
-    pub async fn new(options: VmOptions<'_>) -> Result<Vm, Error> {
+    pub async fn new(options: VmOptions) -> Result<Vm, Error> {
         let rt = AsyncRuntime::new()?;
 
         if let Some(stack) = options.max_stack_size {
