@@ -6,7 +6,7 @@ use samling::{fs::FsFileStore, File, FileStore, FileStoreExt};
 use std::{collections::HashMap, path::Path, sync::Arc};
 mod builtin_loader;
 mod builtin_resolver;
-mod file;
+// mod file;
 mod file_loader;
 mod init;
 mod loader;
