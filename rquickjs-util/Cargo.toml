@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-vaerdi = ["dep:vaerdi"]
+vaerdi = ["dep:vaerdi", "chrono"]
 chrono = ["dep:chrono"]
 
 
