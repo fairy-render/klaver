@@ -184,7 +184,12 @@ impl<T> TsLoader<T> {
             jsx_import_source,
             ts_decorators: legacy_decorators,
             fs,
-            extensions: vec!["ts".to_string(), "tsx".to_string()],
+            extensions: vec![
+                "ts".to_string(),
+                "tsx".to_string(),
+                "js".to_string(),
+                "jsx".to_string(),
+            ],
             compiler: Compiler::new(),
         }
     }
