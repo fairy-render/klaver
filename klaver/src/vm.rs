@@ -13,7 +13,7 @@ use crate::{
         timers::{poll_timers, process_timers},
     },
     error::Error,
-    modules::{Builder, ModuleInfo},
+    modules::{Builder, ModuleInfo, Modules},
 };
 
 #[derive(Default)]
@@ -48,28 +48,36 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn with(rt: AsyncRuntime, ctx: AsyncContext) -> Vm {
-        Vm { ctx, rt }
-    }
-
-    pub async fn new(options: VmOptions) -> Result<Vm, Error> {
+    pub async fn with(
+        modules: Modules,
+        max_stack_size: Option<usize>,
+        memory_limit: Option<usize>,
+    ) -> Result<Vm, Error> {
         let rt = AsyncRuntime::new()?;
 
-        if let Some(stack) = options.max_stack_size {
+        if let Some(stack) = max_stack_size {
             rt.set_max_stack_size(stack).await;
         }
 
-        if let Some(memory) = options.memory_limit {
+        if let Some(memory) = memory_limit {
             rt.set_memory_limit(memory).await;
         }
 
         let ctx = AsyncContext::full(&rt).await?;
 
         ctx.with(init_base).await?;
-
-        options.modules.build()?.attach(&rt).await?;
+        modules.attach(&rt).await?;
 
         Ok(Vm { ctx, rt })
+    }
+
+    pub async fn new(options: VmOptions) -> Result<Vm, Error> {
+        Self::with(
+            options.modules.build()?,
+            options.max_stack_size,
+            options.memory_limit,
+        )
+        .await
     }
 
     pub async fn run_with<F, R>(&self, f: F) -> Result<R, Error>

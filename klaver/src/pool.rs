@@ -62,23 +62,12 @@ impl deadpool::managed::Manager for Manager {
 
     fn create(&self) -> impl std::future::Future<Output = Result<Self::Type, Self::Error>> + Send {
         async move {
-            let rt = AsyncRuntime::new()?;
-
-            if let Some(stack) = self.options.max_stack_size {
-                rt.set_max_stack_size(stack).await;
-            }
-
-            if let Some(memory) = self.options.memory_limit {
-                rt.set_memory_limit(memory).await;
-            }
-
-            let ctx = AsyncContext::full(&rt).await?;
-
-            ctx.with(base_init).await?;
-
-            self.options.modules.attach(&rt).await?;
-
-            let vm = Vm::with(rt, ctx);
+            let vm = Vm::with(
+                self.options.modules.clone(),
+                self.options.max_stack_size,
+                self.options.memory_limit,
+            )
+            .await?;
 
             if let Some(init) = &self.init {
                 init(&vm).await?;
