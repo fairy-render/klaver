@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{future::Future, option, pin::Pin, sync::Arc};
 
 use deadpool::managed::{Metrics, RecycleResult};
 use rquickjs::{AsyncContext, AsyncRuntime};
@@ -25,10 +25,21 @@ pub struct Manager {
     options: VmPoolOptions,
 }
 
-struct VmPoolOptions {
-    max_stack_size: Option<usize>,
-    memory_limit: Option<usize>,
-    modules: Modules,
+pub struct VmPoolOptions {
+    pub max_stack_size: Option<usize>,
+    pub memory_limit: Option<usize>,
+    pub modules: Modules,
+}
+
+impl VmPoolOptions {
+    pub fn from(options: VmOptions) -> Result<VmPoolOptions, Error> {
+        let modules = options.modules.build()?;
+        Ok(VmPoolOptions {
+            max_stack_size: options.max_stack_size,
+            memory_limit: options.memory_limit,
+            modules,
+        })
+    }
 }
 
 impl Manager {
