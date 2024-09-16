@@ -35,7 +35,7 @@ macro_rules! async_with{
           /// rquickjs objects are send so the future will never be send.
           /// Since we acquire a lock before running the future and nothing can escape the closure
           /// and future it is safe to recast the future as send.
-          unsafe fn uplift<'a,'b,R>(f: std::pin::Pin<Box<dyn std::future::Future<Output = Result<R, $crate::Error>> + 'a>>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<R, $crate::Error>> + 'b + Send>>{
+          unsafe fn uplift<'a,'b,R>(f: std::pin::Pin<Box<dyn std::future::Future<Output = std::result::Result<R, $crate::Error>> + 'a>>) -> std::pin::Pin<Box<dyn std::future::Future<Output = std::result::Result<R, $crate::Error>> + 'b + Send>>{
               std::mem::transmute(f)
           }
           unsafe{ uplift(fut) }
