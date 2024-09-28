@@ -28,6 +28,7 @@ pub trait ModuleInfo {
 }
 
 #[macro_export]
+/// module_info!("module" => Module);
 macro_rules! module_info {
     ($name: literal => $module: ident) => {
         impl $crate::modules::ModuleInfo for $module {

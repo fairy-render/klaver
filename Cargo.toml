@@ -9,7 +9,7 @@ members = [
   "klaver-crypto",
   "klaver-encoding",
   "klaver-gerning",
-  "klaver-http",
+  "klaver-http", "klaver-image",
   "klaver-os",
   "klaver-shared",
   "klaver-streams", "rquickjs-util",

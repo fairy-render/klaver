@@ -1,0 +1,19 @@
+[package]
+name = "klaver-image"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+webp = ["dep:webp", "image/webp"]
+
+[dependencies]
+klaver = { path = "../klaver" }
+klaver-shared = { path = "../klaver-shared" }
+rquickjs.workspace = true
+image = { version = "0.25", features = [
+  "png",
+  "jpeg",
+], default-features = false }
+webp = { version = "0.3", features = ["img"], optional = true }
+tokio = { version = "1", features = ["fs"] }
