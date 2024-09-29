@@ -1,5 +1,5 @@
 [package]
-name = "worm-fs"
+name = "klaver-fs"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,6 @@ edition = "2021"
 klaver = { path = "../klaver" }
 klaver-shared = { path = "../klaver-shared" }
 tokio = { version = "1", features = ["fs"] }
-tokio-stream = { version = "0.1", features = ["fs"] }
+tokio-stream = { version = "0.1", features = ["fs", "io-util"] }
 rquickjs.workspace = true
 futures.workspace = true

@@ -21,7 +21,7 @@ pub fn init(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
 
 pub struct Encoding;
 
-module_info!("@klaver/encoding" => Encoding);
+module_info!("@klaver/encoding" @types: include_str!("../module.d.ts") => Encoding);
 
 impl ModuleDef for Encoding {
     fn declare<'js>(decl: &Declarations<'js>) -> Result<()> {

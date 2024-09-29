@@ -17,7 +17,7 @@ pub use self::request::Request;
 
 pub type Module = module::js_http_mod;
 
-klaver::module_info!("@klaver/http" => Module);
+klaver::module_info!("@klaver/http" @types: include_str!("../module.d.ts") => Module);
 
 struct Factory(pub SharedClientFactory);
 

@@ -12,7 +12,8 @@ klaver = { path = "../klaver", features = ["typescript"] }
 klaver-compat = { path = "../klaver-compat" }
 klaver-os = { path = "../klaver-os" }
 klaver-streams = { path = "../klaver-streams" }
-klaver-image = { path = "../klaver-image" }
+klaver-image = { path = "../klaver-image", features = ["webp"] }
+klaver-fs = { path = "../klaver-fs" }
 
 clap = { version = "4", features = ["derive"] }
 

@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use futures::{future::LocalBoxFuture, Stream, StreamExt, TryStream, TryStreamExt};
 use rquickjs::{
@@ -174,24 +174,32 @@ where
     T::Ok: IntoJs<'js>,
 {
     fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        Ok(Class::instance(
+        let obj = Class::instance(
             ctx.clone(),
             AsyncIterator {
-                stream: Box::new(StreamContainer(self.i)),
+                stream: Rc::new(RefCell::new(Box::new(StreamContainer(self.i)))),
             },
-        )?
-        .into_value())
+        )?;
+
+        let symbol = Symbol::async_iterator(ctx.clone());
+
+        obj.set(
+            symbol,
+            Func::new(|this: This<Value<'js>>| Result::<_, rquickjs::Error>::Ok(this.0)),
+        )?;
+
+        obj.into_js(ctx)
     }
 }
 
 #[rquickjs::class]
 struct AsyncIterator<'js> {
-    stream: Box<dyn DynamicStream<'js> + 'js>,
+    stream: Rc<RefCell<Box<dyn DynamicStream<'js> + 'js>>>,
 }
 
 impl<'js> Trace<'js> for AsyncIterator<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.stream.trace(tracer)
+        self.stream.borrow().trace(tracer)
     }
 }
 
@@ -199,7 +207,7 @@ impl<'js> Trace<'js> for AsyncIterator<'js> {
 impl<'js> AsyncIterator<'js> {
     #[qjs(rename = PredefinedAtom::Next)]
     pub async fn next(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        let next = self.stream.next(ctx.clone()).await?;
+        let next = self.stream.borrow_mut().next(ctx.clone()).await?;
         IterResult::new(next).into_js(&ctx)
     }
 

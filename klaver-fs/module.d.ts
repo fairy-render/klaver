@@ -1,0 +1,22 @@
+export type Buffer = ArrayBuffer | Uint8Array;
+
+export interface DirEntry {
+	path: string;
+	type: "file" | "dir" | "symlink";
+}
+
+export type OpenFlag = "r" | "w" | "a";
+
+export interface File {
+	readLines(): Promise<AsyncIterableIterator<string>>;
+}
+
+export function read(path: string): Promise<ArrayBuffer>;
+
+export function write(path: string, content: Buffer): Promise<void>;
+
+export function readDir(path: string): Promise<AsyncIterable<DirEntry>>;
+
+export function resolve(path: string): Promise<string>;
+
+export function open(path: string, flag?: OpenFlag): Promise<File>;

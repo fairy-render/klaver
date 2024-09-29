@@ -3,7 +3,9 @@ use klaver::{throw, throw_if};
 use klaver_streams::{async_byte_iterator, AsyncByteIterError};
 use reggie::Body;
 use reqwest::Version;
-use rquickjs::{class::Trace, function::Opt, Class, Ctx, Exception, FromJs, Object, Value};
+use rquickjs::{
+    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Exception, FromJs, Object, Value,
+};
 
 use crate::{body::BodyInit, headers::HeadersInit, module::Headers};
 
@@ -126,6 +128,19 @@ impl<'js> Response<'js> {
 
         match reggie::body::to_text(body).await {
             Ok(ret) => Ok(ret),
+            Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
+                ctx.clone(),
+                &err.to_string(),
+            )?))),
+        }
+    }
+
+    #[qjs(rename = "arrayBuffer")]
+    pub async fn array_buffer(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<ArrayBuffer<'js>> {
+        let body = self.take_body(ctx.clone())?;
+
+        match reggie::body::to_bytes(body).await {
+            Ok(ret) => ArrayBuffer::new(ctx, ret.to_vec()),
             Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
                 ctx.clone(),
                 &err.to_string(),

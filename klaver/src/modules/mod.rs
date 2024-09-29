@@ -86,6 +86,10 @@ impl ModulesBuilder {
         self
     }
 
+    pub fn contains(&self, name: &str) -> bool {
+        self.modules.contains_key(name) || self.modules_src.contains_key(name)
+    }
+
     pub fn register<T: ModuleDef>(&mut self, name: impl ToString) -> &mut Self {
         self.modules
             .insert(name.to_string(), ModulesBuilder::load_func::<T>);

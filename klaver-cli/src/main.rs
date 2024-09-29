@@ -18,8 +18,20 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    ///Compile scripts
+    /// Compile scripts
     Compile { path: PathBuf },
+    /// Generate types for registered modules
+    Typings { path: Option<PathBuf> },
+}
+
+fn create_vm_options() -> VmOptions {
+    VmOptions::default()
+        .search_path(Path::new("."))
+        .module::<klaver_streams::Module>()
+        .module::<klaver_os::shell::Module>()
+        .module::<klaver_compat::Compat>()
+        .module::<klaver_image::Module>()
+        .module::<klaver_fs::Module>()
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -44,17 +56,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             println!("{}", source.code);
             return Ok(());
         }
+        Some(Commands::Typings { path }) => {
+            let options = create_vm_options();
+            let types = options.typings();
+
+            if let Some(path) = path {
+                tokio::fs::create_dir_all(&path).await?;
+
+                for ty in types {
+                    let pkg_path = path.join(ty.name);
+                    tokio::fs::create_dir_all(&pkg_path).await?;
+                    let pkg = format!(
+                        r#"{{
+"name": "{}",
+"types": "index.d.ts"                    
+                    }}"#,
+                        ty.name
+                    );
+
+                    tokio::fs::write(pkg_path.join("package.json"), pkg).await?;
+                    tokio::fs::write(pkg_path.join("index.d.ts"), ty.typings.as_bytes()).await?;
+                }
+            } else {
+                println!("{:#?}", types);
+            }
+
+            return Ok(());
+        }
         _ => {}
     }
 
-    let vm = VmOptions::default()
-        .search_path(Path::new("."))
-        .module::<klaver_streams::Module>()
-        .module::<klaver_os::shell::Module>()
-        .module::<klaver_compat::Compat>()
-        .module::<klaver_image::Module>()
-        .build()
-        .await?;
+    let vm = create_vm_options().build().await?;
 
     klaver_compat::init(&vm).await?;
 

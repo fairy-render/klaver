@@ -68,6 +68,7 @@ export class Response {
 
 	text(): Promise<string>;
 	json<T = unknown>(): Promise<T>;
+	arrayBuffer(): Promise<ArrayBuffer>;
 	stream(): AsyncIterable<ArrayBuffer>;
 }
 

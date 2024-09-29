@@ -35,10 +35,14 @@ impl ImageFormat {
                 let encoder = image::codecs::jpeg::JpegEncoder::new(buffer);
                 throw_if!(ctx, image.write_with_encoder(encoder));
             }
+            image::ImageFormat::Pnm => {
+                let encoder = image::codecs::pnm::PnmEncoder::new(buffer);
+                throw_if!(ctx, image.write_with_encoder(encoder))
+            }
             #[cfg(feature = "webp")]
             image::ImageFormat::WebP => {
                 let encoder = throw_if!(ctx, webp::Encoder::from_image(image));
-                let img = match encoder.encode_simple(false, 0.8) {
+                let img = match encoder.encode_simple(false, 80.0) {
                     Ok(img) => img,
                     Err(_) => throw!(ctx, "Encoding error"),
                 };

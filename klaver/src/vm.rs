@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     future::Future,
     path::{Path, PathBuf},
     pin::{pin, Pin},
@@ -16,11 +17,18 @@ use crate::{
     modules::{Builder, ModuleInfo, Modules},
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModuleTypings {
+    pub name: &'static str,
+    pub typings: Cow<'static, str>,
+}
+
 #[derive(Default)]
 pub struct VmOptions {
     pub(crate) modules: crate::modules::ModulesBuilder,
     pub(crate) max_stack_size: Option<usize>,
     pub(crate) memory_limit: Option<usize>,
+    pub(crate) typings: Vec<ModuleTypings>,
 }
 
 impl VmOptions {
@@ -29,13 +37,25 @@ impl VmOptions {
     }
 
     pub fn module<T: ModuleInfo>(mut self) -> Self {
-        T::register(&mut Builder::new(&mut self.modules));
+        T::register(&mut Builder::new(&mut self.modules, &mut self.typings));
+
+        if let Some(typings) = T::typings() {
+            self.typings.push(ModuleTypings {
+                name: T::NAME,
+                typings,
+            });
+        }
+
         self
     }
 
     pub fn search_path(mut self, search_path: impl Into<PathBuf>) -> Self {
         self.modules.add_search_path(search_path);
         self
+    }
+
+    pub fn typings(&self) -> &[ModuleTypings] {
+        &self.typings
     }
 
     pub async fn build(self) -> Result<Vm, Error> {

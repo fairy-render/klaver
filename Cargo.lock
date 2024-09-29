@@ -1232,6 +1232,7 @@ dependencies = [
  "clap",
  "klaver",
  "klaver-compat",
+ "klaver-fs",
  "klaver-image",
  "klaver-os",
  "klaver-streams",
@@ -1273,6 +1274,18 @@ dependencies = [
  "klaver",
  "klaver-shared",
  "rquickjs",
+]
+
+[[package]]
+name = "klaver-fs"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "klaver",
+ "klaver-shared",
+ "rquickjs",
+ "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
@@ -4336,18 +4349,6 @@ checksum = "a277a57398d4bfa075df44f501a17cfdf8542d224f0d36095a2adc7aee4ef0a5"
 dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "worm-fs"
-version = "0.1.0"
-dependencies = [
- "futures",
- "klaver",
- "klaver-shared",
- "rquickjs",
- "tokio",
- "tokio-stream",
 ]
 
 [[package]]

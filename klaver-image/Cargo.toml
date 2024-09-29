@@ -15,6 +15,7 @@ rquickjs.workspace = true
 image = { version = "0.25", features = [
   "png",
   "jpeg",
+  "pnm",
 ], default-features = false }
 webp = { version = "0.3", features = ["img"], optional = true }
 tokio = { version = "1", features = ["fs"] }

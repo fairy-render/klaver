@@ -46,4 +46,4 @@ pub fn random_values<'js>(ctx: Ctx<'js>, buffer: TypedArray<'js>) -> rquickjs::R
     Ok(())
 }
 
-module_info!("@klaver/crypto" => Crypto);
+module_info!("@klaver/crypto" @types: include_str!("../module.d.ts") => Crypto);
