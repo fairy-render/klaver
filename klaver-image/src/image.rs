@@ -71,11 +71,6 @@ impl<'js> FromJs<'js> for ImageFilter {
     }
 }
 
-/*
-
-
-*/
-
 pub struct ReizeOptions {
     width: u32,
     height: u32,
@@ -117,6 +112,7 @@ impl JsImage {
         Ok(JsImage { image: img })
     }
 
+    #[qjs(constructor)]
     pub fn new<'js>(ctx: Ctx<'js>, buf: Buffer<'js>) -> rquickjs::Result<JsImage> {
         let Some(buffer) = buf.as_raw() else {
             throw!(ctx, "Buffer detached");
