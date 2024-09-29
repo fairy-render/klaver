@@ -2,6 +2,7 @@ use std::io::Cursor;
 
 use image::{imageops::FilterType, ImageReader};
 use klaver::{throw, throw_if};
+use klaver_shared::buffer::Buffer;
 use rquickjs::{function::Opt, ArrayBuffer, Ctx, FromJs, Object};
 
 pub struct ImageFormat(image::ImageFormat);
@@ -116,6 +117,21 @@ impl JsImage {
         Ok(JsImage { image: img })
     }
 
+    pub fn new<'js>(ctx: Ctx<'js>, buf: Buffer<'js>) -> rquickjs::Result<JsImage> {
+        let Some(buffer) = buf.as_raw() else {
+            throw!(ctx, "Buffer detached");
+        };
+
+        let reader = throw_if!(
+            ctx,
+            ImageReader::new(Cursor::new(buffer.slice())).with_guessed_format()
+        );
+
+        let image = throw_if!(ctx, reader.decode());
+
+        Ok(JsImage { image })
+    }
+
     pub async fn save(
         &self,
         ctx: Ctx<'_>,
@@ -182,6 +198,12 @@ impl JsImage {
     pub fn gray(&self) -> rquickjs::Result<JsImage> {
         Ok(JsImage {
             image: self.image.grayscale(),
+        })
+    }
+
+    pub fn crop(&self, x: u32, y: u32, width: u32, height: u32) -> rquickjs::Result<JsImage> {
+        Ok(JsImage {
+            image: self.image.crop_imm(x, y, width, height),
         })
     }
 }
