@@ -10,7 +10,7 @@ use rquickjs::{
     class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx, FromJs, Function, IntoJs,
     Object, Value,
 };
-use std::{collections::VecDeque, rc::Rc};
+use std::{borrow::Borrow, collections::VecDeque, rc::Rc};
 use tokio::sync::Notify;
 
 #[rquickjs::class]
@@ -205,6 +205,10 @@ impl<'js> State<'js> {
         matches!(self, Self::Running)
     }
 
+    fn is_canceled(&self) -> bool {
+        matches!(self, Self::Canceled(_))
+    }
+
     fn as_error(&self) -> Option<&CaughtError<'js>> {
         match self {
             Self::Error(err) => Some(err),
@@ -291,6 +295,14 @@ impl<'js> ControllerWrap<'js> {
         }
     }
 
+    fn is_canceled(&self) -> bool {
+        if let Some(ctrl) = self.ctrl.as_ref() {
+            ctrl.borrow().state.is_canceled()
+        } else {
+            false
+        }
+    }
+
     fn borrow<'a>(
         &'a self,
         ctx: &Ctx<'js>,
@@ -342,6 +354,10 @@ impl<'js> ReadableStreamDefaultReader<'js> {
         if self.ctrl.borrow(&ctx)?.queue.is_empty() {
             let waiter = self.ctrl.borrow(&ctx)?.wait.clone();
             waiter.notified().await;
+
+            if self.ctrl.is_canceled() {
+                throw!(ctx, "Canceled")
+            }
         }
 
         let ret = self.ctrl.borrow_mut(&ctx)?.queue.pop_front();
@@ -365,7 +381,7 @@ impl<'js> ReadableStreamDefaultReader<'js> {
             throw!(ctx, "stream not running");
         }
         self.ctrl.borrow_mut(&ctx)?.state = State::Canceled(reason.0);
-        self.ctrl.borrow(&ctx)?.ready.notify_one();
+        self.ctrl.borrow(&ctx)?.ready.notify_waiters();
         Ok(())
     }
 

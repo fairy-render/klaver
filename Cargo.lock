@@ -4339,6 +4339,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "worm-fs"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "klaver",
+ "klaver-shared",
+ "rquickjs",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "wyz"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

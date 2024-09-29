@@ -12,7 +12,7 @@ members = [
   "klaver-http", "klaver-image",
   "klaver-os",
   "klaver-shared",
-  "klaver-streams", "rquickjs-util",
+  "klaver-streams", "rquickjs-util", "worm-fs",
 ]
 
 

@@ -1,0 +1,12 @@
+[package]
+name = "worm-fs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+klaver = { path = "../klaver" }
+klaver-shared = { path = "../klaver-shared" }
+tokio = { version = "1", features = ["fs"] }
+tokio-stream = { version = "0.1", features = ["fs"] }
+rquickjs.workspace = true
+futures.workspace = true
