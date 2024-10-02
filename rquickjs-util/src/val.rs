@@ -55,7 +55,12 @@ fn from_js<'js>(
         Type::Object => {
             if Date::is(ctx, &value)? {
                 let date = Date::from_js(ctx, value)?;
-                return Ok(Val(date.to_datetime()?.into()));
+
+                let chrono_date = date.to_datetime()?;
+
+                let ret = Ok(Val(Value::DateTime(chrono_date.naive_utc())));
+
+                return ret;
             }
 
             let object = un!(value.try_into_object())?;
@@ -126,5 +131,27 @@ impl<'js> IntoJs<'js> for Val {
         };
 
         Ok(val)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use rquickjs::{Context, Runtime};
+
+    use crate::Val;
+
+    #[test]
+    fn test_val() {
+        let runtime = Runtime::new().unwrap();
+        let context = Context::full(&runtime).unwrap();
+
+        let value = context
+            .with(|ctx| {
+                //
+                let val = ctx.eval::<Val, _>("({name: new Date(), age: 20})")?;
+
+                rquickjs::Result::Ok(val.0)
+            })
+            .unwrap();
     }
 }

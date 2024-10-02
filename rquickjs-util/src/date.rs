@@ -1,5 +1,8 @@
-
-use rquickjs::{class::Trace, function::This, Ctx, FromJs, Function, IntoJs, Object, Value};
+use rquickjs::{
+    class::Trace,
+    function::{Args, This},
+    Ctx, FromJs, Function, IntoJs, Object, Value,
+};
 
 #[derive(Debug, Trace)]
 pub struct Date<'js> {
@@ -32,6 +35,7 @@ impl<'js> Date<'js> {
         let Some(date) = chrono::DateTime::from_timestamp_millis(self.timestamp()?) else {
             panic!()
         };
+
         Ok(date)
     }
 
@@ -74,5 +78,27 @@ impl<'js> FromJs<'js> for Date<'js> {
 impl<'js> IntoJs<'js> for Date<'js> {
     fn into_js(self, _ctx: &rquickjs::prelude::Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         Ok(self.object.into())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use rquickjs::{Context, Runtime};
+
+    use crate::Date;
+
+    #[test]
+    fn test_date() {
+        let runtime = Runtime::new().unwrap();
+        let context = Context::full(&runtime).unwrap();
+
+        context
+            .with(|ctx| {
+                //
+                let date = ctx.eval::<Date, _>("new Date")?;
+
+                rquickjs::Result::Ok(())
+            })
+            .unwrap();
     }
 }

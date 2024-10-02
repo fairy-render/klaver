@@ -1,4 +1,3 @@
-
 use rquickjs::{class::Trace, function::This, Ctx, FromJs, Function, IntoJs, Object, Value};
 
 #[derive(Debug, Trace)]
@@ -8,17 +7,23 @@ pub struct Map<'js> {
 
 impl<'js> Map<'js> {
     pub fn get<T: FromJs<'js>>(&self, name: &Value<'js>) -> rquickjs::Result<T> {
-        self.object.get::<_, Function>("get")?.call((name,))
+        self.object
+            .get::<_, Function>("get")?
+            .call((This(self.object.clone()), name))
     }
 
     pub fn has<T: FromJs<'js>>(&self, name: &Value<'js>) -> rquickjs::Result<T> {
-        self.object.get::<_, Function>("get")?.call((name,))
+        self.object
+            .get::<_, Function>("get")?
+            .call((This(self.object.clone()), name))
     }
 
     pub fn set<T: IntoJs<'js>>(&self, name: &Value<'js>, value: T) -> rquickjs::Result<()> {
-        self.object
-            .get::<_, Function>("set")?
-            .call::<_, Value>((name, value))?;
+        self.object.get::<_, Function>("set")?.call::<_, Value>((
+            This(self.object.clone()),
+            name,
+            value,
+        ))?;
         Ok(())
     }
 
