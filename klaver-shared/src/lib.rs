@@ -13,3 +13,6 @@ pub mod iter;
 pub use format::*;
 
 pub use r#static::*;
+
+#[cfg(feature = "channel")]
+pub mod channel;

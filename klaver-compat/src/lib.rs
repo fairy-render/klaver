@@ -1,6 +1,6 @@
 use klaver::{
     modules::ModuleInfo,
-    quick::{prelude::Func, CatchResultExt, Class, Object},
+    quick::{prelude::Func, CatchResultExt, Class, Ctx, Object},
     vm::Vm,
 };
 use klaver_shared::console::Console;
@@ -27,18 +27,22 @@ impl ModuleInfo for Compat {
     }
 }
 
-pub async fn init(vm: &Vm) -> Result<(), klaver::Error> {
-    klaver::async_with!(vm => |ctx| {
-        let console = Class::instance(ctx.clone(), Console::new());
-        ctx.globals().set("console", console)?;
-        
-       
-        ctx.globals().set("performance", Class::instance(ctx.clone(), klaver_shared::performance::JsPerformance::new())?)?;
+pub async fn init(ctx: &Ctx<'_>) -> Result<(), klaver::Error> {
+    let console = Class::instance(ctx.clone(), Console::new());
+    ctx.globals().set("console", console)?;
 
-        ctx.eval_promise(r#"await (await import("@klaver/compat")).default(globalThis)"#).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
-        Ok(())
-    })
-    .await?;
+    ctx.globals().set(
+        "performance",
+        Class::instance(
+            ctx.clone(),
+            klaver_shared::performance::JsPerformance::new(),
+        )?,
+    )?;
 
+    ctx.eval_promise(r#"await (await import("@klaver/compat")).default(globalThis)"#)
+        .catch(&ctx)?
+        .into_future::<()>()
+        .await
+        .catch(&ctx)?;
     Ok(())
 }

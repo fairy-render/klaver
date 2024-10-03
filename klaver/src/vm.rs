@@ -114,12 +114,12 @@ impl Vm {
         self.rt.memory_usage().await
     }
 
-    pub async fn run_with<F, R>(&self, f: F) -> Result<R, Error>
+    pub async fn with<F, R>(&self, f: F) -> Result<R, Error>
     where
-        F: for<'js> FnOnce(&Ctx<'js>) -> Result<R, Error> + std::marker::Send,
+        F: for<'js> FnOnce(Ctx<'js>) -> Result<R, Error> + std::marker::Send,
         R: Send,
     {
-        self.ctx.with(|ctx| f(&ctx)).await
+        self.ctx.with(|ctx| f(ctx)).await
     }
 
     pub async fn run<S: Into<Vec<u8>> + Send, R>(&self, source: S, strict: bool) -> Result<R, Error>
@@ -127,7 +127,7 @@ impl Vm {
         for<'js> R: FromJs<'js>,
         R: Send,
     {
-        self.run_with(|ctx| {
+        self.with(|ctx| {
             let mut options = EvalOptions::default();
             options.strict = strict;
             options.promise = true;

@@ -32,6 +32,15 @@ enum Request {
     MemoryUsage {
         returns: oneshot::Sender<MemoryUsage>,
     },
+    Idle {
+        returns: oneshot::Sender<Result<(), Error>>,
+    },
+}
+
+impl VmOptions {
+    pub async fn build_worker(self) -> Result<Worker, Error> {
+        Worker::new(self).await
+    }
 }
 
 pub struct Worker {
@@ -46,6 +55,17 @@ impl Worker {
     ) -> Result<Worker, Error> {
         let sx = create_worker(modules, max_stack_size, memory_limit, false).await?;
         Ok(Worker { sx })
+    }
+
+    pub async fn idle(&self) -> Result<(), Error> {
+        let (sx, rx) = oneshot::channel();
+
+        self.sx
+            .send(Request::Idle { returns: sx })
+            .await
+            .map_err(|err| Error::Message(Some(err.to_string())))?;
+
+        rx.await.map_err(|err| Error::Custom(Box::new(err)))?
     }
 
     pub async fn new(options: VmOptions) -> Result<Worker, Error> {
@@ -65,10 +85,23 @@ impl Worker {
             .ok();
     }
 
+    pub async fn memory_usage(&self) -> Result<MemoryUsage, Error> {
+        let (sx, rx) = oneshot::channel();
+
+        self.sx
+            .send(Request::MemoryUsage { returns: sx })
+            .await
+            .map_err(|err| Error::Message(Some(err.to_string())))?;
+
+        let ret = rx.await.map_err(|err| Error::Custom(Box::new(err)))?;
+
+        Ok(ret)
+    }
+
     pub async fn with<T, R>(&self, func: T) -> Result<R, Error>
     where
         T: Send + 'static,
-        for<'js> T: FnOnce(Ctx<'js>) -> rquickjs::Result<R>,
+        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, Error>,
         R: Send + 'static,
     {
         let (sx, rx) = oneshot::channel();
@@ -91,7 +124,7 @@ impl Worker {
             .map_err(|_| Error::Custom("type error".into()))?)
     }
 
-    pub async fn with_async<T, R>(&self, func: T) -> Result<R, Error>
+    pub async fn async_with<T, R>(&self, func: T) -> Result<R, Error>
     where
         T: Send,
         for<'js> T:
@@ -185,7 +218,7 @@ async fn create_worker(
 async fn process(vm: &Vm, next: Request) {
     match next {
         Request::With { func, returns } => {
-            let ret = vm.run_with(move |ctx| func(ctx.clone())).await;
+            let ret = vm.with(move |ctx| func(ctx.clone())).await;
             returns.send(ret.map_err(Into::into)).ok();
         }
         Request::WithAsync { func, returns } => {
@@ -198,6 +231,9 @@ async fn process(vm: &Vm, next: Request) {
         Request::MemoryUsage { returns } => {
             let ret = vm.memory_usage().await;
             returns.send(ret).ok();
+        }
+        Request::Idle { returns } => {
+            returns.send(vm.idle().await).ok();
         }
     }
 }

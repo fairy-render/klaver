@@ -6,7 +6,8 @@ pub mod modules;
 pub mod pool;
 mod timers;
 pub mod vm;
-mod worker;
+#[cfg(feature = "pool")]
+pub mod worker;
 
 mod macros;
 

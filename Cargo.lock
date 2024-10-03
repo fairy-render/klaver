@@ -1349,6 +1349,7 @@ dependencies = [
  "chrono",
  "futures",
  "rquickjs",
+ "tokio",
  "vaerdi",
 ]
 

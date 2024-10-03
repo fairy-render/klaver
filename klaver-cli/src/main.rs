@@ -88,7 +88,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let vm = create_vm_options().build().await?;
 
-    klaver_compat::init(&vm).await?;
+    klaver::async_with!(vm => |ctx| {
+        klaver_compat::init(&ctx).await
+    })
+    .await?;
 
     let args = std::env::args().skip(1).collect::<Vec<_>>();
 
