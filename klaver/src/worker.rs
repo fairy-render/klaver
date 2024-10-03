@@ -100,8 +100,8 @@ impl Worker {
 
     pub async fn with<T, R>(&self, func: T) -> Result<R, Error>
     where
-        T: Send + 'static,
-        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, Error>,
+        T: Send,
+        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, Error> + 'js,
         R: Send + 'static,
     {
         let (sx, rx) = oneshot::channel();
