@@ -100,8 +100,8 @@ impl Worker {
 
     pub async fn with<T, R>(&self, func: T) -> Result<R, Error>
     where
-        T: Send,
-        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, Error> + 'js,
+        T: Send + 'static,
+        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, Error>,
         R: Send + 'static,
     {
         let (sx, rx) = oneshot::channel();
@@ -128,10 +128,41 @@ impl Worker {
     where
         T: Send,
         for<'js> T:
-            FnOnce(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>> + 'js,
+            FnOnce(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>>,
         R: Send + 'static,
     {
         let (sx, rx) = oneshot::channel();
+
+        let func = Box::new(func)
+            as Box<
+                dyn for<'a> FnOnce(
+                        Ctx<'a>,
+                    )
+                        -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'a + Send>>
+                    + Send,
+            >;
+
+        unsafe fn lift<'a, 'b, R>(
+            func: Box<
+                dyn for<'js> FnOnce(
+                        Ctx<'js>,
+                    )
+                        -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>>
+                    + Send
+                    + 'a,
+            >,
+        ) -> Box<
+            dyn for<'js> FnOnce(
+                    Ctx<'js>,
+                )
+                    -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>>
+                + Send
+                + 'b,
+        > {
+            std::mem::transmute(func)
+        }
+
+        let func = unsafe { lift(func) };
 
         self.sx
             .send(Request::WithAsync {

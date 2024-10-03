@@ -134,7 +134,7 @@ impl PooledVm {
     where
         T: Send,
         for<'js> T:
-            FnOnce(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>> + 'js,
+            FnOnce(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>>,
         R: Send + 'static,
     {
         match self {
