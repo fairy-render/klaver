@@ -4,7 +4,7 @@ use rquickjs::{module::ModuleDef, Class};
 use crate::{
     abort_controller::{AbortController, AbortSignal},
     blob::Blob,
-    dom_exception::{self, DOMException},
+    dom_exception::DOMException,
     event_target::{Emitter, Event, EventTarget},
 };
 

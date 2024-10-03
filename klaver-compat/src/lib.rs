@@ -1,6 +1,6 @@
 use klaver::{
     modules::ModuleInfo,
-    quick::{CatchResultExt, Class},
+    quick::{prelude::Func, CatchResultExt, Class, Object},
     vm::Vm,
 };
 use klaver_shared::console::Console;
@@ -31,7 +31,11 @@ pub async fn init(vm: &Vm) -> Result<(), klaver::Error> {
     klaver::async_with!(vm => |ctx| {
         let console = Class::instance(ctx.clone(), Console::new());
         ctx.globals().set("console", console)?;
-        ctx.eval_promise(r#"await (await import("@klaver/compat")).default(globalThis)"#).catch(&ctx)?.into_future().await.catch(&ctx)?;
+        
+       
+        ctx.globals().set("performance", Class::instance(ctx.clone(), klaver_shared::performance::JsPerformance::new())?)?;
+
+        ctx.eval_promise(r#"await (await import("@klaver/compat")).default(globalThis)"#).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
         Ok(())
     })
     .await?;

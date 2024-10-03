@@ -1,5 +1,3 @@
-use std::{future::Future, pin::Pin};
-
 use klaver::{shared::buffer::Buffer, throw_if};
 use rquickjs::{class::Trace, ArrayBuffer, Class, Ctx, FromJs};
 

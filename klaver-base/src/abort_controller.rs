@@ -46,7 +46,7 @@ impl<'js> AbortController<'js> {
             let mut args = Args::new(ctx.clone(), 1);
             args.push_arg(event.clone())?;
             args.this(self.signal.clone())?;
-            onabort.call_arg(args)?;
+            onabort.call_arg::<()>(args)?;
         }
 
         Emitter::dispatch_event(

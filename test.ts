@@ -16,12 +16,14 @@ import { Image } from "@klaver/image";
 // 	console.log("line", line);
 // }
 
+const now = performance.now();
+
 const client = new Client();
 
 const resp = await client.send(
-	new Request(
-		"https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg",
-	),
+  new Request(
+    "https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg"
+  )
 );
 
 const img = new Image(await resp.arrayBuffer());
@@ -33,7 +35,10 @@ console.log(img.width, img.height);
 // 	height: 200,
 // });
 
-await img.save("image.webp");
-await img.save("image.jpg");
+// await img.save("image.webp");
+// await img.save("image.jpg");
 
-console.log(await img.arrayBuffer("png"));
+console.log((await img.arrayBuffer("png")).byteLength);
+
+console.log("Took", (performance.now() - now) / 1000);
+console.log("origin", performance.timeOrigin);

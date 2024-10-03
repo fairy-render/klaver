@@ -10,63 +10,68 @@
 import type { Buffer } from "@klaver/crypto";
 
 declare global {
-	interface Crypto {
-		readonly subtle: SubtleCrypto;
-		randomUUID(): string;
-		getRandomValues(buffer: Buffer);
-	}
+  interface Crypto {
+    readonly subtle: SubtleCrypto;
+    randomUUID(): string;
+    getRandomValues(buffer: Buffer);
+  }
 
-	interface SubtleCrypto {
-		digest(algo: "SHA-1" | "SHA-256", input: Buffer): ArrayBuffer;
-	}
+  interface SubtleCrypto {
+    digest(algo: "SHA-1" | "SHA-256", input: Buffer): ArrayBuffer;
+  }
 
-	const crypto: Crypto;
+  const crypto: Crypto;
 
-	interface ConsoleApi {
-		log(...args: unknown[]): void;
-	}
+  interface ConsoleApi {
+    log(...args: unknown[]): void;
+  }
 
-	const console: ConsoleApi;
+  const console: ConsoleApi;
 
-	export class TextEncoder {
-		constructor(label?: string);
+  namespace performance {
+    export function now(): number;
+    export const timeOrigin: number;
+  }
 
-		readonly encoding: string;
-		encode(input: string): Uint8Array;
-	}
+  export class TextEncoder {
+    constructor(label?: string);
 
-	export class TextDecoder {
-		constructor(label?: string);
+    readonly encoding: string;
+    encode(input: string): Uint8Array;
+  }
 
-		readonly encoding: string;
-		decode(input: ArrayBuffer): string;
-	}
+  export class TextDecoder {
+    constructor(label?: string);
 
-	function atob(input: string): string;
-	function btoa(input: string): string;
+    readonly encoding: string;
+    decode(input: ArrayBuffer): string;
+  }
 
-	class Request {
-		constructor(input: Request | string);
-	}
+  function atob(input: string): string;
+  function btoa(input: string): string;
 
-	class Headers {
-		get(name: string): string | undefined;
-	}
+  class Request {
+    constructor(input: Request | string);
+  }
 
-	type HeadersInit = [string, string][] | Record<string, string> | Headers;
+  class Headers {
+    get(name: string): string | undefined;
+  }
 
-	abstract class Body {
-		arrayBuffer(): Promise<ArrayBuffer>;
-	}
+  type HeadersInit = [string, string][] | Record<string, string> | Headers;
 
-	interface ResponseOptions {
-		headers?: HeadersInit;
-		status?: number;
-	}
+  abstract class Body {
+    arrayBuffer(): Promise<ArrayBuffer>;
+  }
 
-	class Response extends Body {
-		constructor(body?: any, options?: ResponseOptions);
+  interface ResponseOptions {
+    headers?: HeadersInit;
+    status?: number;
+  }
 
-		readonly headers: Headers;
-	}
+  class Response extends Body {
+    constructor(body?: any, options?: ResponseOptions);
+
+    readonly headers: Headers;
+  }
 }
