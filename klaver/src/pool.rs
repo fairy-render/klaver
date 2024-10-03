@@ -130,7 +130,7 @@ impl PooledVm {
         }
     }
 
-    pub async fn with_async<T, R>(&self, func: T) -> Result<R, Error>
+    pub async fn async_with<T, R>(&self, func: T) -> Result<R, Error>
     where
         T: Send,
         for<'js> T:
