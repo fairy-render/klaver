@@ -3,7 +3,8 @@ use rquickjs::CaughtError;
 #[derive(Debug)]
 pub enum Error {
     Quick(rquickjs::Error),
-    Unknown(Option<String>),
+    Custom(Box<dyn std::error::Error + Send + Sync>),
+    Message(Option<String>),
     Exception {
         line: Option<i32>,
         column: Option<i32>,
@@ -16,8 +17,9 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Error::Message(msg) => write!(f, "{:?}", *msg),
             Error::Quick(e) => write!(f, "{e}"),
-            Error::Unknown(e) => write!(f, "{e:?}"),
+            Error::Custom(e) => write!(f, "{e}"),
             Error::Exception {
                 line,
                 column,
@@ -76,7 +78,7 @@ impl<'js> From<CaughtError<'js>> for Error {
                 stack: e.stack(),
                 file: e.file(),
             },
-            CaughtError::Value(e) => Error::Unknown(e.as_string().and_then(|m| m.to_string().ok())),
+            CaughtError::Value(e) => Error::Message(e.as_string().and_then(|m| m.to_string().ok())),
         }
     }
 }

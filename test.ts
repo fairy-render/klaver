@@ -2,6 +2,10 @@ import * as fs from "@klaver/fs";
 import { Client, Request } from "@klaver/http";
 import { Image } from "@klaver/image";
 
+setTimeout(() => {
+  console.log("rappper");
+}, 3000);
+
 // const stream = await fs.readDir(await fs.resolve("."));
 
 // for await (const entry of stream) {

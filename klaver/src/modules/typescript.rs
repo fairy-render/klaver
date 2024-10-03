@@ -157,7 +157,7 @@ impl Compiler {
                     )
                     .map(|ret| (ret.code, ret.map))
             })
-            .map_err(|err| Error::Unknown(Some(err.to_string())))?;
+            .map_err(|err| Error::Custom(err.into()))?;
 
         Ok(Source {
             code,

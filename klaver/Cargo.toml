@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = ["pool"]
-pool = ["deadpool"]
+pool = ["deadpool", "tokio/rt", "tokio/sync"]
 typescript = [
   "swc",
   "swc_common",

@@ -6,15 +6,20 @@ use std::{
     task::Poll,
 };
 
-use rquickjs::{context::EvalOptions, AsyncContext, AsyncRuntime, CatchResultExt, Ctx, FromJs};
+use rquickjs::{
+    context::EvalOptions, runtime::MemoryUsage, AsyncContext, AsyncRuntime, CatchResultExt, Ctx,
+    FromJs,
+};
 
 use crate::{
     base::{
         init as init_base,
         timers::{poll_timers, process_timers},
     },
+    context::Context,
     error::Error,
     modules::{Builder, ModuleInfo, Modules},
+    timers::wait_timers,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,11 +69,12 @@ impl VmOptions {
 }
 pub struct Vm {
     ctx: AsyncContext,
-    rt: AsyncRuntime,
+    pub(crate) rt: AsyncRuntime,
+    modules: Modules,
 }
 
 impl Vm {
-    pub async fn with(
+    pub async fn new_with(
         modules: Modules,
         max_stack_size: Option<usize>,
         memory_limit: Option<usize>,
@@ -88,11 +94,11 @@ impl Vm {
         ctx.with(init_base).await?;
         modules.attach(&rt).await?;
 
-        Ok(Vm { ctx, rt })
+        Ok(Vm { ctx, rt, modules })
     }
 
     pub async fn new(options: VmOptions) -> Result<Vm, Error> {
-        Self::with(
+        Self::new_with(
             options.modules.build()?,
             options.max_stack_size,
             options.memory_limit,
@@ -100,14 +106,20 @@ impl Vm {
         .await
     }
 
+    pub async fn run_gc(&self) {
+        self.rt.run_gc().await
+    }
+
+    pub async fn memory_usage(&self) -> MemoryUsage {
+        self.rt.memory_usage().await
+    }
+
     pub async fn run_with<F, R>(&self, f: F) -> Result<R, Error>
     where
-        F: for<'js> FnOnce(&Ctx<'js>) -> rquickjs::Result<R> + std::marker::Send,
+        F: for<'js> FnOnce(&Ctx<'js>) -> Result<R, Error> + std::marker::Send,
         R: Send,
     {
-        self.ctx
-            .with(|ctx| f(&ctx).catch(&ctx).map_err(Into::into))
-            .await
+        self.ctx.with(|ctx| f(&ctx)).await
     }
 
     pub async fn run<S: Into<Vec<u8>> + Send, R>(&self, source: S, strict: bool) -> Result<R, Error>
@@ -135,7 +147,7 @@ impl Vm {
             + Send,
         R: Send + 'static,
     {
-        let idle = self.idle();
+        let timers = wait_timers(&self.ctx);
         let future = self.ctx.async_with(f);
         let mut future = pin!(future);
 
@@ -144,7 +156,7 @@ impl Vm {
             ret = future.as_mut() => {
                 return ret
             }
-            ret = idle => {
+            ret = timers => {
                 if let Err(err) = ret {
                     return Err(err)
                 }
@@ -154,27 +166,24 @@ impl Vm {
         future.await
     }
 
+    pub async fn create_context(&self) -> Result<Context, Error> {
+        Context::new(self).await
+    }
+
     pub fn idle(&self) -> Idle<'_> {
         Idle {
             inner: Box::pin(async move {
                 let mut driver = self.rt.drive();
                 let mut driver = pin!(driver);
+                let mut timers = pin!(wait_timers(&self.ctx));
 
                 loop {
-                    let has_timers = self.ctx.with(|ctx| process_timers(&ctx)).await?;
-
-                    if !self.rt.is_job_pending().await && !has_timers {
-                        break;
-                    }
-
-                    let sleep = self.ctx.with(|ctx| poll_timers(&ctx)).await?;
-
                     tokio::select! {
                       _ = driver.as_mut() => {
                         continue;
                       }
-                      _ = sleep => {
-                        continue;
+                      _ = timers.as_mut() => {
+                        break;
                       }
                     }
                 }
