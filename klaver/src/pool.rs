@@ -60,6 +60,11 @@ impl Manager {
         })
     }
 
+    pub fn use_worker_thread(mut self) -> Self {
+        self.options.worker_thread = true;
+        self
+    }
+
     pub fn init<T>(mut self, init: T) -> Self
     where
         T: Send + Sync + 'static,
