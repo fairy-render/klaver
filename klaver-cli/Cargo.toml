@@ -14,6 +14,7 @@ klaver-os = { path = "../klaver-os" }
 klaver-streams = { path = "../klaver-streams" }
 klaver-image = { path = "../klaver-image", features = ["webp"] }
 klaver-fs = { path = "../klaver-fs" }
+klaver-dom = { path = "../klaver-dom" }
 
 clap = { version = "4", features = ["derive"] }
 

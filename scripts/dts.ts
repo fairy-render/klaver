@@ -1,4 +1,13 @@
-const modules = ["crypto", "http", "os", "encoding", "base", "fs", "image"];
+const modules = [
+	"crypto",
+	"http",
+	"os",
+	"encoding",
+	"base",
+	"fs",
+	"image",
+	"dom",
+];
 try {
 	await Deno.mkdir("@types");
 } catch {}

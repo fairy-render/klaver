@@ -32,6 +32,7 @@ fn create_vm_options() -> VmOptions {
         .module::<klaver_compat::Compat>()
         .module::<klaver_image::Module>()
         .module::<klaver_fs::Module>()
+        .module::<klaver_dom::Module>()
 }
 
 #[tokio::main(flavor = "current_thread")]

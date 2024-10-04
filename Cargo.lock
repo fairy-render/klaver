@@ -1365,6 +1365,7 @@ dependencies = [
  "clap",
  "klaver",
  "klaver-compat",
+ "klaver-dom",
  "klaver-fs",
  "klaver-image",
  "klaver-os",

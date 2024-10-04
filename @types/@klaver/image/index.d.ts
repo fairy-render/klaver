@@ -22,7 +22,7 @@ export class Image {
 
 	static open(path: string, kind?: ImageFormat): Promise<Image>;
 
-	arrayBuffer(format: ImageFormat): Promise<ArrayBuffer>;
+	arrayBuffer(): Promise<ArrayBuffer>;
 	resize(opts: ResizeOptions): Promise<Image>;
 	blur(sigma: number): Promise<Image>;
 	gray(): Promise<Image>;
