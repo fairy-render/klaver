@@ -70,6 +70,12 @@ impl<'js> FromJs<'js> for Method {
 
         let method = match &*method.to_string()? {
             "GET" => Method::GET,
+            "POST" => Method::POST,
+            "PUT" => Method::PUT,
+            "PATCH" => Method::PATCH,
+            "DELETE" => Method::DELETE,
+            "HEAD" => Method::HEAD,
+            "OPTIONS" => Method::OPTIONS,
             _ => return Err(Error::new_from_js("string", "method")),
         };
 
