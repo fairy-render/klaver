@@ -1,48 +1,17 @@
 import * as fs from "@klaver/fs";
-import { Client, Request } from "@klaver/http";
-import { Image } from "@klaver/image";
 
-setTimeout(() => {
-  console.log("rappper");
-}, 3000);
+const file = await fs.open("./test.ts");
 
-// const stream = await fs.readDir(await fs.resolve("."));
+const buffer = new ArrayBuffer(6);
 
-// for await (const entry of stream) {
-// 	console.log(entry.path, entry.type);
-// }
+let len = await file.read(buffer);
 
-// const file = await fs.open("test.ts");
+console.log(new TextDecoder().decode(buffer.slice(0, len)));
 
-// const lines = await file.readLines();
+len = await file.read(buffer);
 
-// for await (const line of lines) {
-// 	console.log("line", line);
-// }
+console.log(new TextDecoder().decode(buffer.slice(0, len)));
 
-const now = performance.now();
+const nfile = await fs.open("Rapper", "wc");
 
-const client = new Client();
-
-const resp = await client.send(
-  new Request(
-    "https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg"
-  )
-);
-
-const img = new Image(await resp.arrayBuffer());
-
-console.log(img.width, img.height);
-
-// const resizedImage = await img.resize({
-// 	width: 200,
-// 	height: 200,
-// });
-
-// await img.save("image.webp");
-// await img.save("image.jpg");
-
-console.log((await img.arrayBuffer("png")).byteLength);
-
-console.log("Took", (performance.now() - now) / 1000);
-console.log("origin", performance.timeOrigin);
+await nfile.write(new TextEncoder().encode("Hello, World"));

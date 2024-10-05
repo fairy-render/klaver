@@ -5,10 +5,14 @@ export interface DirEntry {
 	type: "file" | "dir" | "symlink";
 }
 
-export type OpenFlag = "r" | "w" | "a";
+export type OpenFlag = "r" | "w" | "a" | "t";
 
 export interface File {
 	readLines(): Promise<AsyncIterableIterator<string>>;
+	write(buffer: Buffer): Promise<void>;
+	read(buffer: Buffer): Promise<number>;
+	flush(): Promise<void>;
+	close(): Promise<void>;
 }
 
 export function read(path: string): Promise<ArrayBuffer>;

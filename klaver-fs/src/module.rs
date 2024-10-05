@@ -7,10 +7,11 @@ use klaver_shared::{
 };
 use rquickjs::{
     class::Trace,
-    function::{Func, MutFn},
+    function::{Func, MutFn, Opt},
     module::ModuleDef,
-    ArrayBuffer, Ctx, Function, IntoJs, Object,
+    ArrayBuffer, Ctx, FromJs, Function, IntoJs, Object,
 };
+use tokio::fs::OpenOptions;
 
 use crate::file::JsFile;
 
@@ -132,11 +133,48 @@ impl ModuleDef for Module {
     }
 }
 
+pub struct OpenFlags(tokio::fs::OpenOptions);
+
+impl<'js> FromJs<'js> for OpenFlags {
+    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+        let string = String::from_js(ctx, value)?;
+
+        let mut options = OpenOptions::new();
+
+        for char in string.chars() {
+            match char {
+                'r' => options.read(true),
+                'w' => options.write(true),
+                't' => options.truncate(true),
+                'a' => options.append(true),
+                'c' => options.create_new(true),
+                _ => {
+                    continue;
+                }
+            };
+        }
+
+        Ok(OpenFlags(options))
+    }
+}
+
 #[rquickjs::function(rename = "open")]
-pub async fn open_file<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<JsFile> {
+pub async fn open_file<'js>(
+    ctx: Ctx<'js>,
+    path: String,
+    flag: Opt<OpenFlags>,
+) -> rquickjs::Result<JsFile> {
     let file = throw_if!(
         ctx,
-        tokio::fs::OpenOptions::new().read(true).open(path).await
+        flag.0
+            .map(|m| m.0)
+            .unwrap_or_else(|| {
+                let mut opts = tokio::fs::OpenOptions::new();
+                opts.read(true);
+                opts
+            })
+            .open(path)
+            .await
     );
 
     Ok(JsFile::new(file))
