@@ -5,21 +5,15 @@ use rquickjs::{
     Object, Value,
 };
 
-#[derive(Debug, Trace)]
-pub struct Map<'js> {
+#[derive(Debug, Trace, Clone)]
+pub struct Set<'js> {
     object: Object<'js>,
 }
 
-impl<'js> Map<'js> {
-    pub fn new(ctx: &Ctx<'js>) -> rquickjs::Result<Map<'js>> {
-        let obj = ctx.eval::<Object<'js>, _>("new globalThis.Map()")?;
+impl<'js> Set<'js> {
+    pub fn new(ctx: &Ctx<'js>) -> rquickjs::Result<Set<'js>> {
+        let obj = ctx.eval::<Object<'js>, _>("new globalThis.Set()")?;
         Ok(Self { object: obj })
-    }
-
-    pub fn get<T: FromJs<'js>>(&self, name: &Value<'js>) -> rquickjs::Result<T> {
-        self.object
-            .get::<_, Function>("get")?
-            .call((This(self.object.clone()), name))
     }
 
     pub fn has<T: IntoJs<'js>>(&self, name: T) -> rquickjs::Result<bool> {
@@ -28,12 +22,10 @@ impl<'js> Map<'js> {
             .call((This(self.object.clone()), name))
     }
 
-    pub fn set<K: IntoJs<'js>, V: IntoJs<'js>>(&self, name: K, value: V) -> rquickjs::Result<()> {
-        self.object.get::<_, Function>("set")?.call::<_, Value>((
-            This(self.object.clone()),
-            name,
-            value,
-        ))?;
+    pub fn add<T: IntoJs<'js>>(&self, value: T) -> rquickjs::Result<()> {
+        self.object
+            .get::<_, Function>("add")?
+            .call::<_, Value>((This(self.object.clone()), value))?;
         Ok(())
     }
 
@@ -44,15 +36,8 @@ impl<'js> Map<'js> {
         Ok(())
     }
 
-    pub fn clear(&self) -> rquickjs::Result<()> {
-        self.object
-            .get::<_, Function>("clear")?
-            .call::<_, Value>((This(self.object.clone()),))?;
-        Ok(())
-    }
-
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
-        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("globalThis.Map")?;
+        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("globalThis.Set")?;
 
         let Some(obj) = value.as_object() else {
             return Ok(false);
@@ -61,19 +46,25 @@ impl<'js> Map<'js> {
         Ok(obj.is_instance_of(&map_ctor))
     }
 
-    pub fn entries<K, V>(&self, ctx: Ctx<'js>) -> rquickjs::Result<MapEntries<'js, K, V>>
+    pub fn clear(&self) -> rquickjs::Result<()> {
+        self.object
+            .get::<_, Function>("clear")?
+            .call::<_, Value>((This(self.object.clone()),))?;
+        Ok(())
+    }
+
+    pub fn entries<V>(&self, ctx: Ctx<'js>) -> rquickjs::Result<SetEntries<'js, usize, V>>
     where
-        K: FromJs<'js>,
         V: FromJs<'js>,
     {
         let iter = self
             .object
-            .get::<_, Function>("get")?
+            .get::<_, Function>("entries")?
             .call::<_, Object>((This(self.object.clone()),))?;
 
         let next = iter.get(PredefinedAtom::Next)?;
 
-        Ok(MapEntries {
+        Ok(SetEntries {
             ctx,
             this: iter,
             next,
@@ -81,47 +72,47 @@ impl<'js> Map<'js> {
         })
     }
 
+    pub fn to_object(&self) -> Object<'js> {
+        self.object.clone()
+    }
+
     pub fn to_string(&self) -> rquickjs::Result<String> {
         let func = self.object.get::<_, Function>("toString")?;
         func.call((This(self.object.clone()),))
     }
-
-    pub fn to_object(&self) -> Object<'js> {
-        self.object.clone()
-    }
 }
 
-impl<'js> FromJs<'js> for Map<'js> {
+impl<'js> FromJs<'js> for Set<'js> {
     fn from_js(
         ctx: &rquickjs::prelude::Ctx<'js>,
         value: rquickjs::Value<'js>,
     ) -> rquickjs::Result<Self> {
-        if !Map::is(ctx, &value)? {
-            return Err(rquickjs::Error::new_from_js(value.type_name(), "Map"));
+        if !Set::is(ctx, &value)? {
+            return Err(rquickjs::Error::new_from_js(value.type_name(), "Set"));
         }
 
         let obj = value
             .try_into_object()
-            .map_err(|_| rquickjs::Error::new_from_js("value", "map"))?;
+            .map_err(|_| rquickjs::Error::new_from_js("value", "set"))?;
 
-        Ok(Map { object: obj })
+        Ok(Set { object: obj })
     }
 }
 
-impl<'js> IntoJs<'js> for Map<'js> {
+impl<'js> IntoJs<'js> for Set<'js> {
     fn into_js(self, _ctx: &rquickjs::prelude::Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         Ok(self.object.into())
     }
 }
 
-pub struct MapEntries<'js, K, V> {
+pub struct SetEntries<'js, K, V> {
     ctx: Ctx<'js>,
     this: Object<'js>,
     next: Function<'js>,
     extract: PhantomData<(K, V)>,
 }
 
-impl<'js, K, V> Trace<'js> for MapEntries<'js, K, V> {
+impl<'js, K, V> Trace<'js> for SetEntries<'js, K, V> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.ctx.trace(tracer);
         self.this.trace(tracer);
@@ -129,7 +120,7 @@ impl<'js, K, V> Trace<'js> for MapEntries<'js, K, V> {
     }
 }
 
-impl<'js, K, V> Iterator for MapEntries<'js, K, V>
+impl<'js, K, V> Iterator for SetEntries<'js, K, V>
 where
     K: FromJs<'js>,
     V: FromJs<'js>,
@@ -193,20 +184,20 @@ where
 mod test {
     use rquickjs::{Context, Runtime};
 
-    use super::Map;
+    use super::Set;
 
     #[test]
-    fn test_map() {
+    fn test_set() {
         let rt = Runtime::new().unwrap();
         let ctx = Context::full(&rt).unwrap();
 
         let ret = ctx
             .with(|ctx| {
-                let set = Map::new(&ctx)?;
+                let set = Set::new(&ctx)?;
 
-                set.set("key", "Hello, World!")?;
+                set.add("Hello, World!")?;
 
-                set.has("key")
+                set.has("Hello, World!")
             })
             .unwrap();
 

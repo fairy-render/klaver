@@ -1,9 +1,9 @@
 use rquickjs::{
     class::Trace, Array, FromJs, IntoJs, IteratorJs, String as JsString, Type, Value as JsValue,
 };
-use vaerdi::{Map, Value};
+use vaerdi::{List, Map, Value};
 
-use crate::date::Date;
+use crate::{date::Date, Map as JsMap, Set as JsSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Val(pub vaerdi::Value);
@@ -61,18 +61,36 @@ fn from_js<'js>(
                 let ret = Ok(Val(Value::DateTime(chrono_date.naive_utc())));
 
                 return ret;
+            } else if JsMap::is(ctx, &value)? {
+                let m = JsMap::from_js(ctx, value)?;
+                let mut map = Map::default();
+                for next in m.entries::<String, Val>(ctx.clone())? {
+                    let (k, v) = next?;
+                    map.insert(k, v.0);
+                }
+
+                Ok(Val(Value::Map(map)))
+            } else if JsSet::is(ctx, &value)? {
+                let m = JsSet::from_js(ctx, value)?;
+                let mut list = List::default();
+                for next in m.entries::<Val>(ctx.clone())? {
+                    let (_, v) = next?;
+                    list.push(v.0);
+                }
+
+                Ok(Val(Value::List(list)))
+            } else {
+                let object = un!(value.try_into_object())?;
+
+                let mut map = Map::default();
+                for k in object.keys::<String>() {
+                    let k = k?;
+                    let v = object.get::<_, Val>(&k)?;
+                    map.insert(k, v.0);
+                }
+
+                Ok(Val(Value::Map(map)))
             }
-
-            let object = un!(value.try_into_object())?;
-
-            let mut map = Map::default();
-            for k in object.keys::<String>() {
-                let k = k?;
-                let v = object.get::<_, Val>(&k)?;
-                map.insert(k, v.0);
-            }
-
-            Ok(Val(Value::Map(map)))
         }
         Type::Exception => {
             let exption = un!(value.try_into_exception())?;

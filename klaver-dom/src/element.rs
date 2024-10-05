@@ -1,5 +1,6 @@
 use crate::{class_list::ClassList, lock::Locket, node_list::NodeList};
 use domjohnson::NodeId;
+use klaver::throw;
 use locket::LockApi;
 use rquickjs::{class::Trace, Class, Ctx};
 
@@ -34,6 +35,20 @@ impl JsElement {
         let mut dom = self.dom.write().unwrap();
         dom.remove(self.id);
         Ok(())
+    }
+
+    pub fn remove_child<'js>(
+        &self,
+        ctx: Ctx<'js>,
+        child: Class<'js, JsElement>,
+    ) -> rquickjs::Result<Class<'js, JsElement>> {
+        let mut dom = self.dom.write().unwrap();
+
+        if let Some(_) = dom.children(self.id).find(|id| *id == child.borrow().id) {
+            dom.remove(child.borrow().id);
+        };
+
+        Ok(child)
     }
 
     #[qjs(rename = "getAttribute")]

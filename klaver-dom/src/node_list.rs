@@ -88,7 +88,6 @@ impl NodeList {
     }
 
     pub fn entries<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        // FIXME: Done clone here
         let dom = self.dom.clone();
         klaver_shared::iter::Iter::new(self.nodes.clone().into_iter().enumerate().map(
             move |(index, id)| Entry {
@@ -103,7 +102,6 @@ impl NodeList {
     }
 
     pub fn values<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        // FIXME: Done clone here
         let dom = self.dom.clone();
         klaver_shared::iter::Iter::new(self.nodes.clone().into_iter().map(move |id| JsElement {
             id,

@@ -1,8 +1,4 @@
-use rquickjs::{
-    class::Trace,
-    function::{Args, This},
-    Ctx, FromJs, Function, IntoJs, Object, Value,
-};
+use rquickjs::{class::Trace, function::This, Ctx, FromJs, Function, IntoJs, Object, Value};
 
 #[derive(Debug, Trace)]
 pub struct Date<'js> {
