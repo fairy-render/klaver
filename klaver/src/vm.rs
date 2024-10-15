@@ -42,6 +42,11 @@ impl VmOptions {
     }
 
     pub fn module<T: ModuleInfo>(mut self) -> Self {
+        self.add_module::<T>();
+        self
+    }
+
+    pub fn add_module<T: ModuleInfo>(&mut self) -> &mut Self {
         T::register(&mut Builder::new(&mut self.modules, &mut self.typings));
 
         if let Some(typings) = T::typings() {
@@ -50,7 +55,6 @@ impl VmOptions {
                 typings,
             });
         }
-
         self
     }
 
