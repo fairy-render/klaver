@@ -16,7 +16,7 @@ members = [
   "klaver-shared",
   "klaver-streams",
   "rquickjs-util",
-  "klaver-fs", "klaver-dom",
+  "klaver-fs", "klaver-dom", "klaver-wintercg",
 ]
 
 

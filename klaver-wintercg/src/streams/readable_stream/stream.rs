@@ -1,4 +1,4 @@
-use futures::stream::{BoxStream, LocalBoxStream};
+use futures::stream::LocalBoxStream;
 use klaver::{
     shared::{
         iter::{AsyncIter, AsyncIterable},
@@ -10,12 +10,17 @@ use rquickjs::{
     atom::PredefinedAtom, class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx,
     FromJs, Function, IntoJs, Object, Value,
 };
-use std::{borrow::Borrow, collections::VecDeque, rc::Rc};
+use std::{collections::VecDeque, rc::Rc};
 use tokio::sync::Notify;
+
+use super::{
+    queue_strategy::{self, QueuingStrategy},
+    underlying_source::{JsUnderlyingSource, UnderlyingSource},
+};
 
 #[rquickjs::class]
 pub struct ReadableStream<'js> {
-    v: ReadableStreamInit<'js>,
+    v: UnderlyingSource<'js>,
     ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
 }
 
@@ -31,7 +36,6 @@ pub struct ReadableStreamInit<'js> {
     start: Option<Function<'js>>,
     pull: Option<Function<'js>>,
     cancel: Option<Function<'js>>,
-    highwater_mark: u32,
 }
 
 impl<'js> FromJs<'js> for ReadableStreamInit<'js> {
@@ -42,7 +46,7 @@ impl<'js> FromJs<'js> for ReadableStreamInit<'js> {
             start: obj.get("start")?,
             pull: obj.get("pull")?,
             cancel: obj.get("cancel")?,
-            highwater_mark: obj.get::<_, Option<u32>>("highWaterMark")?.unwrap_or(1),
+            // highwater_mark: obj.get::<_, Option<u32>>("highWaterMark")?.unwrap_or(1),
         })
     }
 }
@@ -104,15 +108,63 @@ impl<'js> AsyncIterable<'js> for ReadableStream<'js> {
     }
 }
 
+fn pull<'js>(
+    ctx: Ctx<'js>,
+    mut source: UnderlyingSource<'js>,
+    ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
+    ready: Rc<Notify>,
+) {
+    ctx.clone().spawn(async move {
+        if source.start(ctx.clone(), ctrl.clone()).await.is_err() {
+            return;
+        }
+
+        loop {
+            if !ctrl.borrow().state.is_running() {
+                break;
+            }
+
+            if ctrl.borrow().is_filled() {
+                ready.notified().await;
+                if !ctrl.borrow().state.is_running() {
+                    break;
+                }
+            }
+
+            if !source
+                .pull(ctx.clone(), ctrl.clone())
+                .await
+                .unwrap_or(false)
+            {
+                break;
+            }
+
+            if !ctrl.borrow().state.is_running() {
+                ctrl.borrow().wait.notify_waiters();
+                break;
+            }
+        }
+    });
+}
+
 #[rquickjs::methods]
 impl<'js> ReadableStream<'js> {
     #[qjs(constructor)]
     pub fn new(
         ctx: Ctx<'js>,
-        options: ReadableStreamInit<'js>,
+        options: JsUnderlyingSource<'js>,
+        queuing_strategy: Option<QueuingStrategy<'js>>,
     ) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
         let notify = Rc::new(Notify::new());
         let ready = Rc::new(Notify::new());
+
+        let queuing_strategy = if let Some(queue_strategy) = queuing_strategy {
+            queue_strategy
+        } else {
+            QueuingStrategy::create_default(ctx.clone())?
+        };
+
+        let underlying_source = UnderlyingSource::Js(options);
 
         let controller = Class::instance(
             ctx.clone(),
@@ -120,7 +172,7 @@ impl<'js> ReadableStream<'js> {
                 queue: Default::default(),
                 ready: ready.clone(),
                 wait: notify.clone(),
-                highwater_mark: options.highwater_mark,
+                queuing_strategy,
                 locked: false,
                 state: State::Running,
             },
@@ -129,50 +181,47 @@ impl<'js> ReadableStream<'js> {
         let class = Class::instance(
             ctx.clone(),
             ReadableStream {
-                v: options,
+                v: underlying_source,
                 ctrl: controller,
             },
         )?;
 
-        let class_clone = class.clone();
+        let ctrl = class.borrow().ctrl.clone();
+        let source = class.borrow().v.clone();
 
-        let ctx_clone = ctx.clone();
+        pull(ctx, source, ctrl, ready);
 
-        ctx.spawn(async move {
-            let ctrl = class_clone.borrow().ctrl.clone();
-            if let Some(func) = &class_clone.borrow().v.start.clone() {
-                let called = call!(ctrl, ctx_clone, func);
+        // ctx.clone().spawn(async move {
+        //     if source.start(ctx.clone(), ctrl.clone()).await.is_err() {
+        //         return;
+        //     }
 
-                if let Some(promise) = called.into_promise() {
-                    catch!(ctrl, ctx_clone, promise.into_future::<()>().await);
-                }
-            }
+        //     loop {
+        //         if !ctrl.borrow().state.is_running() {
+        //             break;
+        //         }
 
-            if let Some(func) = class_clone.borrow().v.pull.clone() {
-                loop {
-                    if !ctrl.borrow().state.is_running() {
-                        break;
-                    }
+        //         if ctrl.borrow().is_filled() {
+        //             ready.notified().await;
+        //             if !ctrl.borrow().state.is_running() {
+        //                 break;
+        //             }
+        //         }
 
-                    if ctrl.borrow().is_filled() {
-                        ready.notified().await;
-                        if !ctrl.borrow().state.is_running() {
-                            break;
-                        }
-                    }
+        //         if !source
+        //             .pull(ctx.clone(), ctrl.clone())
+        //             .await
+        //             .unwrap_or(false)
+        //         {
+        //             break;
+        //         }
 
-                    let called = call!(ctrl, ctx_clone, func);
-                    if let Some(promise) = called.into_promise() {
-                        catch!(ctrl, ctx_clone, promise.into_future::<()>().await);
-                    }
-
-                    if !ctrl.borrow().state.is_running() {
-                        ctrl.borrow().wait.notify_waiters();
-                        break;
-                    }
-                }
-            }
-        });
+        //         if !ctrl.borrow().state.is_running() {
+        //             ctrl.borrow().wait.notify_waiters();
+        //             break;
+        //         }
+        //     }
+        // });
 
         Ok(class)
     }
@@ -193,7 +242,7 @@ impl<'js> ReadableStream<'js> {
     }
 }
 
-enum State<'js> {
+pub enum State<'js> {
     Done,
     Running,
     Canceled(Option<rquickjs::String<'js>>),
@@ -234,16 +283,17 @@ impl<'js> Trace<'js> for State<'js> {
 #[rquickjs::class]
 pub struct ReadableStreamDefaultController<'js> {
     queue: VecDeque<Value<'js>>,
-    highwater_mark: u32,
+    // highwater_mark: u32,
+    queuing_strategy: QueuingStrategy<'js>,
     locked: bool,
     ready: Rc<Notify>,
     wait: Rc<Notify>,
-    state: State<'js>,
+    pub state: State<'js>,
 }
 
 impl<'js> ReadableStreamDefaultController<'js> {
     pub fn is_filled(&self) -> bool {
-        self.queue.len() > self.highwater_mark as usize
+        self.queue.len() > self.queuing_strategy.high_water_mark() as usize
     }
 }
 

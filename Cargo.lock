@@ -1510,6 +1510,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-wintercg"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "futures",
+ "klaver",
+ "rquickjs",
+ "tokio",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
