@@ -9,6 +9,17 @@ pub struct CountQueuingStrategy {
 
 #[rquickjs::methods]
 impl CountQueuingStrategy {
+    #[qjs(constructor)]
+    pub fn new(options: Option<Object<'_>>) -> rquickjs::Result<CountQueuingStrategy> {
+        let high_water_mark = if let Some(options) = options {
+            options.get::<_, Option<u64>>("highWaterMark")?.unwrap_or(1)
+        } else {
+            1
+        };
+
+        Ok(CountQueuingStrategy { high_water_mark })
+    }
+
     pub fn size(&self, _chunk: ArrayBuffer<'_>) -> usize {
         1
     }
@@ -23,6 +34,17 @@ pub struct ByteLengthQueuingStrategy {
 
 #[rquickjs::methods]
 impl ByteLengthQueuingStrategy {
+    #[qjs(constructor)]
+    pub fn new(options: Option<Object<'_>>) -> rquickjs::Result<ByteLengthQueuingStrategy> {
+        let high_water_mark = if let Some(options) = options {
+            options.get::<_, Option<u64>>("highWaterMark")?.unwrap_or(1)
+        } else {
+            1
+        };
+
+        Ok(ByteLengthQueuingStrategy { high_water_mark })
+    }
+
     pub fn size(&self, chunk: ArrayBuffer<'_>) -> usize {
         chunk.len()
     }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rquickjs::{class::Trace, CatchResultExt, Class, Ctx, FromJs, Function, Object};
 
-use super::{stream::State, ReadableStreamDefaultController};
+use super::controller::{ReadableStreamDefaultController, State};
 
 macro_rules! catch {
     ($ctrl: expr, $ctx: expr, $ret: expr) => {

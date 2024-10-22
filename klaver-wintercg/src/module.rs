@@ -6,11 +6,24 @@ use crate::{
     blob::Blob,
     dom_exception::DOMException,
     event_target::{Emitter, Event, EventTarget},
+    streams::{
+        ByteLengthQueuingStrategy, CountQueuingStrategy, ReadableStream,
+        ReadableStreamDefaultReader,
+    },
 };
 
 pub struct Module;
 
 module_info!("@klaver/base" => Module);
+
+macro_rules! export {
+    ($export: expr, $ctx: expr, $($instance: ty),*) => {
+        $(
+            let i = Class::<$instance>::create_constructor($ctx)?.expect(stringify!($instance));
+            $export.export(stringify!($instance), i)?;
+        )*
+    };
+}
 
 impl ModuleDef for Module {
     fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
@@ -20,6 +33,11 @@ impl ModuleDef for Module {
         decl.declare(stringify!(AbortController))?;
         decl.declare(stringify!(AbortSignal))?;
         decl.declare(stringify!(Blob))?;
+        // Stream api
+        decl.declare(stringify!(ReadableStream))?;
+        decl.declare(stringify!(ReadableStreamDefaultReader))?;
+        decl.declare(stringify!(CountQueuingStrategy))?;
+        decl.declare(stringify!(ByteLengthQueuingStrategy))?;
 
         Ok(())
     }
@@ -56,6 +74,16 @@ impl ModuleDef for Module {
         // Blob
         let blob = Class::<Blob>::create_constructor(ctx)?.expect("Blob");
         exports.export(stringify!(Blob), blob)?;
+
+        // Streams
+        export!(
+            exports,
+            ctx,
+            ReadableStream,
+            ReadableStreamDefaultReader,
+            CountQueuingStrategy,
+            ByteLengthQueuingStrategy
+        );
 
         Ok(())
     }

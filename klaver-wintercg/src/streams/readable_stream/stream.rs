@@ -1,27 +1,24 @@
 use futures::stream::LocalBoxStream;
-use klaver::{
-    shared::{
-        iter::{AsyncIter, AsyncIterable},
-        Static,
-    },
-    throw,
+use klaver::shared::{
+    iter::{AsyncIter, AsyncIterable},
+    Static,
 };
-use rquickjs::{
-    atom::PredefinedAtom, class::Trace, function::Opt, CatchResultExt, CaughtError, Class, Ctx,
-    FromJs, Function, IntoJs, Object, Value,
-};
-use std::{collections::VecDeque, rc::Rc};
+use rquickjs::{class::Trace, Class, Ctx, Value};
+use std::rc::Rc;
 use tokio::sync::Notify;
 
 use super::{
-    queue_strategy::{self, QueuingStrategy},
+    controller::ReadableStreamDefaultController,
+    queue_strategy::QueuingStrategy,
+    reader::ReadableStreamDefaultReader,
     underlying_source::{JsUnderlyingSource, UnderlyingSource},
 };
 
+#[derive(Clone)]
 #[rquickjs::class]
 pub struct ReadableStream<'js> {
     v: UnderlyingSource<'js>,
-    ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
+    pub(super) ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
 }
 
 impl<'js> Trace<'js> for ReadableStream<'js> {
@@ -29,48 +26,6 @@ impl<'js> Trace<'js> for ReadableStream<'js> {
         self.v.trace(tracer);
         self.ctrl.trace(tracer);
     }
-}
-
-#[derive(Debug, Clone, Trace)]
-pub struct ReadableStreamInit<'js> {
-    start: Option<Function<'js>>,
-    pull: Option<Function<'js>>,
-    cancel: Option<Function<'js>>,
-}
-
-impl<'js> FromJs<'js> for ReadableStreamInit<'js> {
-    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
-        let obj = Object::from_js(ctx, value)?;
-
-        Ok(ReadableStreamInit {
-            start: obj.get("start")?,
-            pull: obj.get("pull")?,
-            cancel: obj.get("cancel")?,
-            // highwater_mark: obj.get::<_, Option<u32>>("highWaterMark")?.unwrap_or(1),
-        })
-    }
-}
-
-macro_rules! catch {
-    ($ctrl: expr, $ctx: expr, $ret: expr) => {
-        match $ret.catch(&$ctx) {
-            Ok(ret) => ret,
-            Err(err) => {
-                $ctrl.borrow_mut().state = State::Error(err);
-                return;
-            }
-        }
-    };
-}
-
-macro_rules! call {
-    ($ctrl: expr, $ctx: expr, $func: expr) => {
-        catch!(
-            $ctrl,
-            $ctx,
-            $func.call::<_, rquickjs::Value>(($ctrl.clone(),))
-        )
-    };
 }
 
 impl<'js> ReadableStream<'js> {
@@ -120,27 +75,24 @@ fn pull<'js>(
         }
 
         loop {
-            if !ctrl.borrow().state.is_running() {
+            if !ctrl.borrow().is_running() {
                 break;
             }
 
             if ctrl.borrow().is_filled() {
+                // Wait for someone to pop the queue
                 ready.notified().await;
-                if !ctrl.borrow().state.is_running() {
+                if !ctrl.borrow().is_running() {
                     break;
                 }
             }
 
+            // Pull from the underlying source or break if no pull function exists
             if !source
                 .pull(ctx.clone(), ctrl.clone())
                 .await
                 .unwrap_or(false)
             {
-                break;
-            }
-
-            if !ctrl.borrow().state.is_running() {
-                ctrl.borrow().wait.notify_waiters();
                 break;
             }
         }
@@ -155,7 +107,6 @@ impl<'js> ReadableStream<'js> {
         options: JsUnderlyingSource<'js>,
         queuing_strategy: Option<QueuingStrategy<'js>>,
     ) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
-        let notify = Rc::new(Notify::new());
         let ready = Rc::new(Notify::new());
 
         let queuing_strategy = if let Some(queue_strategy) = queuing_strategy {
@@ -168,14 +119,7 @@ impl<'js> ReadableStream<'js> {
 
         let controller = Class::instance(
             ctx.clone(),
-            ReadableStreamDefaultController {
-                queue: Default::default(),
-                ready: ready.clone(),
-                wait: notify.clone(),
-                queuing_strategy,
-                locked: false,
-                state: State::Running,
-            },
+            ReadableStreamDefaultController::new(ready.clone(), queuing_strategy),
         )?;
 
         let class = Class::instance(
@@ -191,270 +135,14 @@ impl<'js> ReadableStream<'js> {
 
         pull(ctx, source, ctrl, ready);
 
-        // ctx.clone().spawn(async move {
-        //     if source.start(ctx.clone(), ctrl.clone()).await.is_err() {
-        //         return;
-        //     }
-
-        //     loop {
-        //         if !ctrl.borrow().state.is_running() {
-        //             break;
-        //         }
-
-        //         if ctrl.borrow().is_filled() {
-        //             ready.notified().await;
-        //             if !ctrl.borrow().state.is_running() {
-        //                 break;
-        //             }
-        //         }
-
-        //         if !source
-        //             .pull(ctx.clone(), ctrl.clone())
-        //             .await
-        //             .unwrap_or(false)
-        //         {
-        //             break;
-        //         }
-
-        //         if !ctrl.borrow().state.is_running() {
-        //             ctrl.borrow().wait.notify_waiters();
-        //             break;
-        //         }
-        //     }
-        // });
-
         Ok(class)
     }
 
     #[qjs(rename = "getReader")]
     pub fn get_reader(&self, ctx: Ctx<'js>) -> rquickjs::Result<ReadableStreamDefaultReader<'js>> {
-        if self.ctrl.borrow().locked {
-            throw!(ctx, "Readable stream already locked")
-        }
+        // Uptain the lock
+        self.ctrl.borrow_mut().lock(ctx)?;
 
-        self.ctrl.borrow_mut().locked = true;
-
-        Ok(ReadableStreamDefaultReader {
-            ctrl: ControllerWrap {
-                ctrl: Some(self.ctrl.clone()),
-            },
-        })
-    }
-}
-
-pub enum State<'js> {
-    Done,
-    Running,
-    Canceled(Option<rquickjs::String<'js>>),
-    Error(CaughtError<'js>),
-}
-
-impl<'js> State<'js> {
-    fn is_running(&self) -> bool {
-        matches!(self, Self::Running)
-    }
-
-    fn is_canceled(&self) -> bool {
-        matches!(self, Self::Canceled(_))
-    }
-
-    fn as_error(&self) -> Option<&CaughtError<'js>> {
-        match self {
-            Self::Error(err) => Some(err),
-            _ => None,
-        }
-    }
-}
-
-impl<'js> Trace<'js> for State<'js> {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        match self {
-            Self::Canceled(reason) => reason.trace(tracer),
-            Self::Error(err) => match err {
-                CaughtError::Exception(err) => err.trace(tracer),
-                CaughtError::Value(v) => v.trace(tracer),
-                _ => {}
-            },
-            _ => {}
-        }
-    }
-}
-
-#[rquickjs::class]
-pub struct ReadableStreamDefaultController<'js> {
-    queue: VecDeque<Value<'js>>,
-    // highwater_mark: u32,
-    queuing_strategy: QueuingStrategy<'js>,
-    locked: bool,
-    ready: Rc<Notify>,
-    wait: Rc<Notify>,
-    pub state: State<'js>,
-}
-
-impl<'js> ReadableStreamDefaultController<'js> {
-    pub fn is_filled(&self) -> bool {
-        self.queue.len() > self.queuing_strategy.high_water_mark() as usize
-    }
-}
-
-impl<'js> Trace<'js> for ReadableStreamDefaultController<'js> {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.queue.trace(tracer);
-        self.state.trace(tracer);
-    }
-}
-
-#[rquickjs::methods]
-impl<'js> ReadableStreamDefaultController<'js> {
-    pub fn enqueue(&mut self, chunk: Value<'js>) -> rquickjs::Result<()> {
-        self.queue.push_back(chunk);
-        self.wait.notify_one();
-        Ok(())
-    }
-
-    pub fn close(&mut self) -> rquickjs::Result<()> {
-        if !self.state.is_running() {
-            return Ok(());
-        }
-        self.state = State::Done;
-        Ok(())
-    }
-}
-
-#[derive(Trace)]
-#[rquickjs::class]
-pub struct ReadableStreamDefaultReader<'js> {
-    ctrl: ControllerWrap<'js>,
-}
-
-impl<'js> Drop for ReadableStreamDefaultReader<'js> {
-    fn drop(&mut self) {
-        self.ctrl.release()
-    }
-}
-
-#[derive(Trace)]
-struct ControllerWrap<'js> {
-    ctrl: Option<Class<'js, ReadableStreamDefaultController<'js>>>,
-}
-
-impl<'js> ControllerWrap<'js> {
-    fn release(&mut self) {
-        if let Some(ctrl) = self.ctrl.take() {
-            ctrl.borrow_mut().locked = false;
-        }
-    }
-
-    fn is_canceled(&self) -> bool {
-        if let Some(ctrl) = self.ctrl.as_ref() {
-            ctrl.borrow().state.is_canceled()
-        } else {
-            false
-        }
-    }
-
-    fn borrow<'a>(
-        &'a self,
-        ctx: &Ctx<'js>,
-    ) -> rquickjs::Result<rquickjs::class::Borrow<'a, 'js, ReadableStreamDefaultController<'js>>>
-    {
-        if let Some(ctrl) = self.ctrl.as_ref() {
-            Ok(ctrl.borrow())
-        } else {
-            throw!(ctx, "Lock released")
-        }
-    }
-
-    fn borrow_mut<'a>(
-        &'a self,
-        ctx: &Ctx<'js>,
-    ) -> rquickjs::Result<rquickjs::class::BorrowMut<'a, 'js, ReadableStreamDefaultController<'js>>>
-    {
-        if let Some(ctrl) = self.ctrl.as_ref() {
-            Ok(ctrl.borrow_mut())
-        } else {
-            throw!(ctx, "Lock released")
-        }
-    }
-}
-
-#[rquickjs::methods]
-impl<'js> ReadableStreamDefaultReader<'js> {
-    pub async fn read(&self, ctx: Ctx<'js>) -> rquickjs::Result<Chunk<'js>> {
-        if let Some(err) = self.ctrl.borrow(&ctx)?.state.as_error() {
-            match err {
-                CaughtError::Error(err) => {
-                    return Err(ctx
-                        .clone()
-                        .throw(rquickjs::String::from_str(ctx, &err.to_string())?.into_value()))
-                }
-                CaughtError::Exception(err) => {
-                    return Err(ctx.throw(Value::from_exception(err.clone())))
-                }
-                CaughtError::Value(value) => return Err(ctx.throw(value.clone())),
-            }
-        } else if !self.ctrl.borrow(&ctx)?.state.is_running() {
-            return Ok(Chunk {
-                value: None,
-                done: true,
-            });
-        }
-
-        // Wait for new items
-        if self.ctrl.borrow(&ctx)?.queue.is_empty() {
-            let waiter = self.ctrl.borrow(&ctx)?.wait.clone();
-            waiter.notified().await;
-
-            if self.ctrl.is_canceled() {
-                throw!(ctx, "Canceled")
-            }
-        }
-
-        let ret = self.ctrl.borrow_mut(&ctx)?.queue.pop_front();
-
-        if !self.ctrl.borrow(&ctx)?.is_filled() {
-            self.ctrl.borrow(&ctx)?.ready.notify_one();
-        }
-
-        Ok(Chunk {
-            value: ret,
-            done: false,
-        })
-    }
-
-    pub async fn cancel(
-        &self,
-        ctx: Ctx<'js>,
-        reason: Opt<rquickjs::String<'js>>,
-    ) -> rquickjs::Result<()> {
-        if !self.ctrl.borrow(&ctx)?.state.is_running() {
-            throw!(ctx, "stream not running");
-        }
-        self.ctrl.borrow_mut(&ctx)?.state = State::Canceled(reason.0);
-        self.ctrl.borrow(&ctx)?.ready.notify_waiters();
-        Ok(())
-    }
-
-    #[qjs(rename = "releaseLock")]
-    pub fn release_lock(&mut self) -> rquickjs::Result<()> {
-        self.ctrl.release();
-        Ok(())
-    }
-}
-
-#[derive(Trace)]
-pub struct Chunk<'js> {
-    value: Option<Value<'js>>,
-    done: bool,
-}
-
-impl<'js> IntoJs<'js> for Chunk<'js> {
-    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        let obj = Object::new(ctx.clone())?;
-
-        obj.set(PredefinedAtom::Value, self.value)?;
-        obj.set(PredefinedAtom::Done, self.done)?;
-
-        Ok(obj.into_value())
+        ReadableStreamDefaultReader::new(self.clone())
     }
 }
