@@ -12,22 +12,22 @@ pub mod shell_mod {
     use futures::TryStreamExt;
     use rquickjs::{function::Rest, Class, Ctx, Object, Result};
 
-    use klaver_streams::{async_byte_iterator, AsyncByteIterError};
+    // use klaver_streams::{async_byte_iterator, AsyncByteIterError};
 
     use super::Exec;
     pub use super::Pipe;
 
-    #[rquickjs::function]
-    pub async fn cat<'js>(ctx: Ctx<'js>, path: String) -> Result<Object<'js>> {
-        let file = tokio::fs::File::open(path).await?;
-        let stream = tokio_util::io::ReaderStream::new(file);
-        async_byte_iterator(
-            ctx,
-            stream
-                .map_ok(|b| b.to_vec())
-                .map_err(|_| AsyncByteIterError),
-        )
-    }
+    // #[rquickjs::function]
+    // pub async fn cat<'js>(ctx: Ctx<'js>, path: String) -> Result<Object<'js>> {
+    //     let file = tokio::fs::File::open(path).await?;
+    //     let stream = tokio_util::io::ReaderStream::new(file);
+    //     async_byte_iterator(
+    //         ctx,
+    //         stream
+    //             .map_ok(|b| b.to_vec())
+    //             .map_err(|_| AsyncByteIterError),
+    //     )
+    // }
 
     #[rquickjs::function]
     pub fn sh<'js>(

@@ -184,6 +184,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.83"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "721cae7de5c34fbb2acd27e21e6d2cf7b886dce0c27388d46c4e6c47ea4318dd"
+dependencies = [
+ "proc-macro2 1.0.86",
+ "quote 1.0.36",
+ "syn 2.0.74",
+]
+
+[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1503,6 +1514,7 @@ name = "klaver-streams"
 version = "0.1.0"
 dependencies = [
  "async-stream",
+ "async-trait",
  "futures",
  "klaver",
  "rquickjs",
@@ -1514,10 +1526,19 @@ name = "klaver-wintercg"
 version = "0.1.0"
 dependencies = [
  "async-stream",
+ "async-trait",
+ "base64 0.22.1",
+ "bytes",
+ "encoding_rs",
  "futures",
  "klaver",
+ "klaver-shared",
+ "reggie",
+ "reqwest",
  "rquickjs",
+ "serde_json",
  "tokio",
+ "url",
 ]
 
 [[package]]

@@ -2,7 +2,6 @@ use bytes::Bytes;
 use core::fmt;
 use futures::TryStreamExt;
 use klaver::{throw, throw_if};
-use klaver_streams::{async_byte_iterator, AsyncByteIterError};
 use reggie::Body;
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
@@ -261,14 +260,14 @@ impl<'js> Request<'js> {
         }
     }
 
-    pub fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
-        let body = self.take_body(ctx.clone())?;
+    // pub fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
+    //     let body = self.take_body(ctx.clone())?;
 
-        let stream = reggie::body::to_stream(body);
-        let stream = stream
-            .map_ok(|m| m.to_vec())
-            .map_err(|_| AsyncByteIterError);
+    //     let stream = reggie::body::to_stream(body);
+    //     let stream = stream
+    //         .map_ok(|m| m.to_vec())
+    //         .map_err(|_| AsyncByteIterError);
 
-        async_byte_iterator(ctx, stream)
-    }
+    //     async_byte_iterator(ctx, stream)
+    // }
 }

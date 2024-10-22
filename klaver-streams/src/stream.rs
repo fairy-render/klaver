@@ -99,8 +99,11 @@ impl<'js> AsyncIterable<'js> for ReadableStream<'js> {
 
     type Stream = Static<LocalBoxStream<'js, Result<Self::Item, Self::Error>>>;
 
-    fn stream(&mut self, ctx: &Ctx<'js>) -> klaver::shared::iter::AsyncIter<Self::Stream> {
-        AsyncIter::new(Static(self.to_stream(ctx.clone()).unwrap()))
+    fn stream(
+        &mut self,
+        ctx: &Ctx<'js>,
+    ) -> rquickjs::Result<klaver::shared::iter::AsyncIter<Self::Stream>> {
+        Ok(AsyncIter::new(Static(self.to_stream(ctx.clone())?)))
     }
 }
 

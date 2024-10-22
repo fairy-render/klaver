@@ -1,7 +1,7 @@
 use rquickjs::{
     class::Trace, Array, FromJs, IntoJs, IteratorJs, String as JsString, Type, Value as JsValue,
 };
-use vaerdi::{Map, Value};
+pub use vaerdi::{Map, Value};
 
 use crate::date::Date;
 

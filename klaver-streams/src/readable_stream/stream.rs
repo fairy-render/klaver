@@ -9,7 +9,6 @@ use tokio::sync::Notify;
 
 use super::{
     controller::{ControllerWrap, ReadableStreamDefaultController},
-    from::from,
     queue_strategy::QueuingStrategy,
     reader::ReadableStreamDefaultReader,
     underlying_source::{JsUnderlyingSource, StreamSource, UnderlyingSource},
@@ -166,22 +165,10 @@ impl<'js> ReadableStream<'js> {
 
         Ok(class)
     }
-
-    pub fn is(value: &Value<'js>) -> bool {
-        Class::<Self>::from_value(value).is_ok()
-    }
 }
 
 #[rquickjs::methods]
 impl<'js> ReadableStream<'js> {
-    #[qjs(static)]
-    pub fn from(
-        ctx: Ctx<'js>,
-        value: Value<'js>,
-    ) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
-        from(ctx, value)
-    }
-
     #[qjs(constructor)]
     pub fn new(
         ctx: Ctx<'js>,

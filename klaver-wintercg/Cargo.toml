@@ -3,9 +3,42 @@ name = "klaver-wintercg"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["encoding", "http"]
+encoding = ["encoding_rs", "base64"]
+http = [
+  "tokio/sync",
+  "tokio/macros",
+  "reggie",
+  "serde_json",
+  "reqwest",
+  "url",
+  "bytes",
+]
+
 [dependencies]
 klaver = { path = "../klaver" }
 rquickjs.workspace = true
 futures = { version = "0.3" }
 tokio = { version = "1", features = ["sync"] }
 async-stream = { version = "0.3" }
+async-trait = { version = "0.1" }
+
+klaver-shared = { path = "../klaver-shared" }
+
+# Encoding
+encoding_rs = { version = "0.8", optional = true }
+base64 = { version = "0.22", optional = true }
+
+# Http
+bytes = { version = "1", optional = true }
+reggie = { git = "https://github.com/fairy-render/reggie", features = [
+  "json",
+], optional = true }
+serde_json = { version = "1", optional = true }
+reqwest = { version = "0.12", optional = true }
+url = { version = "2", optional = true }
+
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros"] }

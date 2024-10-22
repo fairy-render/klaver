@@ -6,7 +6,10 @@ use rquickjs::{
     class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Exception, FromJs, Object, Value,
 };
 
-use crate::{body::BodyInit, headers::HeadersInit, module::Headers};
+use super::{
+    body_init::BodyInit,
+    headers::{Headers, HeadersInit},
+};
 
 #[rquickjs::class]
 pub struct Response<'js> {
@@ -151,7 +154,7 @@ impl<'js> Response<'js> {
         let body = self.take_body(ctx.clone())?;
 
         match reggie::body::to_json::<serde_json::Value, _>(body).await {
-            Ok(ret) => Ok(crate::convert::from_json(ctx.clone(), ret)?),
+            Ok(ret) => Ok(super::convert::from_json(ctx.clone(), ret)?),
             Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
                 ctx.clone(),
                 &err.to_string(),

@@ -1,6 +1,6 @@
 use klaver::throw;
 use rquickjs::{
-    atom::PredefinedAtom, class::Trace, CaughtError, Class, Ctx, FromJs, IntoJs, Object, Value,
+    atom::PredefinedAtom, class::Trace, CaughtError, Class, Ctx, IntoJs, Object, Value,
 };
 
 use super::{controller::ControllerWrap, ReadableStream};
@@ -98,16 +98,5 @@ impl<'js> IntoJs<'js> for Chunk<'js> {
         obj.set(PredefinedAtom::Done, self.done)?;
 
         Ok(obj.into_value())
-    }
-}
-
-impl<'js> FromJs<'js> for Chunk<'js> {
-    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
-        let obj = Object::from_value(value)?;
-
-        Ok(Chunk {
-            value: obj.get(PredefinedAtom::Value)?,
-            done: obj.get(PredefinedAtom::Done)?,
-        })
     }
 }

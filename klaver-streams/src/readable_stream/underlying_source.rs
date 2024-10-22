@@ -9,7 +9,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 use super::controller::ReadableStreamDefaultController;
 
 #[async_trait(?Send)]
-pub trait NativeSource<'js>: Trace<'js> {
+pub trait NativeSource<'js> {
     async fn start(
         &mut self,
         ctx: Ctx<'js>,
@@ -25,15 +25,6 @@ pub trait NativeSource<'js>: Trace<'js> {
 }
 
 pub struct StreamSource<T>(pub T);
-
-impl<'js, T> Trace<'js> for StreamSource<T>
-where
-    T: DynamicStream<'js>,
-{
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.0.trace(tracer)
-    }
-}
 
 #[async_trait(?Send)]
 impl<'js, T> NativeSource<'js> for StreamSource<T>
@@ -198,7 +189,7 @@ impl<'js> Trace<'js> for UnderlyingSource<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         match self {
             Self::Js(js) => js.trace(tracer),
-            Self::Native(n) => n.borrow().trace(tracer),
+            _ => {}
         }
     }
 }

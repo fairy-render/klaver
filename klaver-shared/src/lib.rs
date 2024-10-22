@@ -9,7 +9,7 @@ mod r#static;
 pub mod val;
 
 pub mod iter;
-
+pub mod util;
 pub use format::*;
 
 pub use r#static::*;

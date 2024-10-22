@@ -33,7 +33,10 @@ impl<'js> AsyncIterable<'js> for Test {
 
     type Stream = Static<BoxStream<'static, Result<Self::Item, Self::Error>>>;
 
-    fn stream(&mut self, ctx: &Ctx<'js>) -> klaver_shared::iter::AsyncIter<Self::Stream> {
+    fn stream(
+        &mut self,
+        ctx: &Ctx<'js>,
+    ) -> rquickjs::Result<klaver_shared::iter::AsyncIter<Self::Stream>> {
         let iter = self
             .list
             .take()
@@ -42,7 +45,7 @@ impl<'js> AsyncIterable<'js> for Test {
             .map(Result::<_, Infallible>::Ok);
         let stream = futures::stream::iter(iter);
 
-        AsyncIter::new(Static(Box::pin(stream)))
+        Ok(AsyncIter::new(Static(Box::pin(stream))))
     }
 }
 

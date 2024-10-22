@@ -250,12 +250,12 @@ impl<'js> AsyncIterable<'js> for ReadDir {
 
     type Stream = Static<BoxStream<'static, Result<Self::Item, Self::Error>>>;
 
-    fn stream(&mut self, ctx: &Ctx<'js>) -> AsyncIter<Self::Stream> {
+    fn stream(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<AsyncIter<Self::Stream>> {
         let Some(stream) = self.stream.take() else {
             panic!("stream already consumed")
         };
 
-        AsyncIter::new(Static(
+        Ok(AsyncIter::new(Static(
             stream
                 .and_then(|item| async move {
                     let ty = item.file_type().await?;
@@ -274,6 +274,6 @@ impl<'js> AsyncIterable<'js> for ReadDir {
                     })
                 })
                 .boxed(),
-        ))
+        )))
     }
 }

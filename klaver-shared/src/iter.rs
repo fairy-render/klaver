@@ -104,7 +104,7 @@ where
     }
 }
 
-struct StreamContainer<T>(T);
+pub struct StreamContainer<T>(pub T);
 
 impl<'js, T: Trace<'js>> Trace<'js> for StreamContainer<T> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
@@ -193,8 +193,19 @@ where
 }
 
 #[rquickjs::class]
-struct AsyncIterator<'js> {
+pub struct AsyncIterator<'js> {
     stream: Rc<RefCell<Box<dyn DynamicStream<'js> + 'js>>>,
+}
+
+impl<'js> AsyncIterator<'js> {
+    pub fn new<T>(stream: T) -> AsyncIterator<'js>
+    where
+        T: DynamicStream<'js> + 'js,
+    {
+        AsyncIterator {
+            stream: Rc::new(RefCell::new(Box::new(stream))),
+        }
+    }
 }
 
 impl<'js> Trace<'js> for AsyncIterator<'js> {
@@ -226,7 +237,7 @@ where
 
     type Stream: Stream<Item = Result<Self::Item, Self::Error>> + Trace<'js> + Unpin + 'js;
 
-    fn stream(&mut self, ctx: &Ctx<'js>) -> AsyncIter<Self::Stream>;
+    fn stream(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<AsyncIter<Self::Stream>>;
 
     fn add_async_iterable_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         let proto = Class::<Self>::prototype(ctx.clone()).unwrap();
@@ -242,6 +253,6 @@ where
         this: This<Class<'js, Self>>,
         ctx: Ctx<'js>,
     ) -> rquickjs::Result<Value<'js>> {
-        this.borrow_mut().stream(&ctx).into_js(&ctx)
+        this.borrow_mut().stream(&ctx)?.into_js(&ctx)
     }
 }
