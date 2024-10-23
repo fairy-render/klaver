@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["encoding", "http"]
+default = ["encoding", "http", "crypto"]
 encoding = ["encoding_rs", "base64"]
 http = [
   "tokio/sync",
@@ -15,6 +15,7 @@ http = [
   "url",
   "bytes",
 ]
+crypto = ["rand", "uuid", "sha1", "sha2"]
 
 [dependencies]
 klaver = { path = "../klaver" }
@@ -38,6 +39,12 @@ reggie = { git = "https://github.com/fairy-render/reggie", features = [
 serde_json = { version = "1", optional = true }
 reqwest = { version = "0.12", optional = true }
 url = { version = "2", optional = true }
+
+## Crypto
+rand = { version = "0.8", optional = true }
+uuid = { version = "1", features = ["v4"], optional = true }
+sha1 = { version = "0.10", optional = true }
+sha2 = { version = "0.10", optional = true }
 
 
 [dev-dependencies]

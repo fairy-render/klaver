@@ -10,6 +10,7 @@ use crate::{
     abort_controller::{AbortController, AbortSignal},
     blob::Blob,
     console::Console,
+    crypto,
     dom_exception::DOMException,
     event_target::{Emitter, Event, EventTarget},
     performance::Performance,
@@ -23,6 +24,7 @@ use crate::{
 use crate::encoding::{TextDecoder, TextEncoder};
 #[cfg(feature = "http")]
 use crate::http::{fetch, Client, Headers, Request, Response, Url};
+#[cfg(feature = "crypto")]
 
 pub struct Module;
 
@@ -71,6 +73,9 @@ impl ModuleDef for Module {
             decl.declare(stringify!(Client))?;
             decl.declare(stringify!(fetch))?;
         }
+
+        #[cfg(feature = "crypto")]
+        crypto::declare(decl)?;
 
         Ok(())
     }
@@ -123,6 +128,9 @@ impl ModuleDef for Module {
 
             exports.export("fetch", fetch)?;
         }
+
+        #[cfg(feature = "crypto")]
+        crypto::evaluate(ctx, exports)?;
 
         Ok(())
     }

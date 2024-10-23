@@ -65,10 +65,12 @@
 // 	print(data.value);
 // }
 
-const abort = new AbortController();
+const hashBuffer = await crypto.subtle.digest(
+	"sha1",
+	new TextEncoder().encode("Hello, World!"),
+);
 
-const resp = await fetch("https://github.com", {
-	signal: abort.signal,
-}); //await client.send(new Request("https://github.com"));
+const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
+const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join(""); // convert bytes to hex string
 
-print(await resp.text());
+console.log(hashHex);

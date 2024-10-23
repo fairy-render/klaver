@@ -7,6 +7,8 @@ mod global;
 mod module;
 pub mod streams;
 
+#[cfg(feature = "crypto")]
+pub mod crypto;
 #[cfg(feature = "encoding")]
 pub mod encoding;
 #[cfg(feature = "http")]

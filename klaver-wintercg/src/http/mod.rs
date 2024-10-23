@@ -14,3 +14,14 @@ pub use self::{
     client::Client, facotry::*, fetch::fetch, headers::Headers, request::Request,
     response::Response, url::Url,
 };
+
+pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
+    Ok(())
+}
+
+pub fn evaluate<'js>(
+    ctx: &rquickjs::prelude::Ctx<'js>,
+    exports: &rquickjs::module::Exports<'js>,
+) -> rquickjs::Result<()> {
+    Ok(())
+}
