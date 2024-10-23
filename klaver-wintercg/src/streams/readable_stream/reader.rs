@@ -74,6 +74,7 @@ impl<'js> ReadableStreamDefaultReader<'js> {
         Ok(())
     }
 
+    #[qjs(get)]
     pub fn closed(&self, ctx: Ctx<'js>) -> rquickjs::Result<Promise<'js>> {
         let Some(ctrl) = self.ctrl.ctrl.as_ref().cloned() else {
             throw!(ctx, "Could not optain controller");

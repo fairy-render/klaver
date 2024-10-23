@@ -1,3 +1,4 @@
+use klaver::throw;
 use rquickjs::{
     class::Trace,
     function::{Args, Opt, This},
@@ -58,7 +59,6 @@ impl<'js> AbortController<'js> {
 }
 
 #[rquickjs::class]
-#[derive(Trace)]
 pub struct AbortSignal<'js> {
     listeners: EventList<'js>,
     #[qjs(get)]
@@ -67,9 +67,34 @@ pub struct AbortSignal<'js> {
     reason: Option<rquickjs::Value<'js>>,
     #[qjs(get, set)]
     onabort: Option<Function<'js>>,
+    chan: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
-impl<'js> AbortSignal<'js> {}
+impl<'js> Trace<'js> for AbortSignal<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.listeners.trace(tracer);
+        self.reason.trace(tracer);
+        self.onabort.trace(tracer);
+        self.onabort.trace(tracer);
+    }
+}
+
+impl<'js> AbortSignal<'js> {
+    pub fn channel(
+        &mut self,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<tokio::sync::oneshot::Receiver<()>> {
+        if self.chan.is_some() {
+            throw!(ctx, "Abort signal in use")
+        }
+
+        let (sx, rx) = tokio::sync::oneshot::channel();
+
+        self.chan = Some(sx);
+
+        Ok(rx)
+    }
+}
 
 #[rquickjs::methods]
 impl<'js> AbortSignal<'js> {
@@ -80,6 +105,7 @@ impl<'js> AbortSignal<'js> {
             aborted: false,
             reason: None,
             onabort: None,
+            chan: None,
         })
     }
 
@@ -99,5 +125,17 @@ impl<'js> Emitter<'js> for AbortSignal<'js> {
 
     fn get_listeners_mut(&mut self) -> &mut EventList<'js> {
         &mut self.listeners
+    }
+
+    fn dispatch(&mut self, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+        if let Some(onabort) = &self.onabort {
+            onabort.call::<_, ()>((event,))?;
+        }
+
+        if let Some(sx) = self.chan.take() {
+            sx.send(()).ok();
+        }
+
+        Ok(())
     }
 }

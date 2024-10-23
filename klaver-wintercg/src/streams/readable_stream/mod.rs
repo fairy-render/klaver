@@ -9,5 +9,5 @@ pub use self::{
     queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy},
     reader::*,
     stream::*,
-    underlying_source::NativeSource,
+    underlying_source::{NativeSource, One},
 };

@@ -3,19 +3,19 @@ use std::time::{Instant, SystemTime};
 use rquickjs::{class::Trace, qjs, Ctx, Exception, Value};
 
 #[rquickjs::class]
-pub struct JsPerformance {
+pub struct Performance {
     origin: SystemTime,
 }
 
-impl<'js> Trace<'js> for JsPerformance {
+impl<'js> Trace<'js> for Performance {
     fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
 
 #[rquickjs::methods]
-impl JsPerformance {
+impl Performance {
     #[qjs(constructor)]
-    pub fn new() -> JsPerformance {
-        JsPerformance {
+    pub fn new() -> Performance {
+        Performance {
             origin: SystemTime::now(),
         }
     }

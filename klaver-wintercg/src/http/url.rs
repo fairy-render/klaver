@@ -2,15 +2,25 @@ use klaver::throw_if;
 use rquickjs::{atom::PredefinedAtom, class::Trace, function::Opt, Class, Ctx, FromJs};
 
 pub enum StringOrUrl<'js> {
-    String(String),
+    String(rquickjs::String<'js>),
     Url(Class<'js, Url>),
 }
 
 impl<'js> StringOrUrl<'js> {
-    fn as_str(&self) -> String {
+    fn as_str(&self) -> rquickjs::Result<String> {
         match self {
-            Self::String(s) => s.as_str().to_string(),
-            Self::Url(u) => u.borrow().i.to_string(),
+            Self::String(s) => s.to_string(),
+            Self::Url(u) => Ok(u.borrow().i.to_string()),
+        }
+    }
+
+    pub fn to_url(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, Url>> {
+        match self {
+            StringOrUrl::String(s) => Class::instance(
+                ctx.clone(),
+                Url::new(ctx.clone(), StringOrUrl::String(s.clone()), Opt(None))?,
+            ),
+            StringOrUrl::Url(url) => Ok(url.clone()),
         }
     }
 }
@@ -19,7 +29,7 @@ impl<'js> FromJs<'js> for StringOrUrl<'js> {
     fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
         if let Ok(ret) = Class::<'js, Url>::from_js(ctx, value.clone()) {
             Ok(StringOrUrl::Url(ret))
-        } else if let Ok(ret) = String::from_js(ctx, value) {
+        } else if let Ok(ret) = rquickjs::String::from_js(ctx, value) {
             Ok(StringOrUrl::String(ret))
         } else {
             Err(rquickjs::Error::new_from_js("value", "string or url"))
@@ -28,13 +38,27 @@ impl<'js> FromJs<'js> for StringOrUrl<'js> {
 }
 
 #[derive(Debug)]
-#[rquickjs::class]
+#[rquickjs::class(rename = "URL")]
 pub struct Url {
     i: url::Url,
 }
 
 impl<'js> Trace<'js> for Url {
     fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
+}
+
+impl Url {
+    pub fn url(&self) -> &url::Url {
+        &self.i
+    }
+
+    pub fn from_reggie<'js>(
+        ctx: &Ctx<'js>,
+        uri: &reggie::http::Uri,
+    ) -> rquickjs::Result<Class<'js, Url>> {
+        let i = throw_if!(ctx, url::Url::parse(&uri.to_string()));
+        Class::instance(ctx.clone(), Url { i })
+    }
 }
 
 #[rquickjs::methods]
@@ -48,14 +72,17 @@ impl Url {
         let i = if let Some(base) = base.0 {
             match base {
                 StringOrUrl::String(s) => {
-                    throw_if!(ctx, url::Url::parse(&s).and_then(|m| m.join(&url.as_str())))
+                    let out = throw_if!(ctx, url::Url::parse(&s.to_string()?));
+                    throw_if!(ctx, out.join(&url.as_str()?))
                 }
-                StringOrUrl::Url(b) => throw_if!(ctx, b.borrow().i.join(&url.as_str())),
+                StringOrUrl::Url(b) => {
+                    throw_if!(ctx, b.borrow().i.join(&url.as_str()?))
+                }
             }
         } else {
             match url {
                 StringOrUrl::String(s) => {
-                    throw_if!(ctx, url::Url::parse(&s))
+                    throw_if!(ctx, url::Url::parse(&s.to_string()?))
                 }
                 StringOrUrl::Url(url) => url.borrow().i.clone(),
             }

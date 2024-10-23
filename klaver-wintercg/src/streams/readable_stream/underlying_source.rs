@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use futures::future::{BoxFuture, LocalBoxFuture};
 use klaver::shared::iter::DynamicStream;
 use rquickjs::{
-    class::Trace, CatchResultExt, CaughtError, Class, Ctx, FromJs, Function, Object, Value,
+    class::Trace, CatchResultExt, CaughtError, Class, Ctx, FromJs, Function, IntoJs, Object, Value,
 };
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
@@ -63,6 +63,49 @@ where
     ) -> rquickjs::Result<()> {
         if let Some(next) = self.0.next(ctx).await? {
             ctrl.borrow_mut().enqueue(next)?;
+        } else {
+            ctrl.borrow_mut().close()?;
+        }
+
+        Ok(())
+    }
+}
+
+pub struct One<T>(Option<T>);
+
+impl<T> One<T> {
+    pub fn new(item: T) -> One<T> {
+        One(Some(item))
+    }
+}
+
+impl<'js, T: Trace<'js>> Trace<'js> for One<T> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.0.trace(tracer)
+    }
+}
+
+#[async_trait(?Send)]
+impl<'js, T> NativeSource<'js> for One<T>
+where
+    T: Trace<'js> + IntoJs<'js>,
+{
+    async fn start(
+        &mut self,
+        _ctx: Ctx<'js>,
+        __ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
+    ) -> rquickjs::Result<()> {
+        Ok(())
+    }
+
+    async fn pull(
+        &mut self,
+        ctx: Ctx<'js>,
+
+        ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
+    ) -> rquickjs::Result<()> {
+        if let Some(next) = self.0.take() {
+            ctrl.borrow_mut().enqueue(next.into_js(&ctx)?)?;
         } else {
             ctrl.borrow_mut().close()?;
         }

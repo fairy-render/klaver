@@ -62,12 +62,17 @@ impl<'js> ReadableStream<'js> {
             let next = reader.borrow_mut().read(ctx.clone()).await?;
 
             if let Some(chunk) = next.value {
-                let buffer = Buffer::from_js(&ctx, chunk)?;
-                if let Some(bytes) = buffer.as_raw() {
-                    output.extend_from_slice(bytes.slice());
-                }
+                if chunk.is_string() {
+                    let chunk = String::from_js(&ctx, chunk)?;
+                    output.extend(chunk.as_bytes())
+                } else {
+                    let buffer = Buffer::from_js(&ctx, chunk)?;
+                    if let Some(bytes) = buffer.as_raw() {
+                        output.extend_from_slice(bytes.slice());
+                    }
 
-                buffer.detach()?;
+                    buffer.detach()?;
+                }
             }
 
             if next.done {
@@ -76,6 +81,10 @@ impl<'js> ReadableStream<'js> {
         }
 
         Ok(output)
+    }
+
+    pub fn is_done(&self) -> bool {
+        self.ctrl.borrow().is_done()
     }
 }
 

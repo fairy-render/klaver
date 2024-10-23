@@ -11,68 +11,94 @@ use crate::streams::ReadableStream;
 
 use super::{
     body_init::BodyInit,
+    body_state::ResponseBodyKind,
     headers::{Headers, HeadersInit},
 };
 
-pub enum ResponseBodyKind<'js> {
-    Stream(Class<'js, ReadableStream<'js>>),
-    Body(Option<Body>),
-    Consumed,
-}
+// pub enum ResponseBodyKind<'js> {
+//     Stream(Class<'js, ReadableStream<'js>>),
+//     Body(Option<Body>),
+//     Consumed,
+// }
 
-impl<'js> ResponseBodyKind<'js> {
-    async fn bytes(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Vec<u8>> {
-        match self {
-            Self::Body(body) => {
-                let Some(body) = body else {
-                    throw!(ctx, "Body already consumed");
-                };
-                let bytes = throw_if!(ctx, reggie::body::to_bytes(body).await);
-                *self = Self::Consumed;
-                Ok(bytes.to_vec())
-            }
-            Self::Stream(stream) => {
-                let bytes = stream.borrow_mut().to_bytes(ctx).await?;
-                *self = Self::Consumed;
-                Ok(bytes)
-            }
-            Self::Consumed => {
-                throw!(ctx, "Body already consumed")
-            }
-        }
-    }
+// impl<'js> ResponseBodyKind<'js> {
+//     fn is_consumed(&self) -> bool {
+//         match self {
+//             Self::Consumed => true,
+//             Self::Body(_) => false,
+//             Self::Stream(stream) => stream.borrow().is_done(),
+//         }
+//     }
+//     async fn bytes(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Vec<u8>> {
+//         match self {
+//             Self::Body(body) => {
+//                 let Some(body) = body else {
+//                     throw!(ctx, "Body already consumed");
+//                 };
+//                 let bytes = throw_if!(ctx, reggie::body::to_bytes(body).await);
+//                 *self = Self::Consumed;
+//                 Ok(bytes.to_vec())
+//             }
+//             Self::Stream(stream) => {
+//                 let bytes = stream.borrow_mut().to_bytes(ctx).await?;
+//                 *self = Self::Consumed;
+//                 Ok(bytes)
+//             }
+//             Self::Consumed => {
+//                 throw!(ctx, "Body already consumed")
+//             }
+//         }
+//     }
 
-    async fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
-        match self {
-            Self::Body(body) => {
-                let Some(body) = body.take() else {
-                    throw!(ctx, "Body already consumed")
-                };
-                let stream = ReadableStream::from_stream(
-                    ctx,
-                    Static(reggie::body::to_stream(body).map_ok(|m| Bytes(m.to_vec()))),
-                )?;
+//     fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
+//         match self {
+//             Self::Body(body) => {
+//                 let Some(body) = body.take() else {
+//                     throw!(ctx, "Body already consumed")
+//                 };
+//                 let stream = ReadableStream::from_stream(
+//                     ctx,
+//                     Static(reggie::body::to_stream(body).map_ok(|m| Bytes(m.to_vec()))),
+//                 )?;
 
-                *self = Self::Stream(stream.clone());
+//                 *self = Self::Stream(stream.clone());
 
-                Ok(stream)
-            }
-            Self::Stream(stream) => Ok(stream.clone()),
-            Self::Consumed => {
-                throw!(ctx, "Body already consumed")
-            }
-        }
-    }
-}
+//                 Ok(stream)
+//             }
+//             Self::Stream(stream) => Ok(stream.clone()),
+//             Self::Consumed => {
+//                 throw!(ctx, "Body already consumed")
+//             }
+//         }
+//     }
 
-impl<'js> Trace<'js> for ResponseBodyKind<'js> {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        match self {
-            Self::Stream(stream) => stream.trace(tracer),
-            _ => {}
-        }
-    }
-}
+//     async fn to_reggie(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Body> {
+//         match self {
+//             Self::Body(body) => {
+//                 let Some(body) = body.take() else {
+//                     throw!(ctx, "Body already consumed")
+//                 };
+//                 Ok(body)
+//             }
+//             Self::Stream(stream) => {
+//                 let bytes = stream.borrow().to_bytes(ctx).await?;
+//                 Ok(Body::from(bytes))
+//             }
+//             Self::Consumed => {
+//                 throw!(ctx, "Body already consumed")
+//             }
+//         }
+//     }
+// }
+
+// impl<'js> Trace<'js> for ResponseBodyKind<'js> {
+//     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+//         match self {
+//             Self::Stream(stream) => stream.trace(tracer),
+//             _ => {}
+//         }
+//     }
+// }
 
 #[rquickjs::class]
 pub struct Response<'js> {
@@ -115,7 +141,7 @@ impl<'js> Response<'js> {
         })
     }
 
-    pub fn to_reggie(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<reggie::Response<Body>> {
+    pub async fn to_reggie(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<reggie::Response<Body>> {
         let mut builder = reggie::http::Response::builder()
             .status(self.status)
             // .url(throw_if!(ctx, Url::parse(&self.url.to_string()?)))
@@ -127,21 +153,24 @@ impl<'js> Response<'js> {
             }
         }
 
-        let body = self
-            .take_body(ctx.clone())
-            .unwrap_or_else(|_| Body::empty());
+        let body = if let Some(body) = self.body.as_mut() {
+            body.to_reggie(ctx.clone()).await?
+        } else {
+            Body::empty()
+        };
+
         let resp = throw_if!(ctx, builder.body(body));
 
         Ok(resp)
     }
 
-    fn take_body(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Body> {
-        let Some(body) = self.body.take() else {
-            throw!(ctx, "body is exhausted")
-        };
+    // fn take_body(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Body> {
+    //     let Some(body) = self.body.take() else {
+    //         throw!(ctx, "body is exhausted")
+    //     };
 
-        Ok(body)
-    }
+    //     Ok(body)
+    // }
 }
 
 pub struct ResponseOptions<'js> {
@@ -170,7 +199,12 @@ impl<'js> Response<'js> {
         body: Opt<BodyInit<'js>>,
         options: Opt<ResponseOptions<'js>>,
     ) -> rquickjs::Result<Self> {
-        let body = body.0.map(|m| Body::from(m.to_vec()));
+        let body = if let Some(body) = body.0 {
+            let body = ResponseBodyKind::Stream(body.to_stream(&ctx)?);
+            Some(body)
+        } else {
+            None
+        };
 
         let (status, headers) = match options.0 {
             Some(ret) => (ret.status.unwrap_or(200), ret.headers),
@@ -190,9 +224,13 @@ impl<'js> Response<'js> {
     }
 
     pub async fn text(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<String> {
-        let body = self.take_body(ctx.clone())?;
+        let body = if let Some(body) = self.body.as_mut() {
+            body.bytes(ctx.clone()).await?
+        } else {
+            throw!(ctx, "Response has no body")
+        };
 
-        match reggie::body::to_text(body).await {
+        match String::from_utf8(body) {
             Ok(ret) => Ok(ret),
             Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
                 ctx.clone(),
@@ -203,10 +241,24 @@ impl<'js> Response<'js> {
 
     #[qjs(rename = "arrayBuffer")]
     pub async fn array_buffer(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<ArrayBuffer<'js>> {
-        let body = self.take_body(ctx.clone())?;
+        let body = if let Some(body) = self.body.as_mut() {
+            body.bytes(ctx.clone()).await?
+        } else {
+            throw!(ctx, "Response has no body")
+        };
 
-        match reggie::body::to_bytes(body).await {
-            Ok(ret) => ArrayBuffer::new(ctx, ret.to_vec()),
+        ArrayBuffer::new(ctx, body)
+    }
+
+    pub async fn json(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
+        let body = if let Some(body) = self.body.as_mut() {
+            body.bytes(ctx.clone()).await?
+        } else {
+            throw!(ctx, "Response has no body")
+        };
+
+        match serde_json::from_slice(&body) {
+            Ok(ret) => Ok(super::convert::from_json(ctx.clone(), ret)?),
             Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
                 ctx.clone(),
                 &err.to_string(),
@@ -214,16 +266,26 @@ impl<'js> Response<'js> {
         }
     }
 
-    pub async fn json(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
-        let body = self.take_body(ctx.clone())?;
+    #[qjs(get, rename = "bodyUsed")]
+    pub fn body_used(&self) -> rquickjs::Result<bool> {
+        Ok(self.body.as_ref().map(|m| m.is_consumed()).unwrap_or(true))
+    }
 
-        match reggie::body::to_json::<serde_json::Value, _>(body).await {
-            Ok(ret) => Ok(super::convert::from_json(ctx.clone(), ret)?),
-            Err(err) => Err(ctx.throw(Value::from_exception(Exception::from_message(
-                ctx.clone(),
-                &err.to_string(),
-            )?))),
+    #[qjs(get)]
+    pub fn body(
+        &mut self,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<Option<Class<'js, ReadableStream<'js>>>> {
+        if let Some(body) = self.body.as_mut() {
+            Ok(Some(body.stream(ctx)?))
+        } else {
+            Ok(None)
         }
+    }
+
+    #[qjs(get)]
+    pub fn ok(&self) -> bool {
+        self.status >= 200 && self.status <= 299
     }
 
     // pub fn stream(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {

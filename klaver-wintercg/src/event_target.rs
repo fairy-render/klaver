@@ -102,6 +102,11 @@ where
     fn get_listeners(&self) -> &EventList<'js>;
     fn get_listeners_mut(&mut self) -> &mut EventList<'js>;
 
+    #[allow(unused)]
+    fn dispatch(&mut self, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+        Ok(())
+    }
+
     fn add_event_target_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         let proto = Class::<Self>::prototype(ctx.clone()).unwrap();
         proto.set("addEventListener", Func::new(Self::add_event_listener))?;
@@ -151,6 +156,8 @@ where
         this: This<Class<'js, Self>>,
         event: Class<'js, Event<'js>>,
     ) -> rquickjs::Result<()> {
+        this.0.borrow_mut().dispatch(event.clone())?;
+
         let this = this.0.borrow();
         let Some(listeners) = this.get_listeners().get(&event.borrow().ty) else {
             return Ok(());

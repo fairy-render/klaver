@@ -3,6 +3,7 @@ mod blob;
 pub mod console;
 pub mod dom_exception;
 pub mod event_target;
+mod global;
 mod module;
 pub mod streams;
 
@@ -15,4 +16,4 @@ pub mod performance;
 
 pub use module::Module;
 
-pub use self::{dom_exception::DOMException, event_target as events};
+pub use self::{dom_exception::DOMException, event_target as events, global::*};

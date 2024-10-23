@@ -1,23 +1,21 @@
 use klaver_shared::buffer::Buffer;
-use rquickjs::{class::Trace, Class, FromJs};
+use rquickjs::{class::Trace, Class, Ctx, FromJs};
 
-use crate::streams::ReadableStream;
+use crate::streams::{One, ReadableStream};
 
 #[derive(Trace)]
 pub enum BodyInit<'js> {
     Buffer(Buffer<'js>),
-    String(String),
-    // Stream(Class<'js, ReadableStream<'js>>),
+    String(rquickjs::String<'js>),
+    Stream(Class<'js, ReadableStream<'js>>),
 }
 
 impl<'js> BodyInit<'js> {
-    pub fn to_vec(self) -> Vec<u8> {
+    pub fn to_stream(self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
         match self {
-            BodyInit::Buffer(buffer) => buffer
-                .as_raw()
-                .map(|m| m.slice().to_vec())
-                .unwrap_or_default(),
-            BodyInit::String(str) => str.into_bytes(),
+            BodyInit::Buffer(buffer) => ReadableStream::from_native(ctx.clone(), One::new(buffer)),
+            BodyInit::String(str) => ReadableStream::from_native(ctx.clone(), One::new(str)),
+            BodyInit::Stream(stream) => Ok(stream.clone()),
         }
     }
 }
@@ -33,7 +31,9 @@ impl<'js> FromJs<'js> for BodyInit<'js> {
             let str = value
                 .try_into_string()
                 .map_err(|_| rquickjs::Error::new_from_js("value", "string"))?;
-            BodyInit::String(str.to_string()?)
+            BodyInit::String(str)
+        } else if ReadableStream::is(&value) {
+            BodyInit::Stream(Class::<ReadableStream>::from_js(ctx, value)?)
         } else {
             return Err(rquickjs::Error::new_from_js("value", "string or buffer"));
         };

@@ -10,6 +10,8 @@ async fn main() -> Result<(), klaver::Error> {
 
     let source = include_str!("./stream.js");
 
+    klaver_wintercg::install_globals(&vm).await?;
+
     klaver::async_with!(vm => |ctx| {
         Module::evaluate(ctx.clone(), "main.js", source)
             .catch(&ctx)?

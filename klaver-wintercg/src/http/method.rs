@@ -25,6 +25,18 @@ impl Method {
             Method::PATCH => "PATCH",
         }
     }
+
+    pub fn to_reggie(&self) -> reggie::Method {
+        match self {
+            Self::DELETE => reggie::Method::DELETE,
+            Self::GET => reggie::Method::GET,
+            Self::PATCH => reggie::Method::PATCH,
+            Self::POST => reggie::Method::POST,
+            Self::PUT => reggie::Method::PUT,
+            Self::OPTIONS => reggie::Method::OPTIONS,
+            Self::HEAD => reggie::Method::HEAD,
+        }
+    }
 }
 
 impl fmt::Display for Method {

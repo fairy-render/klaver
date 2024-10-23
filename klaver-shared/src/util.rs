@@ -60,3 +60,16 @@ impl<'js> ObjectExt<'js> for Value<'js> {
             .call_arg(a)
     }
 }
+
+pub trait FunctionExt<'js> {
+    fn bind<A: IntoArgs<'js>>(&self, ctx: Ctx<'js>, args: A) -> rquickjs::Result<Function<'js>>;
+}
+
+impl<'js> FunctionExt<'js> for Function<'js> {
+    fn bind<A: IntoArgs<'js>>(&self, ctx: Ctx<'js>, args: A) -> rquickjs::Result<Function<'js>> {
+        let mut a = Args::new(ctx.clone(), args.num_args());
+        args.into_args(&mut a)?;
+        a.this(self.clone())?;
+        self.get::<_, Function>("bind")?.call_arg::<Function>(a)
+    }
+}
