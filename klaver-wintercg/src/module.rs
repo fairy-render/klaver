@@ -14,6 +14,9 @@ use crate::{
     },
 };
 
+#[cfg(feature = "encoding")]
+use crate::encoding::{TextDecoder, TextEncoder};
+
 pub struct Module;
 
 module_info!("@klaver/wintercg" => Module);
@@ -100,12 +103,7 @@ impl ModuleDef for Module {
 
         #[cfg(feature = "encoding")]
         {
-            export!(
-                exports,
-                ctx,
-                crate::encoding::TextEncoder,
-                crate::encoding::TextDecoder
-            );
+            export!(exports, ctx, TextEncoder, TextDecoder);
             exports.export("atob", Func::new(crate::encoding::atob))?;
             exports.export("btoa", Func::new(crate::encoding::btoa))?;
         }

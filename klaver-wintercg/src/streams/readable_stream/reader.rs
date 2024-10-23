@@ -1,6 +1,8 @@
+use futures::future::LocalBoxFuture;
 use klaver::throw;
 use rquickjs::{
-    atom::PredefinedAtom, class::Trace, CaughtError, Class, Ctx, FromJs, IntoJs, Object, Value,
+    atom::PredefinedAtom, class::Trace, CaughtError, Class, Ctx, FromJs, IntoJs, Object, Promise,
+    Value,
 };
 
 use super::{controller::ControllerWrap, ReadableStream};
@@ -31,9 +33,7 @@ impl<'js> ReadableStreamDefaultReader<'js> {
     pub async fn read(&self, ctx: Ctx<'js>) -> rquickjs::Result<Chunk<'js>> {
         // Wait for new items
         if self.ctrl.borrow(&ctx)?.is_empty() && !self.ctrl.borrow(&ctx)?.is_done() {
-            println!("WAITING");
             self.ctrl.wait(ctx.clone()).await?;
-            println!("DONE WAITING");
         }
 
         if self.ctrl.borrow(&ctx)?.is_canceled() {
@@ -51,7 +51,6 @@ impl<'js> ReadableStreamDefaultReader<'js> {
                 CaughtError::Value(value) => return Err(ctx.throw(value.clone())),
             }
         } else if self.ctrl.borrow(&ctx)?.is_done() {
-            println!("DONE");
             return Ok(Chunk {
                 value: None,
                 done: true,
@@ -59,8 +58,6 @@ impl<'js> ReadableStreamDefaultReader<'js> {
         }
 
         let ret = self.ctrl.borrow_mut(&ctx)?.pop();
-
-        println!("VALUE {:?}", ret);
 
         Ok(Chunk {
             value: ret,
@@ -75,6 +72,25 @@ impl<'js> ReadableStreamDefaultReader<'js> {
     ) -> rquickjs::Result<()> {
         self.ctrl.borrow_mut(&ctx)?.cancel(&ctx, reason)?;
         Ok(())
+    }
+
+    pub fn closed(&self, ctx: Ctx<'js>) -> rquickjs::Result<Promise<'js>> {
+        let Some(ctrl) = self.ctrl.ctrl.as_ref().cloned() else {
+            throw!(ctx, "Could not optain controller");
+        };
+
+        Promise::wrap_future(&ctx, async move {
+            let waiter = ctrl.borrow().wait.clone();
+            loop {
+                if ctrl.borrow().is_closed() {
+                    break;
+                }
+
+                waiter.notified().await;
+            }
+
+            Result::<_, rquickjs::Error>::Ok(())
+        })
     }
 
     #[qjs(rename = "releaseLock")]

@@ -56,7 +56,7 @@ pub struct ReadableStreamDefaultController<'js> {
     // Signal puller that something happended
     ready: Rc<Notify>,
     // Signal readers that something happended
-    wait: Rc<Notify>,
+    pub(super) wait: Rc<Notify>,
     pub state: State<'js>,
 }
 
@@ -208,7 +208,7 @@ impl<'js> ReadableStreamDefaultController<'js> {
 
 #[derive(Trace)]
 pub struct ControllerWrap<'js> {
-    ctrl: Option<Class<'js, ReadableStreamDefaultController<'js>>>,
+    pub(super) ctrl: Option<Class<'js, ReadableStreamDefaultController<'js>>>,
 }
 
 impl<'js> ControllerWrap<'js> {

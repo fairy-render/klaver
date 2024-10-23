@@ -4,7 +4,7 @@ use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Module};
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), klaver::Error> {
     let vm = VmOptions::default()
-        .module::<klaver_streams::Module>()
+        .module::<klaver_wintercg::Module>()
         .build()
         .await?;
 

@@ -1,9 +1,10 @@
 use futures::{stream::LocalBoxStream, TryStream};
 use klaver::shared::{
+    buffer::Buffer,
     iter::{AsyncIter, AsyncIterable, StreamContainer},
     Static,
 };
-use rquickjs::{class::Trace, prelude::Opt, Class, Ctx, IntoJs, Value};
+use rquickjs::{class::Trace, prelude::Opt, Class, Ctx, FromJs, IntoJs, Value};
 use std::{cell::RefCell, rc::Rc};
 use tokio::sync::Notify;
 
@@ -50,6 +51,31 @@ impl<'js> ReadableStream<'js> {
             }
         };
         Ok(Box::pin(stream))
+    }
+
+    pub async fn to_bytes(&self, ctx: Ctx<'js>) -> rquickjs::Result<Vec<u8>> {
+        let reader = self.get_reader(ctx.clone())?;
+
+        let mut output = Vec::default();
+
+        loop {
+            let next = reader.borrow_mut().read(ctx.clone()).await?;
+
+            if let Some(chunk) = next.value {
+                let buffer = Buffer::from_js(&ctx, chunk)?;
+                if let Some(bytes) = buffer.as_raw() {
+                    output.extend_from_slice(bytes.slice());
+                }
+
+                buffer.detach()?;
+            }
+
+            if next.done {
+                break;
+            }
+        }
+
+        Ok(output)
     }
 }
 
