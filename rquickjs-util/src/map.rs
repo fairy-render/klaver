@@ -5,7 +5,9 @@ use rquickjs::{
     Object, Value,
 };
 
-#[derive(Debug, Trace)]
+use crate::util::ObjectExt;
+
+#[derive(Debug, Trace, Clone, PartialEq, Eq)]
 pub struct Map<'js> {
     object: Object<'js>,
 }
@@ -16,7 +18,7 @@ impl<'js> Map<'js> {
         Ok(Self { object: obj })
     }
 
-    pub fn get<T: FromJs<'js>>(&self, name: &Value<'js>) -> rquickjs::Result<T> {
+    pub fn get<K: IntoJs<'js>, T: FromJs<'js>>(&self, name: K) -> rquickjs::Result<T> {
         self.object
             .get::<_, Function>("get")?
             .call((This(self.object.clone()), name))
@@ -37,7 +39,7 @@ impl<'js> Map<'js> {
         Ok(())
     }
 
-    pub fn del(&self, name: &Value<'js>) -> rquickjs::Result<()> {
+    pub fn del<K: IntoJs<'js>>(&self, name: K) -> rquickjs::Result<()> {
         self.object
             .get::<_, Function>("delete")?
             .call::<_, Value>((This(self.object.clone()), name))?;

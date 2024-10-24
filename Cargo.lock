@@ -1505,6 +1505,7 @@ dependencies = [
  "chrono",
  "futures",
  "rquickjs",
+ "rquickjs-util",
  "tokio",
  "vaerdi",
 ]
@@ -1530,6 +1531,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
+ "form_urlencoded",
  "futures",
  "klaver",
  "klaver-shared",

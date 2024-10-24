@@ -1,8 +1,7 @@
 use futures::{stream::LocalBoxStream, TryStream};
 use klaver::shared::{
-    buffer::Buffer,
     iter::{AsyncIter, AsyncIterable, StreamContainer},
-    Static,
+    Buffer, Static,
 };
 use rquickjs::{class::Trace, prelude::Opt, Class, Ctx, FromJs, IntoJs, Value};
 use std::{cell::RefCell, rc::Rc};

@@ -1,6 +1,6 @@
 use futures::TryStreamExt;
 use klaver::{throw, throw_if};
-use klaver_shared::{buffer::Bytes, Static};
+use klaver_shared::{Bytes, Static};
 use reggie::Body;
 use reqwest::Version;
 use rquickjs::{

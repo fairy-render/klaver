@@ -1,3 +1,6 @@
+#[macro_use]
+mod macros;
+
 pub mod abort_controller;
 mod blob;
 pub mod console;
@@ -5,6 +8,7 @@ pub mod dom_exception;
 pub mod event_target;
 mod global;
 mod module;
+mod multimap;
 pub mod streams;
 
 #[cfg(feature = "crypto")]

@@ -14,6 +14,7 @@ http = [
   "reqwest",
   "url",
   "bytes",
+  "form_urlencoded",
 ]
 crypto = ["rand", "uuid", "sha1", "sha2"]
 
@@ -39,6 +40,7 @@ reggie = { git = "https://github.com/fairy-render/reggie", features = [
 serde_json = { version = "1", optional = true }
 reqwest = { version = "0.12", optional = true }
 url = { version = "2", optional = true }
+form_urlencoded = { version = "1", optional = true }
 
 ## Crypto
 rand = { version = "0.8", optional = true }

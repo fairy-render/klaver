@@ -1,6 +1,6 @@
 use core::fmt;
 use klaver::module_info;
-use klaver_shared::buffer::Buffer;
+use klaver_shared::Buffer;
 use rquickjs::{
     class::Trace,
     function::{Func, Opt},

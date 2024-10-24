@@ -1,7 +1,7 @@
 use rquickjs::{promise::PromiseState, Array, Ctx, FromJs, Function, Object, Type, Value};
 use std::fmt::Write;
 
-use crate::{buffer::Buffer, date::Date};
+use rquickjs_util::{Buffer, Date, Val};
 
 #[derive(Debug, Clone, Default)]
 pub struct FormatOptions {

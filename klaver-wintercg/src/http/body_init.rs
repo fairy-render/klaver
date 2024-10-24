@@ -1,4 +1,4 @@
-use klaver_shared::buffer::Buffer;
+use klaver_shared::Buffer;
 use rquickjs::{class::Trace, Class, Ctx, FromJs};
 
 use crate::streams::{One, ReadableStream};

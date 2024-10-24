@@ -225,3 +225,12 @@ impl<'js> fmt::Display for TypedArray<'js> {
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Bytes(pub Vec<u8>);
+
+impl<'js> IntoJs<'js> for Bytes {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
+        ArrayBuffer::new(ctx.clone(), self.0).map(|m| m.into_value())
+    }
+}

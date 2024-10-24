@@ -1,7 +1,7 @@
 mod digest;
 mod random;
 
-use klaver_shared::buffer::Buffer;
+use klaver_shared::Buffer;
 use rquickjs::{
     prelude::{Async, Func},
     Ctx, Object,

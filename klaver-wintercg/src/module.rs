@@ -13,6 +13,7 @@ use crate::{
     crypto,
     dom_exception::DOMException,
     event_target::{Emitter, Event, EventTarget},
+    http,
     performance::Performance,
     streams::{
         ByteLengthQueuingStrategy, CountQueuingStrategy, ReadableStream,
@@ -24,20 +25,10 @@ use crate::{
 use crate::encoding::{TextDecoder, TextEncoder};
 #[cfg(feature = "http")]
 use crate::http::{fetch, Client, Headers, Request, Response, Url};
-#[cfg(feature = "crypto")]
 
 pub struct Module;
 
 module_info!("@klaver/wintercg" => Module);
-
-macro_rules! export {
-    ($export: expr, $ctx: expr, $($instance: ty),*) => {
-        $(
-            let i = Class::<$instance>::create_constructor($ctx)?.expect(stringify!($instance));
-            $export.export(stringify!($instance), i)?;
-        )*
-    };
-}
 
 impl ModuleDef for Module {
     fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
@@ -65,14 +56,7 @@ impl ModuleDef for Module {
         }
 
         #[cfg(feature = "http")]
-        {
-            decl.declare(stringify!(Response))?;
-            decl.declare(stringify!(Request))?;
-            decl.declare(stringify!(Headers))?;
-            decl.declare(stringify!(URL))?;
-            decl.declare(stringify!(Client))?;
-            decl.declare(stringify!(fetch))?;
-        }
+        http::declare(decl)?;
 
         #[cfg(feature = "crypto")]
         crypto::declare(decl)?;
@@ -114,20 +98,7 @@ impl ModuleDef for Module {
         }
 
         #[cfg(feature = "http")]
-        {
-            export!(exports, ctx, Response, Request, Headers, Client);
-            exports.export("URL", Class::<Url>::create_constructor(&ctx)?)?;
-
-            let fetch = Func::new(Async(fetch))
-                .into_js(&ctx)?
-                .into_function()
-                .unwrap();
-
-            let client = Class::instance(ctx.clone(), Client::new(ctx.clone())?)?;
-            let fetch = fetch.bind(ctx.clone(), (ctx.globals(), client))?;
-
-            exports.export("fetch", fetch)?;
-        }
+        http::evaluate(ctx, exports)?;
 
         #[cfg(feature = "crypto")]
         crypto::evaluate(ctx, exports)?;

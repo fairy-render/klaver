@@ -1,4 +1,4 @@
-use klaver::{shared::buffer::Buffer, throw_if};
+use klaver::{shared::Buffer, throw_if};
 use rquickjs::{class::Trace, ArrayBuffer, Class, Ctx, FromJs};
 
 pub enum BlobInit<'js> {

@@ -1,11 +1,15 @@
 mod macros;
 
-mod buffer;
-mod date;
-mod map;
-mod set;
+pub mod buffer;
+pub mod date;
+pub mod iterator;
+pub mod map;
+pub mod set;
+pub mod typed_list;
+pub mod typed_map;
+mod util;
 #[cfg(feature = "vaerdi")]
-mod val;
+pub mod val;
 
 pub use self::{buffer::*, date::Date, map::*, set::*};
 

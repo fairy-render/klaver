@@ -1,7 +1,7 @@
 use klaver_shared::{
-    buffer::Buffer,
     iter::DynamicStream,
     util::{is_async_iterator, is_iterator, ObjectExt},
+    Buffer,
 };
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, prelude::This, Class, Ctx, FromJs, Function, Object,

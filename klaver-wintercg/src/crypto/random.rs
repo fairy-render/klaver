@@ -1,5 +1,5 @@
 use klaver::throw;
-use klaver_shared::buffer::TypedArray;
+use klaver_shared::TypedArray;
 use rand::RngCore;
 use rquickjs::Ctx;
 
