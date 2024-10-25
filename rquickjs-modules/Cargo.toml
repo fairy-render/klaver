@@ -1,0 +1,23 @@
+[package]
+name = "rquickjs-modules"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["transform"]
+transform = ["oxc"]
+
+
+[dependencies]
+rquickjs = { workspace = true, features = ["loader"] }
+rquickjs-util = { path = "../rquickjs-util" }
+oxc_resolver = { version = "2" }
+oxc = { version = "0.33", features = [
+  "transformer",
+  "codegen",
+  "sourcemap",
+  "semantic",
+], optional = true }
+relative-path = { version = "1" }
+
+samling = { git = "https://github.com/fairy-render/samling" }
