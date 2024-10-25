@@ -11,7 +11,7 @@ mod response;
 mod url;
 mod url_search_params;
 
-use klaver_shared::util::FunctionExt;
+use klaver_shared::{iterator::Iterable, util::FunctionExt};
 use rquickjs::{
     prelude::{Async, Func},
     Class, IntoJs,
@@ -47,6 +47,8 @@ pub fn evaluate<'js>(
         Client,
         URLSearchParams
     );
+    URLSearchParams::add_iterable_prototype(ctx)?;
+
     exports.export("URL", Class::<Url>::create_constructor(&ctx)?)?;
 
     let fetch = Func::new(Async(fetch))

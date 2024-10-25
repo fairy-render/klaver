@@ -1,6 +1,9 @@
 use rquickjs::{
-    atom::PredefinedAtom, function::Args, object, prelude::IntoArgs, Ctx, FromJs, Function,
-    IntoAtom, Object, Symbol, Value,
+    atom::PredefinedAtom,
+    function::Args,
+    object,
+    prelude::{IntoArgs, This},
+    Array, Ctx, FromJs, Function, IntoAtom, IntoJs, Object, Symbol, Value,
 };
 
 pub fn is_iterator(value: &Value<'_>) -> bool {
@@ -71,5 +74,24 @@ impl<'js> FunctionExt<'js> for Function<'js> {
         args.into_args(&mut a)?;
         a.this(self.clone())?;
         self.get::<_, Function>("bind")?.call_arg::<Function>(a)
+    }
+}
+
+pub trait ArrayExt<'js> {
+    fn push<V: IntoJs<'js>>(&self, value: V) -> rquickjs::Result<()>;
+    fn pop<V: FromJs<'js>>(&self) -> rquickjs::Result<Option<V>>;
+}
+
+impl<'js> ArrayExt<'js> for Array<'js> {
+    fn pop<V: FromJs<'js>>(&self) -> rquickjs::Result<Option<V>> {
+        self.as_object()
+            .get::<_, Function>("pop")?
+            .call((This(self.clone()),))
+    }
+
+    fn push<V: IntoJs<'js>>(&self, value: V) -> rquickjs::Result<()> {
+        self.as_object()
+            .get::<_, Function>("push")?
+            .call((This(self.clone()), value))
     }
 }

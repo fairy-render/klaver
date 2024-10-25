@@ -5,7 +5,7 @@ use rquickjs::{
     Function, IntoJs, Object, Value,
 };
 
-use crate::util::ObjectExt;
+use crate::util::{ArrayExt, ObjectExt};
 
 pub struct TypedList<'js, T> {
     i: Array<'js>,
@@ -30,8 +30,8 @@ where
         Ok(TypedList { i, ty: PhantomData })
     }
 
-    pub fn push(&self, ctx: Ctx<'js>, value: T) -> rquickjs::Result<()> {
-        self.i.as_object().call_property(ctx, "push", (value,))
+    pub fn push(&self, value: T) -> rquickjs::Result<()> {
+        self.i.push(value)
     }
 
     pub fn len(&self) -> usize {

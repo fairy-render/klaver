@@ -42,6 +42,8 @@ reqwest = { version = "0.12", optional = true }
 url = { version = "2", optional = true }
 form_urlencoded = { version = "1", optional = true }
 
+urlencoding = { version = "2" }
+
 ## Crypto
 rand = { version = "0.8", optional = true }
 uuid = { version = "1", features = ["v4"], optional = true }

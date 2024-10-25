@@ -50,8 +50,8 @@ where
         self.i.del(key)
     }
 
-    pub fn entries(&self, ctx: Ctx<'js>) -> rquickjs::Result<MapEntries<'js, K, T>> {
-        self.i.entries(ctx)
+    pub fn entries(&self) -> rquickjs::Result<MapEntries<'js, K, T>> {
+        self.i.entries()
     }
 
     pub fn clear(&self) -> rquickjs::Result<()> {

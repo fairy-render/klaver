@@ -64,7 +64,7 @@ fn from_js<'js>(
             } else if JsMap::is(ctx, &value)? {
                 let m = JsMap::from_js(ctx, value)?;
                 let mut map = Map::default();
-                for next in m.entries::<String, Val>(ctx.clone())? {
+                for next in m.entries::<String, Val>()? {
                     let (k, v) = next?;
                     map.insert(k, v.0);
                 }

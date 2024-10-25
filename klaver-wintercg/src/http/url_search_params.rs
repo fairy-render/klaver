@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
 
 use klaver_shared::{
-    iterator::JsIterator,
+    iterator::{Iterable, JsIterator, NativeIter},
     typed_list::TypedList,
     typed_map::TypedMap,
     util::{is_iterator, ObjectExt},
+    Entry,
 };
 use rquickjs::{
     atom::PredefinedAtom,
@@ -12,8 +13,9 @@ use rquickjs::{
     prelude::{Func, This},
     Array, Ctx, FromJs, Function, IntoJs, Object, Value,
 };
+use std::fmt::Write;
 
-use crate::multimap::JsMultiMap;
+use crate::multimap::{JsMultiMap, JsMultiMapIter};
 
 pub struct Pair<T, V> {
     first: T,
@@ -98,6 +100,18 @@ impl<'js> URLSearchParams<'js> {
         self.map.get(key)
     }
 
+    pub fn has(&self, key: rquickjs::String<'js>) -> rquickjs::Result<bool> {
+        self.map.has(key)
+    }
+
+    #[qjs(rename = "getAll")]
+    pub fn get_all(
+        &self,
+        key: rquickjs::String<'js>,
+    ) -> rquickjs::Result<Option<TypedList<'js, rquickjs::String<'js>>>> {
+        self.map.get_all(key)
+    }
+
     pub fn set(
         &self,
         ctx: Ctx<'js>,
@@ -114,5 +128,58 @@ impl<'js> URLSearchParams<'js> {
         value: rquickjs::String<'js>,
     ) -> rquickjs::Result<()> {
         self.map.append(ctx, key, value)
+    }
+
+    pub fn delete(&self, key: rquickjs::String<'js>) -> rquickjs::Result<()> {
+        self.map.delete(key)
+    }
+
+    pub fn entries(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        <URLSearchParams as Iterable>::entries(self)?.into_js(&ctx)
+    }
+
+    #[qjs(rename = "forEach")]
+    pub fn for_each(&self, func: Function<'js>) -> rquickjs::Result<()> {
+        let entries = self.map.entries()?;
+
+        for entry in entries {
+            let entry = entry?;
+            func.call::<_, ()>((entry,))?
+        }
+
+        Ok(())
+    }
+
+    #[qjs(rename = "toString")]
+    pub fn to_string(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<String> {
+        let entries = self.map.entries()?;
+        let mut output = String::new();
+        for (idx, entry) in entries.enumerate() {
+            if idx > 0 {
+                output.push('&');
+            }
+            let entry = entry?;
+            let key = entry.key.to_string()?;
+            let value = entry.value.to_string()?;
+            write!(
+                output,
+                "{}={}",
+                urlencoding::encode(&key),
+                urlencoding::encode(&value)
+            )
+            .expect("write to string");
+        }
+
+        Ok(output)
+    }
+}
+
+impl<'js> Iterable<'js> for URLSearchParams<'js> {
+    type Item = Entry<rquickjs::String<'js>, rquickjs::String<'js>>;
+
+    type Iter = JsMultiMapIter<'js, rquickjs::String<'js>, rquickjs::String<'js>>;
+
+    fn entries(&mut self) -> rquickjs::Result<klaver_shared::iterator::NativeIter<Self::Iter>> {
+        Ok(NativeIter::new(self.map.entries()?))
     }
 }

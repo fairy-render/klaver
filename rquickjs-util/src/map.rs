@@ -5,7 +5,7 @@ use rquickjs::{
     Object, Value,
 };
 
-use crate::util::ObjectExt;
+use crate::util::{ArrayExt, ObjectExt};
 
 #[derive(Debug, Trace, Clone, PartialEq, Eq)]
 pub struct Map<'js> {
@@ -63,20 +63,19 @@ impl<'js> Map<'js> {
         Ok(obj.is_instance_of(&map_ctor))
     }
 
-    pub fn entries<K, V>(&self, ctx: Ctx<'js>) -> rquickjs::Result<MapEntries<'js, K, V>>
+    pub fn entries<K, V>(&self) -> rquickjs::Result<MapEntries<'js, K, V>>
     where
         K: FromJs<'js>,
         V: FromJs<'js>,
     {
         let iter = self
             .object
-            .get::<_, Function>("get")?
+            .get::<_, Function>("entries")?
             .call::<_, Object>((This(self.object.clone()),))?;
 
-        let next = iter.get(PredefinedAtom::Next)?;
+        let next = iter.get::<_, Function>(PredefinedAtom::Next)?;
 
         Ok(MapEntries {
-            ctx,
             this: iter,
             next,
             extract: PhantomData,
@@ -117,7 +116,6 @@ impl<'js> IntoJs<'js> for Map<'js> {
 }
 
 pub struct MapEntries<'js, K, V> {
-    ctx: Ctx<'js>,
     this: Object<'js>,
     next: Function<'js>,
     extract: PhantomData<(K, V)>,
@@ -125,7 +123,6 @@ pub struct MapEntries<'js, K, V> {
 
 impl<'js, K, V> Trace<'js> for MapEntries<'js, K, V> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.ctx.trace(tracer);
         self.this.trace(tracer);
         self.next.trace(tracer);
     }
@@ -152,9 +149,9 @@ where
     }
 }
 
-struct Entry<K, V> {
-    key: K,
-    value: V,
+pub struct Entry<K, V> {
+    pub key: K,
+    pub value: V,
 }
 
 impl<'js, K, V> FromJs<'js> for Entry<K, V>
@@ -172,9 +169,33 @@ where
     }
 }
 
-struct Next<V> {
-    done: bool,
-    value: Option<V>,
+impl<'js, K, V> IntoJs<'js> for Entry<K, V>
+where
+    K: IntoJs<'js>,
+    V: IntoJs<'js>,
+{
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        let array = Array::new(ctx.clone())?;
+
+        array.push(self.key)?;
+        array.push(self.value)?;
+
+        Ok(array.into_value())
+    }
+}
+
+pub struct Next<V> {
+    pub done: bool,
+    pub value: Option<V>,
+}
+
+impl<'js, V> Trace<'js> for Next<V>
+where
+    V: Trace<'js>,
+{
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.value.trace(tracer);
+    }
 }
 
 impl<'js, V> FromJs<'js> for Next<V>
@@ -188,6 +209,20 @@ where
             done: obj.get(PredefinedAtom::Done)?,
             value: obj.get(PredefinedAtom::Value)?,
         })
+    }
+}
+
+impl<'js, V> IntoJs<'js> for Next<V>
+where
+    V: IntoJs<'js>,
+{
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        let object = Object::new(ctx.clone())?;
+
+        object.set(PredefinedAtom::Done, self.done)?;
+        object.set(PredefinedAtom::Value, self.value)?;
+
+        Ok(object.into_value())
     }
 }
 

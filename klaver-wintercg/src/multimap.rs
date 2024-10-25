@@ -1,4 +1,6 @@
-use klaver_shared::{iterator::JsIterator, typed_list::TypedList, typed_map::TypedMap, MapEntries};
+use klaver_shared::{
+    iterator::JsIterator, map::Entry, typed_list::TypedList, typed_map::TypedMap, MapEntries,
+};
 use rquickjs::{array::ArrayIter, class::Trace, Ctx, FromJs, IntoJs};
 
 pub struct JsMultiMap<'js, K, T> {
@@ -32,14 +34,14 @@ where
             array
         };
 
-        list.push(ctx.clone(), value)?;
+        list.push(value)?;
         Ok(())
     }
 
     pub fn set(&self, ctx: Ctx<'js>, key: K, value: T) -> rquickjs::Result<()> {
         let array = TypedList::new(ctx.clone())?;
-        array.push(ctx, value)?;
-        self.map.set(key, array);
+        array.push(value)?;
+        self.map.set(key, array)?;
         Ok(())
     }
 
@@ -51,12 +53,20 @@ where
         i.get(0)
     }
 
+    pub fn has(&self, key: K) -> rquickjs::Result<bool> {
+        self.map.has(key)
+    }
+
+    pub fn delete(&self, key: K) -> rquickjs::Result<()> {
+        self.map.del(key)
+    }
+
     pub fn get_all(&self, key: K) -> rquickjs::Result<Option<TypedList<'js, T>>> {
         self.map.get(key)
     }
 
-    pub fn entries(&self, ctx: Ctx<'js>) -> rquickjs::Result<JsMultiMapIter<'js, K, T>> {
-        let entries = self.map.entries(ctx)?;
+    pub fn entries(&self) -> rquickjs::Result<JsMultiMapIter<'js, K, T>> {
+        let entries = self.map.entries()?;
 
         Ok(JsMultiMapIter {
             iter: entries,
@@ -105,5 +115,19 @@ where
 
             return Ok(Some((key.clone(), next)));
         }
+    }
+}
+
+impl<'js, K, T> Iterator for JsMultiMapIter<'js, K, T>
+where
+    K: FromJs<'js> + Clone,
+    T: FromJs<'js> + IntoJs<'js>,
+{
+    type Item = rquickjs::Result<Entry<K, T>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Self::next(self)
+            .map(|m| m.map(|(k, v)| Entry { key: k, value: v }))
+            .transpose()
     }
 }
