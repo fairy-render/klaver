@@ -10,8 +10,8 @@ use klaver_shared::{
 use rquickjs::{
     atom::PredefinedAtom,
     class::Trace,
-    prelude::{Func, This},
-    Array, Ctx, FromJs, Function, IntoJs, Object, Value,
+    prelude::{Func, Opt, This},
+    Array, Class, Ctx, FromJs, Function, IntoJs, Object, Value,
 };
 use std::fmt::Write;
 
@@ -104,8 +104,16 @@ pub struct URLSearchParams<'js> {
 #[rquickjs::methods]
 impl<'js> URLSearchParams<'js> {
     #[qjs(constructor)]
-    pub fn new(init: URLSearchParamsInit<'js>) -> rquickjs::Result<URLSearchParams<'js>> {
-        Ok(URLSearchParams { map: init.map })
+    pub fn new(
+        ctx: Ctx<'js>,
+        init: Opt<URLSearchParamsInit<'js>>,
+    ) -> rquickjs::Result<URLSearchParams<'js>> {
+        let map = if let Some(init) = init.0 {
+            init.map
+        } else {
+            JsMultiMap::new(ctx)?
+        };
+        Ok(URLSearchParams { map })
     }
 
     pub fn get(

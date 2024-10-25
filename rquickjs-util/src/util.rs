@@ -80,6 +80,7 @@ impl<'js> FunctionExt<'js> for Function<'js> {
 pub trait ArrayExt<'js> {
     fn push<V: IntoJs<'js>>(&self, value: V) -> rquickjs::Result<()>;
     fn pop<V: FromJs<'js>>(&self) -> rquickjs::Result<Option<V>>;
+    fn join<T: FromJs<'js>, N: IntoJs<'js>>(&self, value: N) -> rquickjs::Result<T>;
 }
 
 impl<'js> ArrayExt<'js> for Array<'js> {
@@ -93,5 +94,27 @@ impl<'js> ArrayExt<'js> for Array<'js> {
         self.as_object()
             .get::<_, Function>("push")?
             .call((This(self.clone()), value))
+    }
+
+    fn join<T: FromJs<'js>, N: IntoJs<'js>>(&self, value: N) -> rquickjs::Result<T> {
+        self.as_object()
+            .get::<_, Function>("join")?
+            .call((This(self.clone()), value))
+    }
+}
+
+pub trait StringExt<'js> {
+    fn starts_with<K: IntoJs<'js>>(&self, ctx: Ctx<'js>, prefix: K) -> rquickjs::Result<bool>;
+    fn length(&self, ctx: Ctx<'js>) -> rquickjs::Result<usize>;
+}
+
+impl<'js> StringExt<'js> for rquickjs::String<'js> {
+    fn starts_with<K: IntoJs<'js>>(&self, ctx: Ctx<'js>, prefix: K) -> rquickjs::Result<bool> {
+        self.call_property(ctx, "startsWith", (prefix,))
+    }
+
+    fn length(&self, ctx: Ctx<'js>) -> rquickjs::Result<usize> {
+        ctx.eval::<Function, _>("(a) => a.length")?
+            .call((self.clone(),))
     }
 }

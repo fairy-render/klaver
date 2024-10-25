@@ -1,5 +1,10 @@
+use klaver::shared::util::StringExt;
 use klaver::throw_if;
-use rquickjs::{atom::PredefinedAtom, class::Trace, function::Opt, Class, Ctx, FromJs};
+use klaver_shared::{string::concat, util::ArrayExt};
+use rquickjs::{
+    atom::PredefinedAtom, class::Trace, function::Opt, Array, Atom, Class, Ctx, FromAtom, FromJs,
+    String as JsString,
+};
 
 use super::url_search_params::{URLSearchParams, URLSearchParamsInit};
 
@@ -64,10 +69,13 @@ impl<'js> Url<'js> {
         let i = throw_if!(ctx, url::Url::parse(&uri.to_string()));
         let search_params = Class::instance(
             ctx.clone(),
-            URLSearchParams::new(URLSearchParamsInit::from_str(
+            URLSearchParams::new(
                 ctx.clone(),
-                i.query().unwrap_or_default(),
-            )?)?,
+                Opt(Some(URLSearchParamsInit::from_str(
+                    ctx.clone(),
+                    i.query().unwrap_or_default(),
+                )?)),
+            )?,
         )?;
 
         Class::instance(ctx.clone(), Url { i, search_params })
@@ -103,10 +111,13 @@ impl<'js> Url<'js> {
 
         let search_params = Class::instance(
             ctx.clone(),
-            URLSearchParams::new(URLSearchParamsInit::from_str(
-                ctx,
-                i.query().unwrap_or_default(),
-            )?)?,
+            URLSearchParams::new(
+                ctx.clone(),
+                Opt(Some(URLSearchParamsInit::from_str(
+                    ctx,
+                    i.query().unwrap_or_default(),
+                )?)),
+            )?,
         )?;
 
         Ok(Url { i, search_params })
@@ -241,5 +252,189 @@ impl<'js> Url<'js> {
     #[qjs(rename = PredefinedAtom::ToJSON)]
     pub fn to_json(&self) -> rquickjs::Result<String> {
         self.href()
+    }
+}
+
+#[derive(Trace)]
+#[rquickjs::class]
+pub struct Url2<'js> {
+    #[qjs(get, set)]
+    protocol: JsString<'js>,
+    #[qjs(get, set)]
+    password: Option<JsString<'js>>,
+    #[qjs(get, set)]
+    hostname: Option<JsString<'js>>,
+    #[qjs(get, set)]
+    port: JsString<'js>,
+    pathname: JsString<'js>,
+    hash: JsString<'js>,
+    search: JsString<'js>,
+    #[qjs(get, rename = "searchParams")]
+    search_params: Class<'js, URLSearchParams<'js>>,
+}
+
+impl<'js> Url2<'js> {
+    pub fn to_stdstring(&self, ctx: Ctx<'js>) -> rquickjs::Result<String> {
+        self.get_href(ctx)?.to_string()
+    }
+    pub fn from_str(ctx: Ctx<'js>, url: &str) -> rquickjs::Result<Url2<'js>> {
+        let url = throw_if!(ctx, url::Url::parse(url));
+        Self::from_url(ctx, &url)
+    }
+
+    pub fn from_url(ctx: Ctx<'js>, url: &url::Url) -> rquickjs::Result<Url2<'js>> {
+        let hostname = if let Some(host) = url.host_str() {
+            Some(JsString::from_str(ctx.clone(), host)?)
+        } else {
+            None
+        };
+
+        let protocol = JsString::from_str(ctx.clone(), url.scheme())?;
+        let password = if let Some(password) = url.password() {
+            Some(JsString::from_str(ctx.clone(), password)?)
+        } else {
+            None
+        };
+
+        let empty_string = JsString::from_str(ctx.clone(), "")?;
+
+        let pathname = JsString::from_str(ctx.clone(), url.path())?;
+        let hash = if let Some(hash) = url.fragment() {
+            JsString::from_str(ctx.clone(), &format!("#{hash}"))?
+        } else {
+            empty_string.clone()
+        };
+
+        let port = if let Some(port) = url.port() {
+            JsString::from_str(ctx.clone(), &format!("{port}"))?
+        } else {
+            empty_string.clone()
+        };
+
+        let search = if let Some(search) = url.query() {
+            JsString::from_str(ctx.clone(), &format!("?{search}"))?
+        } else {
+            empty_string.clone()
+        };
+
+        let search_params = if let Some(query) = url.query() {
+            let sp = URLSearchParams::new(
+                ctx.clone(),
+                Opt(Some(URLSearchParamsInit::from_str(ctx.clone(), query)?)),
+            )?;
+            Class::instance(ctx.clone(), sp)?
+        } else {
+            Class::instance(ctx.clone(), URLSearchParams::new(ctx.clone(), Opt(None))?)?
+        };
+
+        Ok(Url2 {
+            protocol,
+            password,
+            hostname,
+            port,
+            pathname,
+            hash,
+            search,
+            search_params,
+        })
+    }
+
+    pub fn from_reggie(
+        ctx: &Ctx<'js>,
+        uri: &reggie::http::Uri,
+    ) -> rquickjs::Result<Class<'js, Url2<'js>>> {
+        let i = throw_if!(ctx, url::Url::parse(&uri.to_string()));
+        Class::instance(ctx.clone(), Self::from_url(ctx.clone(), &i)?)
+    }
+}
+
+#[rquickjs::methods]
+impl<'js> Url2<'js> {
+    #[qjs(constructor)]
+    pub fn new(
+        ctx: Ctx<'js>,
+        url: StringOrUrl<'js>,
+        base: Opt<StringOrUrl<'js>>,
+    ) -> rquickjs::Result<Url2<'js>> {
+        let i = if let Some(base) = base.0 {
+            match base {
+                StringOrUrl::String(s) => {
+                    let out = throw_if!(ctx, url::Url::parse(&s.to_string()?));
+                    throw_if!(ctx, out.join(&url.as_str()?))
+                }
+                StringOrUrl::Url(b) => {
+                    throw_if!(ctx, b.borrow().i.join(&url.as_str()?))
+                }
+            }
+        } else {
+            match url {
+                StringOrUrl::String(s) => {
+                    throw_if!(ctx, url::Url::parse(&s.to_string()?))
+                }
+                StringOrUrl::Url(url) => url.borrow().i.clone(),
+            }
+        };
+
+        Url2::from_url(ctx, &i)
+    }
+
+    #[qjs(get, rename = "pathname")]
+    pub fn get_pathname(&self) -> rquickjs::Result<JsString<'js>> {
+        Ok(self.pathname.clone())
+    }
+
+    #[qjs(set, rename = "pathname")]
+    pub fn set_pathname(&mut self, ctx: Ctx<'js>, mut path: JsString<'js>) -> rquickjs::Result<()> {
+        let sep = JsString::from_atom(Atom::from_str(ctx.clone(), "/")?)?;
+        if !path.starts_with(ctx.clone(), sep.clone())? {
+            path = concat(ctx.clone(), sep, path)?;
+        }
+
+        self.pathname = path;
+
+        Ok(())
+    }
+
+    #[qjs(get, rename = "host")]
+    pub fn get_host(&self, ctx: Ctx<'js>) -> rquickjs::Result<Option<JsString<'js>>> {
+        if self.port.length(ctx.clone())? != 0 {
+            let output = Array::new(ctx.clone())?;
+            output.push(self.hostname.clone())?;
+            output.push(":")?;
+            output.push(self.port.clone())?;
+            return output.join("");
+        }
+
+        Ok(self.hostname.clone())
+    }
+
+    #[qjs(get, rename = "href")]
+    pub fn get_href(&self, ctx: Ctx<'js>) -> rquickjs::Result<JsString<'js>> {
+        let output = Array::new(ctx.clone())?;
+
+        output.push(self.protocol.clone())?;
+        output.push("://")?;
+
+        output.push(self.hostname.clone())?;
+        if self.port.length(ctx.clone())? != 0 {
+            output.push(":")?;
+            output.push(self.port.clone())?;
+        }
+
+        output.push(self.pathname.clone())?;
+        output.push(self.hash.clone())?;
+        output.push(self.search.clone())?;
+
+        output.join("")
+    }
+
+    #[qjs(rename = PredefinedAtom::ToString)]
+    pub fn to_string(&self, ctx: Ctx<'js>) -> rquickjs::Result<JsString<'js>> {
+        self.get_href(ctx)
+    }
+
+    #[qjs(rename = PredefinedAtom::ToJSON)]
+    pub fn to_json(&self, ctx: Ctx<'js>) -> rquickjs::Result<JsString<'js>> {
+        self.get_href(ctx)
     }
 }

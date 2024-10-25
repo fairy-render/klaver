@@ -31,13 +31,13 @@ pub async fn init(ctx: &Ctx<'_>) -> Result<(), klaver::Error> {
     let console = Class::instance(ctx.clone(), Console::new());
     ctx.globals().set("console", console)?;
 
-    ctx.globals().set(
-        "performance",
-        Class::instance(
-            ctx.clone(),
-            klaver_shared::performance::JsPerformance::new(),
-        )?,
-    )?;
+    // ctx.globals().set(
+    //     "performance",
+    //     Class::instance(
+    //         ctx.clone(),
+    //         klaver_shared::performance::JsPerformance::new(),
+    //     )?,
+    // )?;
 
     ctx.eval_promise(r#"await (await import("@klaver/compat")).default(globalThis)"#)
         .catch(&ctx)?

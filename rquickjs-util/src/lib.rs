@@ -5,9 +5,10 @@ pub mod date;
 pub mod iterator;
 pub mod map;
 pub mod set;
+pub mod string;
 pub mod typed_list;
 pub mod typed_map;
-mod util;
+pub mod util;
 #[cfg(feature = "vaerdi")]
 pub mod val;
 
