@@ -1394,6 +1394,7 @@ dependencies = [
  "klaver-encoding",
  "klaver-http",
  "klaver-shared",
+ "rquickjs-util",
 ]
 
 [[package]]

@@ -44,6 +44,21 @@ pub struct URLSearchParamsInit<'js> {
     map: JsMultiMap<'js, rquickjs::String<'js>, rquickjs::String<'js>>,
 }
 
+impl<'js> URLSearchParamsInit<'js> {
+    pub fn from_str(ctx: Ctx<'js>, qs: &str) -> rquickjs::Result<URLSearchParamsInit<'js>> {
+        let iter = form_urlencoded::parse(qs.as_bytes());
+        let map = JsMultiMap::new(ctx.clone())?;
+
+        for (first, next) in iter {
+            let first = rquickjs::String::from_str(ctx.clone(), &*first)?;
+            let second = rquickjs::String::from_str(ctx.clone(), &*next)?;
+
+            map.append(ctx.clone(), first, second)?;
+        }
+        Ok(URLSearchParamsInit { map })
+    }
+}
+
 impl<'js> FromJs<'js> for URLSearchParamsInit<'js> {
     fn from_js(ctx: &rquickjs::Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
         let map = if let Ok(qs) = String::from_js(ctx, value.clone()) {

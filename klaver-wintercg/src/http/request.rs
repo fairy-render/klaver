@@ -51,7 +51,7 @@ impl<'js> FromJs<'js> for RequestInit<'js> {
 #[rquickjs::class]
 pub struct Request<'js> {
     #[qjs(get)]
-    url: Class<'js, Url>,
+    url: Class<'js, Url<'js>>,
     #[qjs(get)]
     method: Method,
     #[qjs(get)]

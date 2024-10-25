@@ -66,8 +66,8 @@
 // }
 
 const hashBuffer = await crypto.subtle.digest(
-  "sha1",
-  new TextEncoder().encode("Hello, World!")
+	"sha1",
+	new TextEncoder().encode("Hello, World!"),
 );
 
 const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
@@ -75,6 +75,10 @@ const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join(""); 
 
 console.log(hashHex);
 
-const url = new URLSearchParams("hello=world");
+const url = new URLSearchParams("hello=world&test=rapper");
 
 console.log(url.toString());
+
+for (const pair of url) {
+	console.log(pair);
+}

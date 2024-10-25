@@ -4,7 +4,7 @@ use super::{request::RequestInit, url::StringOrUrl, Client, Request, Response, U
 
 pub enum FetchResource<'js> {
     String(rquickjs::String<'js>),
-    Url(Class<'js, Url>),
+    Url(Class<'js, Url<'js>>),
     Request(Class<'js, Request<'js>>),
 }
 

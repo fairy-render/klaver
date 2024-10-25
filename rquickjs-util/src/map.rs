@@ -5,7 +5,7 @@ use rquickjs::{
     Object, Value,
 };
 
-use crate::util::{ArrayExt, ObjectExt};
+use crate::util::{ArrayExt, FunctionExt, ObjectExt};
 
 #[derive(Debug, Trace, Clone, PartialEq, Eq)]
 pub struct Map<'js> {
@@ -73,7 +73,9 @@ impl<'js> Map<'js> {
             .get::<_, Function>("entries")?
             .call::<_, Object>((This(self.object.clone()),))?;
 
-        let next = iter.get::<_, Function>(PredefinedAtom::Next)?;
+        let next = iter
+            .get::<_, Function>(PredefinedAtom::Next)?
+            .bind(self.object.ctx().clone(), (iter.clone(),))?;
 
         Ok(MapEntries {
             this: iter,

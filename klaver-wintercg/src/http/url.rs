@@ -1,9 +1,11 @@
 use klaver::throw_if;
 use rquickjs::{atom::PredefinedAtom, class::Trace, function::Opt, Class, Ctx, FromJs};
 
+use super::url_search_params::{URLSearchParams, URLSearchParamsInit};
+
 pub enum StringOrUrl<'js> {
     String(rquickjs::String<'js>),
-    Url(Class<'js, Url>),
+    Url(Class<'js, Url<'js>>),
 }
 
 impl<'js> StringOrUrl<'js> {
@@ -14,7 +16,7 @@ impl<'js> StringOrUrl<'js> {
         }
     }
 
-    pub fn to_url(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, Url>> {
+    pub fn to_url(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, Url<'js>>> {
         match self {
             StringOrUrl::String(s) => Class::instance(
                 ctx.clone(),
@@ -37,38 +39,49 @@ impl<'js> FromJs<'js> for StringOrUrl<'js> {
     }
 }
 
-#[derive(Debug)]
 #[rquickjs::class(rename = "URL")]
-pub struct Url {
+pub struct Url<'js> {
     i: url::Url,
+    #[qjs(rename = "searchParams")]
+    search_params: Class<'js, URLSearchParams<'js>>,
 }
 
-impl<'js> Trace<'js> for Url {
-    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
+impl<'js> Trace<'js> for Url<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.search_params.trace(tracer)
+    }
 }
 
-impl Url {
+impl<'js> Url<'js> {
     pub fn url(&self) -> &url::Url {
         &self.i
     }
 
-    pub fn from_reggie<'js>(
+    pub fn from_reggie(
         ctx: &Ctx<'js>,
         uri: &reggie::http::Uri,
-    ) -> rquickjs::Result<Class<'js, Url>> {
+    ) -> rquickjs::Result<Class<'js, Url<'js>>> {
         let i = throw_if!(ctx, url::Url::parse(&uri.to_string()));
-        Class::instance(ctx.clone(), Url { i })
+        let search_params = Class::instance(
+            ctx.clone(),
+            URLSearchParams::new(URLSearchParamsInit::from_str(
+                ctx.clone(),
+                i.query().unwrap_or_default(),
+            )?)?,
+        )?;
+
+        Class::instance(ctx.clone(), Url { i, search_params })
     }
 }
 
 #[rquickjs::methods]
-impl Url {
+impl<'js> Url<'js> {
     #[qjs(constructor)]
-    pub fn new<'js>(
+    pub fn new(
         ctx: Ctx<'js>,
         url: StringOrUrl<'js>,
         base: Opt<StringOrUrl<'js>>,
-    ) -> rquickjs::Result<Url> {
+    ) -> rquickjs::Result<Url<'js>> {
         let i = if let Some(base) = base.0 {
             match base {
                 StringOrUrl::String(s) => {
@@ -88,7 +101,15 @@ impl Url {
             }
         };
 
-        Ok(Url { i })
+        let search_params = Class::instance(
+            ctx.clone(),
+            URLSearchParams::new(URLSearchParamsInit::from_str(
+                ctx,
+                i.query().unwrap_or_default(),
+            )?)?,
+        )?;
+
+        Ok(Url { i, search_params })
     }
 
     #[qjs(get, rename = "hash")]
