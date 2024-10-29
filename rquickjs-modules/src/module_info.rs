@@ -42,8 +42,8 @@ impl<'a, M: ModuleInfo> ModuleBuilder<'a, M> {
             .insert(M::NAME.to_string(), ModulesBuilder::load_func::<T>);
     }
 
-    pub fn register_src(&mut self, source: Vec<u8>) -> &mut Self {
-        self.modules.register_src(M::NAME.to_string(), source);
+    pub fn register_source(&mut self, source: Vec<u8>) -> &mut Self {
+        self.modules.register_source(M::NAME.to_string(), source);
         self
     }
 }

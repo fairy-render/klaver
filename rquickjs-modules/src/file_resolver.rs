@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use oxc_resolver::{Alias, AliasValue, ResolveOptions};
-use relative_path::{RelativePath, RelativePathBuf};
+use oxc_resolver::{AliasValue, ResolveOptions};
 use rquickjs::loader::Resolver;
 
 pub struct ModuleResolver {
@@ -10,31 +9,26 @@ pub struct ModuleResolver {
 }
 
 impl ModuleResolver {
-    pub fn new() -> ModuleResolver {
-        let options = ResolveOptions {
-            alias: vec![(
-                "@".to_string(),
-                vec![AliasValue::Path(
-                    std::env::current_dir()
-                        .unwrap()
-                        .join("rquickjs-modules/examples/nested/")
-                        .display()
-                        .to_string(),
-                )],
-            )],
-            extensions: vec![
-                ".js".to_string(),
-                ".ts".to_string(),
-                ".tsx".to_string(),
-                ".jsx".to_string(),
-            ],
-            ..Default::default()
-        };
-
+    pub fn new_with(work_dir: PathBuf, options: ResolveOptions) -> ModuleResolver {
         ModuleResolver {
             resolver: oxc_resolver::Resolver::new(options),
-            work_dir: std::env::current_dir().unwrap(),
+            work_dir,
         }
+    }
+    pub fn new() -> ModuleResolver {
+        Self::new_with(
+            std::env::current_dir().unwrap(),
+            ResolveOptions {
+                #[cfg(feature = "transform")]
+                extensions: vec![
+                    ".js".to_string(),
+                    ".ts".to_string(),
+                    ".tsx".to_string(),
+                    ".jsx".to_string(),
+                ],
+                ..Default::default()
+            },
+        )
     }
 }
 
@@ -50,7 +44,7 @@ impl Resolver for ModuleResolver {
         let parent = if base == "" {
             self.work_dir.as_path()
         } else {
-            Path::new(base).parent().unwrap()
+            Path::new(base).parent().expect("parent")
         };
 
         let resolution = self

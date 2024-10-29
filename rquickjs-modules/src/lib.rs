@@ -1,6 +1,8 @@
 mod file_resolver;
-mod global_info;
+// mod global_info;
+mod loader;
 mod module_info;
+mod modules;
 mod modules_builder;
 #[cfg(feature = "transform")]
 mod transformer;

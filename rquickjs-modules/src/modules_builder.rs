@@ -16,11 +16,6 @@ pub(crate) struct ModulesBuilder {
     pub resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
     pub loaders: Vec<Box<dyn Loader + Send + Sync>>,
     pub routes: samling::SyncComposite,
-
-    #[cfg(feature = "typescript")]
-    jsx_import_source: Option<String>,
-    #[cfg(feature = "typescript")]
-    ts_decorators: bool,
 }
 
 impl ModulesBuilder {
@@ -41,7 +36,7 @@ impl ModulesBuilder {
         self
     }
 
-    pub fn register_src(&mut self, name: impl ToString, source: Vec<u8>) {
+    pub fn register_source(&mut self, name: impl ToString, source: Vec<u8>) {
         self.modules_src.insert(name.to_string(), source);
     }
 

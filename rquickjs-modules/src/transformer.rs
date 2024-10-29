@@ -26,11 +26,22 @@ impl fmt::Display for CompileError {
     }
 }
 
+impl CompileError {
+    fn from(source_name: &str, source_text: &str, errors: Vec<OxcDiagnostic>) -> CompileError {
+        CompileError {
+            reports: errors
+                .into_iter()
+                .map(|m| m.with_source_code(NamedSource::new(source_name, source_text.to_string())))
+                .collect(),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Compiler {
-    parse_options: ParseOptions,
-    transform_options: TransformOptions,
-    codegen_options: CodegenOptions,
+    pub parse_options: ParseOptions,
+    pub transform_options: TransformOptions,
+    pub codegen_options: CodegenOptions,
 }
 
 impl Compiler {
@@ -60,8 +71,6 @@ impl Compiler {
         Ok(ret.program)
     }
 
-    fn transform<'a>(&self, program: Program<'a>) {}
-
     fn compile(&self, source: &str, path: &str) -> Result<CodegenReturn, CompileError> {
         let allocator = Allocator::default();
 
@@ -75,12 +84,7 @@ impl Compiler {
             .build(&program);
 
         if !ret.errors.is_empty() {
-            println!("Semantic Errors:");
-            for error in ret.errors {
-                let error = error.with_source_code(NamedSource::new(path, source.to_string()));
-                println!("{error:?}");
-            }
-            panic!()
+            return Err(CompileError::from(path, source, ret.errors));
         }
 
         let (symbols, scopes) = ret.semantic.into_symbol_table_and_scope_tree();
@@ -89,11 +93,7 @@ impl Compiler {
             .build_with_symbols_and_scopes(symbols, scopes, &mut program);
 
         if !ret.errors.is_empty() {
-            println!("Transformer Errors:");
-            for error in ret.errors {
-                let error = error.with_source_code(NamedSource::new(path, source.to_string()));
-                println!("{error:?}");
-            }
+            return Err(CompileError::from(path, source, ret.errors));
         }
 
         let ret = CodeGenerator::new()
@@ -107,6 +107,12 @@ impl Compiler {
 #[derive(Default)]
 pub struct FileLoader {
     compiler: Compiler,
+}
+
+impl FileLoader {
+    pub fn new(compiler: Compiler) -> FileLoader {
+        FileLoader { compiler }
+    }
 }
 
 impl Loader for FileLoader {

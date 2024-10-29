@@ -19,5 +19,6 @@ oxc = { version = "0.33", features = [
   "semantic",
 ], optional = true }
 relative-path = { version = "1" }
+parking_lot = { version = "0.12" }
 
 samling = { git = "https://github.com/fairy-render/samling" }

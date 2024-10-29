@@ -3030,6 +3030,7 @@ version = "0.1.0"
 dependencies = [
  "oxc",
  "oxc_resolver",
+ "parking_lot",
  "relative-path",
  "rquickjs",
  "rquickjs-util",
