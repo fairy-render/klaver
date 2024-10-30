@@ -6,15 +6,12 @@ use crate::{modules_builder::ModulesBuilder, types::Typings};
 
 pub struct ModuleBuilder<'a, M> {
     modules: &'a mut ModulesBuilder,
-    typings: &'a mut Vec<Typings>,
+    typings: &'a mut Typings,
     module: PhantomData<M>,
 }
 
 impl<'a, M: ModuleInfo> ModuleBuilder<'a, M> {
-    pub fn new(
-        modules: &'a mut ModulesBuilder,
-        typings: &'a mut Vec<Typings>,
-    ) -> ModuleBuilder<'a, M> {
+    pub fn new(modules: &'a mut ModulesBuilder, typings: &'a mut Typings) -> ModuleBuilder<'a, M> {
         ModuleBuilder {
             modules,
             typings,
@@ -29,10 +26,7 @@ impl<'a, M: ModuleInfo> ModuleBuilder<'a, M> {
             module: PhantomData,
         });
         if let Some(typings) = T::typings() {
-            self.typings.push(Typings {
-                name: Cow::Borrowed(T::NAME),
-                typings,
-            });
+            self.typings.add_module(T::NAME, typings);
         }
     }
 

@@ -11,8 +11,10 @@ use oxc::{
     span::SourceType,
     transformer::{TransformOptions, Transformer},
 };
-use rquickjs::loader::Loader;
 
+use crate::loader::Loader;
+
+#[derive(Debug)]
 pub struct CompileError {
     reports: Vec<Error>,
 }
@@ -71,7 +73,7 @@ impl Compiler {
         Ok(ret.program)
     }
 
-    fn compile(&self, source: &str, path: &str) -> Result<CodegenReturn, CompileError> {
+    pub fn compile(&self, source: &str, path: &str) -> Result<CodegenReturn, CompileError> {
         let allocator = Allocator::default();
 
         let source_type = SourceType::from_path(path).unwrap();
@@ -117,7 +119,7 @@ impl FileLoader {
 
 impl Loader for FileLoader {
     fn load<'js>(
-        &mut self,
+        &self,
         ctx: &rquickjs::Ctx<'js>,
         name: &str,
     ) -> rquickjs::Result<rquickjs::Module<'js, rquickjs::module::Declared>> {

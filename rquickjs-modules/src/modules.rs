@@ -13,7 +13,16 @@ struct ModulesInner {
 pub struct Modules(Arc<ModulesInner>);
 
 impl Modules {
-    pub(crate) async fn attach<T: Runtime>(&self, runtime: &T) -> rquickjs::Result<()> {
+    pub fn new(
+        resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
+        loaders: Vec<Box<dyn Loader + Send + Sync>>,
+    ) -> Modules {
+        Modules(Arc::new(ModulesInner { resolvers, loaders }))
+    }
+}
+
+impl Modules {
+    pub async fn attach<T: Runtime>(&self, runtime: &T) -> rquickjs::Result<()> {
         runtime.set_loader(self.clone(), self.clone()).await;
         Ok(())
     }

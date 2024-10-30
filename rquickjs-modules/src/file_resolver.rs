@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use oxc_resolver::{AliasValue, ResolveOptions};
-use rquickjs::loader::Resolver;
+use oxc_resolver::ResolveOptions;
+
+use crate::loader::Resolver;
 
 pub struct ModuleResolver {
     resolver: oxc_resolver::Resolver,
@@ -36,7 +37,7 @@ impl ModuleResolver {}
 
 impl Resolver for ModuleResolver {
     fn resolve<'js>(
-        &mut self,
+        &self,
         ctx: &rquickjs::Ctx<'js>,
         base: &str,
         name: &str,

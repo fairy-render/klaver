@@ -1,8 +1,19 @@
+use oxc::transformer::JsxOptions;
 use rquickjs::{prelude::Func, CatchResultExt, Context, Module, Runtime};
-use rquickjs_modules::{FileLoader, ModuleResolver};
+use rquickjs_modules::{
+    transformer::{Compiler, FileLoader},
+    Builder, ModuleResolver,
+};
 
 fn main() -> rquickjs::Result<()> {
     let runtime = Runtime::new()?;
+
+    let compiler = Compiler::default();
+    // compiler.transform_options.
+
+    let builder = Builder::default();
+
+    let env = builder.build();
 
     runtime.set_loader(ModuleResolver::new(), FileLoader::default());
 

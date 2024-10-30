@@ -1,19 +1,22 @@
-use std::{borrow::Cow, marker::PhantomData};
+use std::{borrow::Cow, future::Future, marker::PhantomData, pin::Pin};
 
-use crate::{module_info::ModuleInfo, modules_builder::ModulesBuilder, types::Typings};
+use rquickjs::Ctx;
 
-pub struct ModuleBuilder<'a, M> {
+use crate::{
+    module_info::{ModuleBuilder, ModuleInfo},
+    modules_builder::ModulesBuilder,
+    types::Typings,
+};
+
+pub struct GlobalBuilder<'a, M> {
     modules: &'a mut ModulesBuilder,
-    typings: &'a mut Vec<Typings>,
+    typings: &'a mut Typings,
     module: PhantomData<M>,
 }
 
-impl<'a, M: GlobalInfo> ModuleBuilder<'a, M> {
-    pub fn new(
-        modules: &'a mut ModulesBuilder,
-        typings: &'a mut Vec<Typings>,
-    ) -> ModuleBuilder<'a, M> {
-        ModuleBuilder {
+impl<'a, M: GlobalInfo> GlobalBuilder<'a, M> {
+    pub fn new(modules: &'a mut ModulesBuilder, typings: &'a mut Typings) -> GlobalBuilder<'a, M> {
+        GlobalBuilder {
             modules,
             typings,
             module: PhantomData,
@@ -21,32 +24,65 @@ impl<'a, M: GlobalInfo> ModuleBuilder<'a, M> {
     }
 
     pub fn dependency<T: ModuleInfo>(&mut self) {
-        T::register(&mut ModuleBuilder {
-            modules: self.modules,
-            typings: self.typings,
-            module: PhantomData,
-        });
+        T::register(&mut ModuleBuilder::new(self.modules, self.typings));
         if let Some(typings) = T::typings() {
-            self.typings.push(Typings {
-                name: Cow::Borrowed(T::NAME),
-                typings,
-            });
+            self.typings.add_module(T::NAME, typings);
         }
     }
 
-    // pub fn register<T: ModuleDef>(&mut self) {
-    //     self.modules
-    //         .modules
-    //         .insert(M::NAME.to_string(), ModulesBuilder::load_func::<T>);
-    // }
+    pub fn global_dependency<T: GlobalInfo>(&mut self) {
+        T::register(&mut GlobalBuilder::new(self.modules, self.typings));
+        if let Some(typings) = T::typings() {
+            self.typings.add_global(typings);
+        }
+    }
 
-    pub fn register_source(&mut self, source: Vec<u8>) -> &mut Self {
-        self.modules.register_source(M::NAME.to_string(), source);
-        self
+    pub fn register<T: Global + Send + Sync + 'static>(&mut self, global: T) {
+        self.modules.register_global(global);
     }
 }
 
-pub trait GlobalInfo {
-    fn register(&self);
-    fn typings(&self) -> Option<Typings>;
+pub trait GlobalInfo: Sized {
+    fn register(builder: &mut GlobalBuilder<'_, Self>);
+    fn typings() -> Option<Cow<'static, str>>;
+}
+
+pub trait Global {
+    fn define<'a, 'js: 'a>(
+        &'a self,
+        ctx: Ctx<'js>,
+    ) -> impl Future<Output = rquickjs::Result<()>> + 'a;
+}
+
+impl<T> Global for T
+where
+    for<'js> T: Fn(Ctx<'js>) -> rquickjs::Result<()>,
+{
+    fn define<'a, 'js: 'a>(
+        &'a self,
+        ctx: Ctx<'js>,
+    ) -> impl Future<Output = rquickjs::Result<()>> + 'a {
+        async move { (self)(ctx) }
+    }
+}
+
+pub(crate) trait DynamicGlobal {
+    fn define<'a, 'js: 'a>(
+        &'a self,
+        ctx: Ctx<'js>,
+    ) -> Pin<Box<dyn Future<Output = rquickjs::Result<()>> + 'a>>;
+}
+
+pub(crate) struct GlobalBox<T>(pub T);
+
+impl<T> DynamicGlobal for GlobalBox<T>
+where
+    T: Global,
+{
+    fn define<'a, 'js: 'a>(
+        &'a self,
+        ctx: Ctx<'js>,
+    ) -> Pin<Box<dyn Future<Output = rquickjs::Result<()>> + 'a>> {
+        Box::pin(async move { self.define(ctx).await })
+    }
 }

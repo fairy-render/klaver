@@ -7,8 +7,11 @@ use rquickjs::{
 };
 use samling::{File, FileStore};
 
-type LoadFn = for<'js> fn(Ctx<'js>, Vec<u8>) -> rquickjs::Result<Module<'js>>;
+use crate::global_info::{DynamicGlobal, Global, GlobalBox, GlobalInfo};
 
+pub type LoadFn = for<'js> fn(Ctx<'js>, Vec<u8>) -> rquickjs::Result<Module<'js>>;
+
+#[derive(Default)]
 pub(crate) struct ModulesBuilder {
     pub modules: HashMap<String, LoadFn>,
     pub modules_src: HashMap<String, Vec<u8>>,
@@ -16,6 +19,7 @@ pub(crate) struct ModulesBuilder {
     pub resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
     pub loaders: Vec<Box<dyn Loader + Send + Sync>>,
     pub routes: samling::SyncComposite,
+    pub globals: Vec<Box<dyn DynamicGlobal + Send + Sync>>,
 }
 
 impl ModulesBuilder {
@@ -28,6 +32,11 @@ impl ModulesBuilder {
 
     pub fn contains(&self, name: &str) -> bool {
         self.modules.contains_key(name) || self.modules_src.contains_key(name)
+    }
+
+    pub fn register_global<T: Global + Send + Sync + 'static>(&mut self, global: T) -> &mut Self {
+        self.globals.push(Box::new(GlobalBox(global)));
+        self
     }
 
     pub fn register<T: ModuleDef>(&mut self, name: impl ToString) -> &mut Self {
@@ -69,4 +78,6 @@ impl ModulesBuilder {
         self.resolvers.push(Box::new(resolver));
         self
     }
+
+    pub fn build(self) {}
 }
