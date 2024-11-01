@@ -51,6 +51,12 @@ impl Builder {
         self
     }
 
+    #[cfg(feature = "transform")]
+    pub fn compiler(mut self, compiler: Compiler) -> Self {
+        self.compiler = Some(compiler);
+        self
+    }
+
     pub fn module<M: ModuleInfo>(mut self) -> Self {
         M::register(&mut ModuleBuilder::new(
             &mut self.modules,

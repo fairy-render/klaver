@@ -3028,6 +3028,7 @@ dependencies = [
 name = "rquickjs-modules"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "oxc",
  "oxc_resolver",
  "parking_lot",

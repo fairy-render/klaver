@@ -44,7 +44,9 @@ impl<'a, M: GlobalInfo> GlobalBuilder<'a, M> {
 
 pub trait GlobalInfo: Sized {
     fn register(builder: &mut GlobalBuilder<'_, Self>);
-    fn typings() -> Option<Cow<'static, str>>;
+    fn typings() -> Option<Cow<'static, str>> {
+        None
+    }
 }
 
 pub trait Global {
@@ -83,6 +85,6 @@ where
         &'a self,
         ctx: Ctx<'js>,
     ) -> Pin<Box<dyn Future<Output = rquickjs::Result<()>> + 'a>> {
-        Box::pin(async move { self.define(ctx).await })
+        Box::pin(async move { self.0.define(ctx).await })
     }
 }

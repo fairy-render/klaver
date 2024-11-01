@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use oxc_resolver::ResolveOptions;
+use relative_path::RelativePath;
+use samling::FileStore;
 
 use crate::loader::Resolver;
 
