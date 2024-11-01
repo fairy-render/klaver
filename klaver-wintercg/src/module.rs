@@ -11,15 +11,14 @@ use crate::{
     blob::Blob,
     config::WinterCG,
     console::Console,
-    crypto,
     dom_exception::DOMException,
     event_target::{Emitter, Event, EventTarget},
-    http,
     performance::Performance,
     streams::{
         ByteLengthQueuingStrategy, CountQueuingStrategy, ReadableStream,
         ReadableStreamDefaultReader,
     },
+    timers,
 };
 
 #[cfg(feature = "encoding")]
@@ -47,6 +46,8 @@ impl ModuleDef for Module {
         decl.declare(stringify!(CountQueuingStrategy))?;
         decl.declare(stringify!(ByteLengthQueuingStrategy))?;
 
+        timers::declare(decl)?;
+
         #[cfg(feature = "encoding")]
         {
             decl.declare("TextDecoder")?;
@@ -56,10 +57,10 @@ impl ModuleDef for Module {
         }
 
         #[cfg(feature = "http")]
-        http::declare(decl)?;
+        crate::http::declare(decl)?;
 
         #[cfg(feature = "crypto")]
-        crypto::declare(decl)?;
+        crate::crypto::declare(decl)?;
 
         Ok(())
     }
@@ -93,6 +94,8 @@ impl ModuleDef for Module {
         );
         ReadableStream::add_async_iterable_prototype(ctx)?;
 
+        timers::evaluate(ctx, exports, &config)?;
+
         #[cfg(feature = "encoding")]
         {
             export!(exports, ctx, TextEncoder, TextDecoder);
@@ -101,10 +104,10 @@ impl ModuleDef for Module {
         }
 
         #[cfg(feature = "http")]
-        http::evaluate(ctx, exports, &config)?;
+        crate::http::evaluate(ctx, exports, &config)?;
 
         #[cfg(feature = "crypto")]
-        crypto::evaluate(ctx, exports)?;
+        crate::crypto::evaluate(ctx, exports)?;
 
         Ok(())
     }

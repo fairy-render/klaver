@@ -1,8 +1,9 @@
+use klaver_wintercg::wait_timers;
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Module};
 use rquickjs_modules::Builder;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), rquickjs::Error> {
+async fn main() -> Result<(), klaver_wintercg::RuntimeError> {
     let runtime = AsyncRuntime::new()?;
     let context = AsyncContext::full(&runtime).await?;
 
@@ -15,15 +16,19 @@ async fn main() -> Result<(), rquickjs::Error> {
 
     let source = include_str!("./stream.js");
 
-    rquickjs::async_with!(context => |ctx| {
-        Module::evaluate(ctx.clone(), "main.js", source)?
+    klaver_wintercg::run!(context => |ctx| {
+
+        Module::evaluate(ctx, "main.js", source)?
             .into_future::<()>()
             .await?;
 
 
-        rquickjs::Result::Ok(())
+        Ok(())
     })
     .await?;
+    let now = std::time::Instant::now();
+    wait_timers(&context).await?;
+    println!("Since: {:?}", now.elapsed());
 
     Ok(())
 }

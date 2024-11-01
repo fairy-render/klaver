@@ -1638,6 +1638,7 @@ dependencies = [
  "serde_json",
  "sha1",
  "sha2",
+ "slotmap",
  "tokio",
  "url",
  "urlencoding",

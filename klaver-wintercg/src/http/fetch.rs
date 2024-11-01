@@ -49,7 +49,7 @@ impl<'js> FromJs<'js> for FetchResource<'js> {
 #[rquickjs::function]
 pub async fn fetch<'js>(
     ctx: Ctx<'js>,
-    env: Class<'js, WinterCG>,
+    env: Class<'js, WinterCG<'js>>,
     request: FetchResource<'js>,
     init: Opt<RequestInit<'js>>,
 ) -> rquickjs::Result<Class<'js, Response<'js>>> {

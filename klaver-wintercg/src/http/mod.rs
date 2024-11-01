@@ -35,7 +35,7 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
 pub fn evaluate<'js>(
     ctx: &rquickjs::prelude::Ctx<'js>,
     exports: &rquickjs::module::Exports<'js>,
-    winter: &Class<'js, WinterCG>,
+    winter: &Class<'js, WinterCG<'js>>,
 ) -> rquickjs::Result<()> {
     export!(exports, ctx, Response, Request, Headers, URLSearchParams);
     URLSearchParams::add_iterable_prototype(ctx)?;

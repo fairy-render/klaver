@@ -19,18 +19,16 @@ http = [
 crypto = ["rand", "uuid", "sha1", "sha2"]
 
 [dependencies]
-# klaver = { path = "../klaver" }
 rquickjs.workspace = true
-
 rquickjs-modules = { path = "../rquickjs-modules" }
 rquickjs-util = { path = "../rquickjs-util" }
 
 futures = { version = "0.3" }
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1", features = ["sync", "time"] }
 async-stream = { version = "0.3" }
 async-trait = { version = "0.1" }
+slotmap = { version = "1" }
 
-# klaver-shared = { path = "../klaver-shared" }
 
 # Encoding
 encoding_rs = { version = "0.8", optional = true }
@@ -46,7 +44,6 @@ serde_json = { version = "1", optional = true }
 reqwest = { version = "0.12", optional = true }
 url = { version = "2", optional = true }
 form_urlencoded = { version = "1", optional = true }
-
 urlencoding = { version = "2" }
 
 ## Crypto

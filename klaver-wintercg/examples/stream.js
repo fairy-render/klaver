@@ -84,3 +84,7 @@ for (const pair of url) {
 }
 
 console.log(await fetch("https://github.com").then((m) => m.text()));
+
+setTimeout(() => {
+	console.log("Hello, from timeout");
+}, 2000);
