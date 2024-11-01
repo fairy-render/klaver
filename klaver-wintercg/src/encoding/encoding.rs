@@ -1,12 +1,11 @@
 use core::fmt;
-use klaver::module_info;
-use klaver_shared::Buffer;
 use rquickjs::{
     class::Trace,
     function::{Func, Opt},
     module::{Declarations, Exports, ModuleDef},
     Class, Ctx, Exception, Result, Value,
 };
+use rquickjs_util::Buffer;
 
 pub fn init(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
     let globals = ctx.globals();

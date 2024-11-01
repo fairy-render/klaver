@@ -5,7 +5,7 @@ use rquickjs::{
     Object, Value,
 };
 
-use crate::util::{ArrayExt, FunctionExt, ObjectExt};
+use crate::util::{ArrayExt, FunctionExt};
 
 #[derive(Debug, Trace, Clone, PartialEq, Eq)]
 pub struct Map<'js> {

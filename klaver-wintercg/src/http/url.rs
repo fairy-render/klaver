@@ -1,10 +1,8 @@
-use klaver::shared::util::StringExt;
-use klaver::throw_if;
-use klaver_shared::{string::concat, util::ArrayExt};
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, function::Opt, Array, Atom, Class, Ctx, FromAtom, FromJs,
     String as JsString,
 };
+use rquickjs_util::{string::concat, throw_if, util::ArrayExt, util::StringExt};
 
 use super::url_search_params::{URLSearchParams, URLSearchParamsInit};
 

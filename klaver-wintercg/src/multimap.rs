@@ -1,7 +1,5 @@
-use klaver_shared::{
-    iterator::JsIterator, map::Entry, typed_list::TypedList, typed_map::TypedMap, MapEntries,
-};
 use rquickjs::{array::ArrayIter, class::Trace, Ctx, FromJs, IntoJs};
+use rquickjs_util::{map::Entry, typed_list::TypedList, typed_map::TypedMap, MapEntries};
 
 pub struct JsMultiMap<'js, K, T> {
     map: TypedMap<'js, K, TypedList<'js, T>>,

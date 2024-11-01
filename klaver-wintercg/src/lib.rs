@@ -3,6 +3,7 @@ mod macros;
 
 pub mod abort_controller;
 mod blob;
+mod config;
 pub mod console;
 pub mod dom_exception;
 pub mod event_target;

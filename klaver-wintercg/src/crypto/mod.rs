@@ -1,11 +1,11 @@
 mod digest;
 mod random;
 
-use klaver_shared::Buffer;
 use rquickjs::{
     prelude::{Async, Func},
     Ctx, Object,
 };
+use rquickjs_util::Buffer;
 
 pub use self::{digest::*, random::*};
 

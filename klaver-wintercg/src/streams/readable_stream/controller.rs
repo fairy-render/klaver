@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, rc::Rc};
 
-use klaver::throw;
 use rquickjs::{class::Trace, CaughtError, Class, Ctx, Value};
+use rquickjs_util::throw;
 use tokio::sync::Notify;
 
 use super::queue_strategy::QueuingStrategy;

@@ -1,6 +1,8 @@
-use rquickjs::{prelude::Opt, Class, Ctx, FromJs};
+use rquickjs::{prelude::Opt, Class, Ctx, Exception, FromJs, Value};
 
-use super::{request::RequestInit, url::StringOrUrl, Client, Request, Response, Url};
+use crate::config::WinterCG;
+
+use super::{request::RequestInit, url::StringOrUrl, Request, Response, Url};
 
 pub enum FetchResource<'js> {
     String(rquickjs::String<'js>),
@@ -47,10 +49,51 @@ impl<'js> FromJs<'js> for FetchResource<'js> {
 #[rquickjs::function]
 pub async fn fetch<'js>(
     ctx: Ctx<'js>,
-    client: Class<'js, Client>,
-    req: FetchResource<'js>,
+    env: Class<'js, WinterCG>,
+    request: FetchResource<'js>,
     init: Opt<RequestInit<'js>>,
 ) -> rquickjs::Result<Class<'js, Response<'js>>> {
-    let req = req.into_request(ctx.clone(), init).await?;
-    client.borrow().send(ctx, req).await
+    let client = env.borrow().http_client().clone();
+
+    let req = request.into_request(ctx.clone(), init).await?;
+
+    let mut req = req.borrow_mut();
+    let (req, cancel) = req.into_request(ctx.clone()).await?;
+
+    let url = req.uri().clone();
+
+    let run = || async {
+        let resp = match client.request(req).await {
+            Ok(ret) => ret,
+            Err(err) => {
+                return Err(ctx.throw(Value::from_exception(Exception::from_message(
+                    ctx.clone(),
+                    &err.to_string(),
+                )?)));
+            }
+        };
+
+        Ok(resp)
+    };
+
+    let resp = if let Some(mut cancel) = cancel {
+        tokio::select! {
+            _ = &mut cancel => {
+                 return Err(ctx.throw(Value::from_exception(Exception::from_message(
+                    ctx.clone(),
+                    "CANCEL",
+                )?)))
+            }
+            resp = run() => {
+                 resp?
+            }
+        }
+    } else {
+        run().await?
+    };
+
+    Class::instance(
+        ctx.clone(),
+        Response::from_response(ctx.clone(), &url.to_string(), resp)?,
+    )
 }

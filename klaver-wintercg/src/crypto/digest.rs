@@ -1,6 +1,5 @@
-use klaver::throw;
-use klaver_shared::Buffer;
 use rquickjs::{class::Trace, ArrayBuffer, Ctx, FromJs, IntoJs};
+use rquickjs_util::{throw, Buffer};
 use sha1::{digest::Digest as _, Sha1};
 use sha2::Sha256;
 

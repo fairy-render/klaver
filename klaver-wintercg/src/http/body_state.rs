@@ -1,11 +1,11 @@
 use futures::TryStreamExt;
-use klaver::{throw, throw_if};
-use klaver_shared::{Bytes, Static};
 use reggie::Body;
 use reqwest::Version;
 use rquickjs::{
     class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Exception, FromJs, Object, Value,
 };
+use rquickjs_util::{throw, throw_if};
+use rquickjs_util::{Bytes, Static};
 
 use crate::streams::ReadableStream;
 

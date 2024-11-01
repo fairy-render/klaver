@@ -1,17 +1,17 @@
 use std::marker::PhantomData;
 
-use klaver_shared::{
-    iterator::{Iterable, JsIterator, NativeIter},
-    typed_list::TypedList,
-    typed_map::TypedMap,
-    util::{is_iterator, ObjectExt},
-    Entry,
-};
 use rquickjs::{
     atom::PredefinedAtom,
     class::Trace,
     prelude::{Func, Opt, This},
     Array, Class, Ctx, FromJs, Function, IntoJs, Object, Value,
+};
+use rquickjs_util::{
+    iterator::{Iterable, JsIterator, NativeIter},
+    typed_list::TypedList,
+    typed_map::TypedMap,
+    util::{is_iterator, ObjectExt},
+    Entry,
 };
 use std::fmt::Write;
 
@@ -202,7 +202,7 @@ impl<'js> Iterable<'js> for URLSearchParams<'js> {
 
     type Iter = JsMultiMapIter<'js, rquickjs::String<'js>, rquickjs::String<'js>>;
 
-    fn entries(&mut self) -> rquickjs::Result<klaver_shared::iterator::NativeIter<Self::Iter>> {
+    fn entries(&mut self) -> rquickjs::Result<NativeIter<Self::Iter>> {
         Ok(NativeIter::new(self.map.entries()?))
     }
 }

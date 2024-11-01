@@ -1,11 +1,9 @@
-use std::{collections::HashMap, rc::Rc, sync::Arc};
-
-use klaver::quick::{Ctx, Symbol};
 use rquickjs::{
     class::{JsClass, Trace},
     function::{Func, This},
-    Class, FromJs, Function, Value,
+    Class, Ctx, FromJs, Function, Symbol, Value,
 };
+use std::{collections::HashMap, rc::Rc, sync::Arc};
 
 pub struct NativeEvent {
     ty: Arc<str>,

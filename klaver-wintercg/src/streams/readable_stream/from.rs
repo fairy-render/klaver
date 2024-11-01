@@ -1,11 +1,11 @@
-use klaver_shared::{
-    iter::DynamicStream,
-    util::{is_async_iterator, is_iterator, ObjectExt},
-    Buffer,
-};
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, prelude::This, Class, Ctx, FromJs, Function, Object,
     Promise, Symbol, Value,
+};
+use rquickjs_util::{
+    async_iterator::DynamicStream,
+    util::{is_async_iterator, is_iterator, ObjectExt},
+    Buffer,
 };
 
 use super::{underlying_source::StreamSource, Chunk, ReadableStream};

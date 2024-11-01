@@ -1,6 +1,4 @@
-use rquickjs::{function::Args, Ctx, Function, IntoAtom, IntoJs};
-
-use crate::util::ObjectExt;
+use rquickjs::{function::Args, Ctx, Function};
 
 pub fn concat<'js>(
     ctx: Ctx<'js>,

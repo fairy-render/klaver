@@ -1,14 +1,15 @@
-use klaver::module_info;
-use klaver_shared::{iter::AsyncIterable, util::FunctionExt};
 use rquickjs::{
     module::ModuleDef,
     prelude::{Async, Func},
     Class, IntoJs,
 };
+use rquickjs_modules::module_info;
+use rquickjs_util::{async_iterator::AsyncIterable, util::FunctionExt};
 
 use crate::{
     abort_controller::{AbortController, AbortSignal},
     blob::Blob,
+    config::WinterCG,
     console::Console,
     crypto,
     dom_exception::DOMException,
@@ -23,8 +24,6 @@ use crate::{
 
 #[cfg(feature = "encoding")]
 use crate::encoding::{TextDecoder, TextEncoder};
-#[cfg(feature = "http")]
-use crate::http::{fetch, Client, Headers, Request, Response, Url};
 
 pub struct Module;
 
@@ -32,6 +31,7 @@ module_info!("@klaver/wintercg" => Module);
 
 impl ModuleDef for Module {
     fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
+        decl.declare(stringify!(config))?;
         decl.declare(stringify!(EventTarget))?;
         decl.declare(stringify!(Event))?;
         decl.declare(stringify!(DOMException))?;
@@ -68,6 +68,9 @@ impl ModuleDef for Module {
         ctx: &rquickjs::prelude::Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
+        let config = Class::instance(ctx.clone(), WinterCG::new(ctx.clone())?)?;
+        exports.export(stringify!(config), config.clone())?;
+
         export!(exports, ctx, DOMException);
         DOMException::init(ctx)?;
 
@@ -98,7 +101,7 @@ impl ModuleDef for Module {
         }
 
         #[cfg(feature = "http")]
-        http::evaluate(ctx, exports)?;
+        http::evaluate(ctx, exports, &config)?;
 
         #[cfg(feature = "crypto")]
         crypto::evaluate(ctx, exports)?;

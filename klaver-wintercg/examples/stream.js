@@ -82,3 +82,5 @@ console.log(url.toString());
 for (const pair of url) {
 	console.log(pair);
 }
+
+console.log(await fetch("https://github.com").then((m) => m.text()));

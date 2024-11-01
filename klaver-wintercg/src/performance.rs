@@ -1,6 +1,5 @@
-use std::time::{Instant, SystemTime};
-
-use rquickjs::{class::Trace, qjs, Ctx, Exception, Value};
+use rquickjs::{class::Trace, Ctx, Exception, Value};
+use std::time::SystemTime;
 
 #[rquickjs::class]
 pub struct Performance {

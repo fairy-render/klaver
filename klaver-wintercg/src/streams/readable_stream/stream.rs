@@ -1,9 +1,9 @@
 use futures::{stream::LocalBoxStream, TryStream};
-use klaver::shared::{
-    iter::{AsyncIter, AsyncIterable, StreamContainer},
+use rquickjs::{class::Trace, prelude::Opt, Class, Ctx, FromJs, IntoJs, Value};
+use rquickjs_util::{
+    async_iterator::{AsyncIter, AsyncIterable, StreamContainer},
     Buffer, Static,
 };
-use rquickjs::{class::Trace, prelude::Opt, Class, Ctx, FromJs, IntoJs, Value};
 use std::{cell::RefCell, rc::Rc};
 use tokio::sync::Notify;
 
@@ -94,10 +94,7 @@ impl<'js> AsyncIterable<'js> for ReadableStream<'js> {
 
     type Stream = Static<LocalBoxStream<'js, Result<Self::Item, Self::Error>>>;
 
-    fn stream(
-        &mut self,
-        ctx: &Ctx<'js>,
-    ) -> rquickjs::Result<klaver::shared::iter::AsyncIter<Self::Stream>> {
+    fn stream(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<AsyncIter<Self::Stream>> {
         Ok(AsyncIter::new(Static(self.to_stream(ctx.clone())?)))
     }
 }

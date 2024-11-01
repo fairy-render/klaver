@@ -1,7 +1,6 @@
-use klaver::throw;
-use klaver_shared::TypedArray;
 use rand::RngCore;
 use rquickjs::Ctx;
+use rquickjs_util::{throw, TypedArray};
 
 pub fn random_uuid() -> rquickjs::Result<String> {
     let id = uuid::Uuid::new_v4();

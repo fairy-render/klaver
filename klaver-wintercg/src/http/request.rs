@@ -1,8 +1,8 @@
 use bytes::Bytes;
 use core::fmt;
 use futures::TryStreamExt;
-use klaver::{throw, throw_if};
 use reggie::Body;
+use rquickjs_util::{throw, throw_if};
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
 use rquickjs::{

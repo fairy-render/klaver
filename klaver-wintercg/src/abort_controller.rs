@@ -1,9 +1,9 @@
-use klaver::throw;
 use rquickjs::{
     class::Trace,
     function::{Args, Opt, This},
     Class, Ctx, Function,
 };
+use rquickjs_util::throw;
 
 use crate::{
     dom_exception::DOMException,

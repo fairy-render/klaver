@@ -1,7 +1,9 @@
 mod macros;
 
+pub mod async_iterator;
 pub mod buffer;
 pub mod date;
+pub mod format;
 pub mod iterator;
 pub mod map;
 pub mod set;
@@ -12,7 +14,9 @@ pub mod util;
 #[cfg(feature = "vaerdi")]
 pub mod val;
 
-pub use self::{buffer::*, date::Date, map::*, set::*};
+mod r#static;
+
+pub use self::{buffer::*, date::Date, map::*, r#static::*, set::*};
 
 #[cfg(feature = "vaerdi")]
 pub use self::val::Val;

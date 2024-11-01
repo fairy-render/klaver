@@ -19,14 +19,18 @@ http = [
 crypto = ["rand", "uuid", "sha1", "sha2"]
 
 [dependencies]
-klaver = { path = "../klaver" }
+# klaver = { path = "../klaver" }
 rquickjs.workspace = true
+
+rquickjs-modules = { path = "../rquickjs-modules" }
+rquickjs-util = { path = "../rquickjs-util" }
+
 futures = { version = "0.3" }
 tokio = { version = "1", features = ["sync"] }
 async-stream = { version = "0.3" }
 async-trait = { version = "0.1" }
 
-klaver-shared = { path = "../klaver-shared" }
+# klaver-shared = { path = "../klaver-shared" }
 
 # Encoding
 encoding_rs = { version = "0.8", optional = true }
@@ -36,6 +40,7 @@ base64 = { version = "0.22", optional = true }
 bytes = { version = "1", optional = true }
 reggie = { git = "https://github.com/fairy-render/reggie", features = [
   "json",
+  "reqwest",
 ], optional = true }
 serde_json = { version = "1", optional = true }
 reqwest = { version = "0.12", optional = true }

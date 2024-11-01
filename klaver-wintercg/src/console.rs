@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Instant};
 
 use rquickjs::{class::Trace, function::Rest, Ctx, Function, Value};
 
-use klaver_shared::{format_value, FormatOptions};
+use rquickjs_util::format::{format_value, FormatOptions};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Level {

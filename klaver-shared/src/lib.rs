@@ -12,7 +12,7 @@ pub mod iter;
 // pub mod util;
 pub use format::*;
 
-pub use r#static::*;
+// pub use r#static::*;
 
 #[cfg(feature = "channel")]
 pub mod channel;

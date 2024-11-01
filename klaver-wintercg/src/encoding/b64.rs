@@ -1,6 +1,6 @@
 use base64::prelude::*;
-use klaver::throw;
 use rquickjs::Ctx;
+use rquickjs_util::throw;
 
 #[rquickjs::function]
 pub fn atob(input: String) -> rquickjs::Result<String> {

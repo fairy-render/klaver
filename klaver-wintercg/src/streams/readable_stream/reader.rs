@@ -1,9 +1,9 @@
 use futures::future::LocalBoxFuture;
-use klaver::throw;
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, CaughtError, Class, Ctx, FromJs, IntoJs, Object, Promise,
     Value,
 };
+use rquickjs_util::throw;
 
 use super::{controller::ControllerWrap, ReadableStream};
 

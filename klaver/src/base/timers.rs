@@ -74,6 +74,8 @@ impl<'js> Timers<'js> {
         tokio::time::sleep_until(self.next_time())
     }
 
+    /// Advance timers
+    /// Return false if no times is defined
     pub fn process(&self, ctx: &Ctx<'_>) -> Result<bool, Error> {
         let current = Instant::now();
 

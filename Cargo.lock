@@ -1629,12 +1629,12 @@ dependencies = [
  "encoding_rs",
  "form_urlencoded",
  "futures",
- "klaver",
- "klaver-shared",
  "rand 0.8.5",
  "reggie",
  "reqwest",
  "rquickjs",
+ "rquickjs-modules",
+ "rquickjs-util",
  "serde_json",
  "sha1",
  "sha2",
@@ -3052,6 +3052,7 @@ name = "rquickjs-util"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "futures",
  "rquickjs",
  "vaerdi",
 ]

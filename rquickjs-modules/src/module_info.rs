@@ -54,18 +54,18 @@ pub trait ModuleInfo: Sized {
 /// module_info!("module" => Module);
 macro_rules! module_info {
     ($name: literal => $module: ident) => {
-        impl $crate::modules::ModuleInfo for $module {
+        impl $crate::ModuleInfo for $module {
             const NAME: &'static str = $name;
-            fn register(mut modules: &mut $crate::modules::Builder<'_>) {
-                modules.register::<$module>($name);
+            fn register(mut modules: &mut $crate::ModuleBuilder<'_, Self>) {
+                modules.register::<$module>();
             }
         }
     };
     ($name: literal @types: $types:expr => $module: ident) => {
         impl $crate::modules::ModuleInfo for $module {
             const NAME: &'static str = $name;
-            fn register(mut modules: &mut $crate::modules::Builder<'_>) {
-                modules.register::<$module>($name);
+            fn register(mut modules: &mut $crate::ModuleBuilder<'_, Self>) {
+                modules.register::<$module>();
             }
 
             fn typings() -> Option<std::borrow::Cow<'static, str>> {

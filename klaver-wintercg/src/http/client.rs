@@ -19,12 +19,12 @@ impl Client {
 
 #[rquickjs::methods]
 impl Client {
-    #[qjs(constructor)]
-    pub fn new(ctx: Ctx<'_>) -> rquickjs::Result<Client> {
-        Ok(Client {
-            inner: get_http_client(&ctx)?,
-        })
-    }
+    // #[qjs(constructor)]
+    // pub fn new(ctx: Ctx<'_>) -> rquickjs::Result<Client> {
+    //     Ok(Client {
+    //         inner: get_http_client(&ctx)?,
+    //     })
+    // }
 
     pub async fn send<'js>(
         &self,
@@ -32,7 +32,6 @@ impl Client {
         request: Class<'js, Request<'js>>,
     ) -> rquickjs::Result<Class<'js, Response<'js>>> {
         let mut req = request.borrow_mut();
-        // let (req, cancel) = req.into_request(ctx.clone()).await?;
         let (req, cancel) = req.into_request(ctx.clone()).await?;
 
         let url = req.uri().clone();
