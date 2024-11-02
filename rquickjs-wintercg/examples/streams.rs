@@ -1,14 +1,14 @@
-use klaver_wintercg::wait_timers;
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Module};
 use rquickjs_modules::Builder;
+use rquickjs_wintercg::wait_timers;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), klaver_wintercg::RuntimeError> {
+async fn main() -> Result<(), rquickjs_wintercg::RuntimeError> {
     let runtime = AsyncRuntime::new()?;
     let context = AsyncContext::full(&runtime).await?;
 
     let modules = Builder::new()
-        .global::<klaver_wintercg::Globals>()
+        .global::<rquickjs_wintercg::Globals>()
         .search_path(".")
         .build();
 
@@ -16,11 +16,11 @@ async fn main() -> Result<(), klaver_wintercg::RuntimeError> {
 
     let source = include_str!("./stream.js");
 
-    klaver_wintercg::run!(context => |ctx| {
+    rquickjs_wintercg::run!(context => |ctx| {
 
-        Module::evaluate(ctx, "main.js", source)?
+        Module::evaluate(ctx.clone(), "main.js", source)?
             .into_future::<()>()
-            .await?;
+            .await.catch(&ctx)?;
 
 
         Ok(())

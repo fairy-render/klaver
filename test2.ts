@@ -10,31 +10,32 @@ const resp = new Response(test, {
 	},
 });
 
-console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
+console.log(resp.arrayBuffer());
 
-console.log(resp.headers.get("Content-Type"));
+// console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
 
-// console.log(new Response(test.buffer).body);
+// console.log(resp.headers.get("Content-Type"));
 
-const ints = new Int16Array(10);
+// // console.log(new Response(test.buffer).body);
 
-crypto.getRandomValues(ints);
+// const ints = new Int16Array(10);
 
-console.log(crypto.randomUUID());
+// crypto.getRandomValues(ints);
 
-for (let i = 0; i < 10; i++) {
-	console.log("Random number", ints[i]);
-}
+// console.log(crypto.randomUUID());
 
-async function digestMessage(message: string) {
-	const msgUint8 = new TextEncoder().encode(message); // encode as (utf-8) Uint8Array
-	const hashBuffer = await crypto.subtle.digest("SHA-1", msgUint8); // hash the message
-	const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
-	const hashHex = hashArray
-		.map((b) => b.toString(16).padStart(2, "0"))
-		.join(""); // convert bytes to hex string
-	return hashHex;
-}
+// for (let i = 0; i < 10; i++) {
+// 	console.log("Random number", ints[i]);
+// }
 
-console.log(await digestMessage("Message"));
-export type {};
+// async function digestMessage(message) {
+// 	const msgUint8 = new TextEncoder().encode(message); // encode as (utf-8) Uint8Array
+// 	const hashBuffer = await crypto.subtle.digest("SHA-1", msgUint8); // hash the message
+// 	const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
+// 	const hashHex = hashArray
+// 		.map((b) => b.toString(16).padStart(2, "0"))
+// 		.join(""); // convert bytes to hex string
+// 	return hashHex;
+// }
+
+// console.log(await digestMessage("Message"));

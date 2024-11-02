@@ -3,20 +3,14 @@ name = "klaver-cli"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "klaver"
-path = "src/main.rs"
-
 [dependencies]
-klaver = { path = "../klaver", features = ["typescript"] }
-klaver-compat = { path = "../klaver-compat" }
-klaver-os = { path = "../klaver-os" }
-klaver-streams = { path = "../klaver-streams" }
-klaver-image = { path = "../klaver-image", features = ["webp"] }
-klaver-fs = { path = "../klaver-fs" }
-klaver-dom = { path = "../klaver-dom" }
-
 clap = { version = "4", features = ["derive"] }
-
-
 tokio = { version = "1", features = ["rt", "macros", "fs"] }
+
+klaver = { path = "../klaver", features = [
+  "http",
+  "encoding",
+  "crypto",
+  "transform",
+] }
+rquickjs.workspace = true

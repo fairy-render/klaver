@@ -17,7 +17,6 @@ mod timers;
 pub mod crypto;
 #[cfg(feature = "encoding")]
 pub mod encoding;
-mod error;
 #[cfg(feature = "http")]
 pub mod http;
 pub mod performance;
@@ -28,9 +27,10 @@ pub use module::Module;
 use rquickjs::{AsyncContext, Ctx};
 
 pub use self::{
-    dom_exception::DOMException, error::RuntimeError, event_target as events, global::*,
-    timers::wait_timers,
+    dom_exception::DOMException, event_target as events, global::*, timers::wait_timers,
 };
+
+pub use rquickjs_util::RuntimeError;
 
 pub async fn run<F, R>(context: &AsyncContext, f: F) -> Result<R, RuntimeError>
 where

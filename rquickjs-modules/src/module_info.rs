@@ -62,7 +62,7 @@ macro_rules! module_info {
         }
     };
     ($name: literal @types: $types:expr => $module: ident) => {
-        impl $crate::modules::ModuleInfo for $module {
+        impl $crate::ModuleInfo for $module {
             const NAME: &'static str = $name;
             fn register(mut modules: &mut $crate::ModuleBuilder<'_, Self>) {
                 modules.register::<$module>();

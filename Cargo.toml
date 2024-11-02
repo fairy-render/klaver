@@ -3,23 +3,15 @@
 resolver = "2"
 
 members = [
-  "klaver",
-  "klaver-base",
-  "klaver-cli",
-  "klaver-compat",
-  "klaver-crypto",
-  "klaver-encoding",
-  "klaver-gerning",
-  "klaver-http",
-  "klaver-image",
-  "klaver-os",
-  "klaver-shared",
-  "klaver-streams",
+
+  # "klaver-gerning",
+  "rquickjs-image",
+  # "klaver-os",
   "rquickjs-util",
-  "klaver-fs",
-  "klaver-dom",
-  "klaver-wintercg",
-  "rquickjs-modules",
+  # "klaver-fs",
+  # "klaver-dom",
+  "rquickjs-wintercg",
+  "rquickjs-modules", "klaver-cli", "klaver",
 ]
 
 

@@ -1,4 +1,5 @@
-use rquickjs::{AsyncContext, Context};
+use rquickjs::{AsyncContext, CatchResultExt, Context};
+use rquickjs_util::RuntimeError;
 
 use crate::{globals::Globals, Modules, Typings};
 
@@ -13,11 +14,11 @@ impl Environ {
         &self.typings
     }
 
-    pub async fn init(&self, context: &AsyncContext) -> rquickjs::Result<()> {
+    pub async fn init(&self, context: &AsyncContext) -> Result<(), RuntimeError> {
         self.modules.attach(context.runtime()).await?;
 
         rquickjs::async_with!(context => |ctx| {
-          self.globals.attach(ctx).await
+          self.globals.attach(ctx.clone()).await.catch(&ctx).map_err(|err| RuntimeError::from(err))
         })
         .await?;
 
