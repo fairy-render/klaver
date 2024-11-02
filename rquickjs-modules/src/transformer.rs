@@ -1,5 +1,5 @@
 use core::fmt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use oxc::{
     allocator::Allocator,
@@ -27,6 +27,8 @@ impl fmt::Display for CompileError {
         Ok(())
     }
 }
+
+impl std::error::Error for CompileError {}
 
 impl CompileError {
     fn from(source_name: &str, source_text: &str, errors: Vec<OxcDiagnostic>) -> CompileError {
@@ -99,7 +101,10 @@ impl Compiler {
         }
 
         let ret = CodeGenerator::new()
-            .with_options(self.codegen_options.clone())
+            .with_options(CodegenOptions {
+                source_map_path: Some(PathBuf::from(path)),
+                ..Default::default()
+            })
             .build(&program);
 
         Ok(ret)

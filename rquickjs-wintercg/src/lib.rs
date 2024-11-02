@@ -27,7 +27,8 @@ pub use module::Module;
 use rquickjs::{AsyncContext, Ctx};
 
 pub use self::{
-    dom_exception::DOMException, event_target as events, global::*, timers::wait_timers,
+    config::WinterCG, dom_exception::DOMException, event_target as events, global::*,
+    timers::wait_timers,
 };
 
 pub use rquickjs_util::RuntimeError;

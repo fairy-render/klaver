@@ -22,15 +22,15 @@ enum Commands {
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), RuntimeError> {
-    let vm = Vm::new().build().await?;
+async fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
 
     let cli = Cli::parse();
 
-    let compiler = Compiler::default();
-
     match cli.command {
-        Some(Commands::Compile { path }) => {}
+        Some(Commands::Compile { path }) => {
+            compile(path).await?;
+        }
         Some(Commands::Typings { path }) => {}
         None => {
             let args = std::env::args().skip(1).collect::<Vec<_>>();
@@ -47,20 +47,36 @@ async fn main() -> Result<(), RuntimeError> {
     Ok(())
 }
 
-async fn run(path: PathBuf) -> Result<(), RuntimeError> {
+async fn run(path: PathBuf) -> color_eyre::Result<()> {
     let vm = Vm::new().search_path(".").build().await?;
 
     let filename = path.display().to_string();
 
-    let content = tokio::fs::read_to_string(path).await.unwrap();
+    let content = tokio::fs::read_to_string(path).await?;
 
     let compiler = Compiler::default();
+
+    // compiler.compile(&content, &filename).unwrap();
 
     klaver::async_with!(vm => |ctx| {
         Module::evaluate(ctx.clone(), filename, content).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
         Ok(())
     })
     .await?;
+
+    Ok(())
+}
+
+async fn compile(path: PathBuf) -> color_eyre::Result<()> {
+    let compiler = Compiler::default();
+
+    let content = tokio::fs::read_to_string(&path).await?;
+
+    let name = path.display().to_string();
+
+    let ret = compiler.compile(&content, &name)?;
+
+    println!("{}", ret.code);
 
     Ok(())
 }

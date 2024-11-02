@@ -78,4 +78,15 @@ impl Vm {
     {
         rquickjs_wintercg::run(&self.context, f).await
     }
+
+    pub fn idle(&self) -> Pin<Box<dyn Future<Output = Result<(), RuntimeError>>>> {
+        let idle = self.runtime.drive();
+        let context = self.context.clone();
+
+        Box::pin(async move {
+            //
+
+            Ok(())
+        })
+    }
 }

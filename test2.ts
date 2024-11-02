@@ -1,16 +1,16 @@
 console.log(typeof atob);
 
-const test = new TextEncoder().encode("Hello");
+const body = new TextEncoder().encode("Hello");
 
-console.log(test.buffer);
+console.log(body);
 
-const resp = new Response(test, {
+const resp = new Response(body, {
 	headers: {
 		"Content-Type": "text/html",
 	},
 });
 
-console.log(resp.arrayBuffer());
+console.log(await resp.arrayBuffer());
 
 // console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
 
