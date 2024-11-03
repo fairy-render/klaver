@@ -1,7 +1,11 @@
 mod macros;
 mod options;
 mod vm;
-// pub mod worker;
+
+#[cfg(feature = "pool")]
+pub mod pool;
+#[cfg(feature = "pool")]
+pub mod worker;
 
 pub use self::{options::Options, vm::Vm};
 

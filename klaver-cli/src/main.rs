@@ -31,7 +31,20 @@ async fn main() -> color_eyre::Result<()> {
         Some(Commands::Compile { path }) => {
             compile(path).await?;
         }
-        Some(Commands::Typings { path }) => {}
+        Some(Commands::Typings { path }) => {
+            let root = path.unwrap_or_else(|| PathBuf::from("@types"));
+
+            let env = Vm::new().search_path(".").build_environ();
+            let files = env.typings().files();
+            for file in files {
+                let path = file.path.to_logical_path(&root);
+                if let Some(parent) = path.parent() {
+                    tokio::fs::create_dir_all(parent).await?;
+                }
+
+                tokio::fs::write(path, file.content).await?;
+            }
+        }
         None => {
             let args = std::env::args().skip(1).collect::<Vec<_>>();
 
@@ -47,6 +60,12 @@ async fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
+async fn create_vm() -> color_eyre::Result<Vm> {
+    let vm = Vm::new().search_path(".").build().await?;
+
+    Ok(vm)
+}
+
 async fn run(path: PathBuf) -> color_eyre::Result<()> {
     let vm = Vm::new().search_path(".").build().await?;
 
@@ -56,10 +75,10 @@ async fn run(path: PathBuf) -> color_eyre::Result<()> {
 
     let compiler = Compiler::default();
 
-    // compiler.compile(&content, &filename).unwrap();
+    let content = compiler.compile(&content, &filename).unwrap();
 
     klaver::async_with!(vm => |ctx| {
-        Module::evaluate(ctx.clone(), filename, content).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
+        Module::evaluate(ctx.clone(), filename, content.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
         Ok(())
     })
     .await?;

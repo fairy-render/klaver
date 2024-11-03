@@ -4,16 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = []
 transform = ["rquickjs-modules/transform"]
 http = ["rquickjs-wintercg/http"]
 encoding = ["rquickjs-wintercg/encoding"]
 crypto = ["rquickjs-wintercg/crypto"]
 
+pool = ["deadpool", "tokio/rt", "rquickjs/parallel"]
 
 [dependencies]
-
 rquickjs.workspace = true
 rquickjs-modules = { path = "../rquickjs-modules" }
 rquickjs-util = { path = "../rquickjs-util" }
 rquickjs-wintercg = { path = "../rquickjs-wintercg" }
+
 tokio = { version = "1", features = ["sync"] }
+deadpool = { version = "0.12", optional = true }

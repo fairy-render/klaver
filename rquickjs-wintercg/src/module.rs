@@ -21,12 +21,14 @@ use crate::{
     timers,
 };
 
+const TYPES: &'static str = include_str!(concat!(env!("OUT_DIR"), "/module.d.ts"));
+
 #[cfg(feature = "encoding")]
 use crate::encoding::{TextDecoder, TextEncoder};
 
 pub struct Module;
 
-module_info!("@klaver/wintercg" => Module);
+module_info!("@klaver/wintercg" @types: TYPES => Module);
 
 impl ModuleDef for Module {
     fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
@@ -39,6 +41,7 @@ impl ModuleDef for Module {
         decl.declare(stringify!(Blob))?;
         decl.declare(stringify!(Console))?;
         decl.declare(stringify!(Performance))?;
+        decl.declare(stringify!(process))?;
 
         // // Stream api
         decl.declare(stringify!(ReadableStream))?;
@@ -108,6 +111,9 @@ impl ModuleDef for Module {
 
         #[cfg(feature = "crypto")]
         crate::crypto::evaluate(ctx, exports)?;
+
+        let process = crate::process::process(ctx.clone())?;
+        exports.export("process", process)?;
 
         Ok(())
     }

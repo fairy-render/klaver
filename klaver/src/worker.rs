@@ -45,7 +45,7 @@ pub struct Worker {
 
 impl Worker {
     pub async fn new_with(
-        modules: Environ,
+        modules: Arc<Environ>,
         max_stack_size: Option<usize>,
         memory_limit: Option<usize>,
     ) -> Result<Worker, RuntimeError> {

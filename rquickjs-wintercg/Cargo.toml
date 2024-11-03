@@ -3,6 +3,8 @@ name = "rquickjs-wintercg"
 version = "0.1.0"
 edition = "2021"
 
+build = "build.rs"
+
 [features]
 default = ["encoding", "http", "crypto"]
 encoding = ["encoding_rs", "base64"]
