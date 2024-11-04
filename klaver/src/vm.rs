@@ -1,5 +1,6 @@
-use std::{future::Future, pin::Pin};
+use std::{future::Future, pin::Pin, task::Poll};
 
+use futures::pin_mut;
 use rquickjs::{
     context::EvalOptions, runtime::MemoryUsage, AsyncContext, AsyncRuntime, Ctx, FromJs,
 };
@@ -77,5 +78,42 @@ impl Vm {
         R: Send + 'static,
     {
         klaver_wintercg::run(&self.context, f).await
+    }
+
+    pub fn idle(&self) -> Idle<'_> {
+        Idle {
+            inner: Box::pin(async move {
+                let driver = self.runtime.drive();
+                pin_mut!(driver);
+
+                let timers = klaver_wintercg::wait_timers(&self.context);
+                pin_mut!(timers);
+
+                loop {
+                    tokio::select! {
+                      _ = driver.as_mut() => {
+                        continue;
+                      }
+                      _ = timers.as_mut() => {
+                        break;
+                      }
+                    }
+                }
+
+                Ok(())
+            }),
+        }
+    }
+}
+
+pub struct Idle<'a> {
+    inner: Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + Send + 'a>>,
+}
+
+impl<'a> Future for Idle<'a> {
+    type Output = Result<(), RuntimeError>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
+        self.inner.as_mut().poll(cx)
     }
 }

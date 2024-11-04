@@ -74,7 +74,7 @@ impl deadpool::managed::Manager for Manager {
     fn create(&self) -> impl std::future::Future<Output = Result<Self::Type, Self::Error>> + Send {
         async move {
             let vm = if self.options.worker_thread {
-                let vm = Worker::new_with(
+                let vm = Worker::new(
                     self.options.modules.clone(),
                     self.options.max_stack_size,
                     self.options.memory_limit,
