@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-klaver = { path = "../klaver" }
-klaver-shared = { path = "../klaver-shared" }
+rquickjs-modules = { path = "../rquickjs-modules" }
+rquickjs-util = { path = "../rquickjs-util" }
 tokio = { version = "1", features = ["fs"] }
 tokio-stream = { version = "0.1", features = ["fs", "io-util"] }
 rquickjs.workspace = true

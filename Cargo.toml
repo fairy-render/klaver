@@ -8,7 +8,7 @@ members = [
   "rquickjs-image",
   # "klaver-os",
   "rquickjs-util",
-  # "klaver-fs",
+  "klaver-fs",
   "klaver-dom",
   "rquickjs-wintercg",
   "rquickjs-modules",

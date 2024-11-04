@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use klaver::{modules::transformer::Compiler, ResolveOptions, RuntimeError, Vm};
+use klaver::{modules::transformer::Compiler, Options, ResolveOptions, RuntimeError, Vm};
 
 use clap::{Parser, Subcommand};
 use rquickjs::{CatchResultExt, Module};
@@ -34,7 +34,7 @@ async fn main() -> color_eyre::Result<()> {
         Some(Commands::Typings { path }) => {
             let root = path.unwrap_or_else(|| PathBuf::from("@types"));
 
-            let env = Vm::new().search_path(".").build_environ();
+            let env = create_vm().build_environ();
             let files = env.typings().files();
             for file in files {
                 let path = file.path.to_logical_path(&root);
@@ -60,14 +60,16 @@ async fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-async fn create_vm() -> color_eyre::Result<Vm> {
-    let vm = Vm::new().search_path(".").build().await?;
-
-    Ok(vm)
+fn create_vm() -> Options {
+    let vm = Vm::new()
+        .search_path(".")
+        .module::<klaver_dom::Module>()
+        .module::<klaver_fs::Module>();
+    vm
 }
 
 async fn run(path: PathBuf) -> color_eyre::Result<()> {
-    let vm = Vm::new().search_path(".").build().await?;
+    let vm = create_vm().build().await?;
 
     let filename = path.display().to_string();
 

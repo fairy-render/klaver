@@ -16,3 +16,6 @@ klaver = { path = "../klaver", features = [
   "transform",
 ] }
 rquickjs.workspace = true
+
+klaver-dom = { path = "../klaver-dom" }
+klaver-fs = { path = "../klaver-fs" }
