@@ -1,11 +1,10 @@
 use std::marker::PhantomData;
 
 use rquickjs::{
-    array::ArrayIter, atom::PredefinedAtom, class::Trace, function::This, Array, Ctx, FromJs,
-    Function, IntoJs, Object, Value,
+    array::ArrayIter, class::Trace, Array, Ctx, FromJs, IntoJs, Value,
 };
 
-use crate::util::{ArrayExt, ObjectExt};
+use crate::util::ArrayExt;
 
 pub struct TypedList<'js, T> {
     i: Array<'js>,

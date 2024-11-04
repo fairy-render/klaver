@@ -1,12 +1,10 @@
 use bytes::Bytes;
-use futures::TryStreamExt;
 use reggie::Body;
 use rquickjs_util::{throw, throw_if};
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
 use rquickjs::{
-    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, IntoJs,
-    Value,
+    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, Value,
 };
 
 use crate::{abort_controller::AbortSignal, streams::ReadableStream};

@@ -1,7 +1,6 @@
 use rquickjs::{
     atom::PredefinedAtom,
     function::Args,
-    object,
     prelude::{IntoArgs, This},
     Array, Ctx, FromJs, Function, IntoAtom, IntoJs, Object, Symbol, Value,
 };

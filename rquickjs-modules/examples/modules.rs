@@ -1,9 +1,8 @@
-use oxc::transformer::JsxOptions;
 use rquickjs::{
-    prelude::Func, AsyncContext, AsyncRuntime, CatchResultExt, Context, Ctx, Module, Runtime,
+    prelude::Func, AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Module,
 };
 use rquickjs_modules::{
-    transformer::{Compiler, FileLoader},
+    transformer::Compiler,
     Builder, GlobalInfo,
 };
 

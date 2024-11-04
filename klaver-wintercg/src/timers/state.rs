@@ -73,7 +73,7 @@ impl<'js> Timers<'js> {
 
     /// Advance timers
     /// Return false if no times is defined
-    pub fn process(&self, ctx: &Ctx<'_>) -> rquickjs::Result<bool> {
+    pub fn process(&self, _ctx: &Ctx<'_>) -> rquickjs::Result<bool> {
         let current = Instant::now();
 
         let ids = self

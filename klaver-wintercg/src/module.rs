@@ -1,8 +1,4 @@
-use rquickjs::{
-    module::ModuleDef,
-    prelude::Func,
-    Class,
-};
+use rquickjs::{module::ModuleDef, prelude::Func, Class};
 use rquickjs_modules::module_info;
 use rquickjs_util::async_iterator::AsyncIterable;
 
@@ -52,12 +48,7 @@ impl ModuleDef for Module {
         timers::declare(decl)?;
 
         #[cfg(feature = "encoding")]
-        {
-            decl.declare("TextDecoder")?;
-            decl.declare("TextEncoder")?;
-            decl.declare("atob")?;
-            decl.declare("btoa")?;
-        }
+        crate::encoding::declare(decl)?;
 
         #[cfg(feature = "http")]
         crate::http::declare(decl)?;
@@ -100,11 +91,7 @@ impl ModuleDef for Module {
         timers::evaluate(ctx, exports, &config)?;
 
         #[cfg(feature = "encoding")]
-        {
-            export!(exports, ctx, TextEncoder, TextDecoder);
-            exports.export("atob", Func::new(crate::encoding::atob))?;
-            exports.export("btoa", Func::new(crate::encoding::btoa))?;
-        }
+        crate::encoding::evaluate(ctx, exports)?;
 
         #[cfg(feature = "http")]
         crate::http::evaluate(ctx, exports, &config)?;

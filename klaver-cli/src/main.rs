@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use klaver::{modules::transformer::Compiler, Options, ResolveOptions, RuntimeError, Vm};
+use klaver::{modules::transformer::Compiler, Options, Vm};
 
 use clap::{Parser, Subcommand};
 use rquickjs::{CatchResultExt, Module};

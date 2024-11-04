@@ -185,7 +185,7 @@ impl<'js> Trace<'js> for EventKey<'js> {
 }
 
 impl<'js> EventKey<'js> {
-    fn from_value(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+    fn from_value(_ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         if value.is_string() {
             let key: String = value.get()?;
             Ok(EventKey::String(key.into()))

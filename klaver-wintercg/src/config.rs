@@ -19,7 +19,7 @@ impl<'js> Trace<'js> for WinterCG<'js> {
 }
 
 impl<'js> WinterCG<'js> {
-    pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<WinterCG<'js>> {
+    pub fn new(_ctx: Ctx<'js>) -> rquickjs::Result<WinterCG<'js>> {
         Ok(WinterCG {
             http_client: reggie::Client::new(reqwest::Client::new()),
             timers: Timers::default(),

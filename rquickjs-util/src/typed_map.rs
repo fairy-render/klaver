@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use rquickjs::{class::Trace, Ctx, FromJs, IntoJs, Object};
+use rquickjs::{class::Trace, Ctx, FromJs, IntoJs};
 
 use crate::{Map, MapEntries};
 
