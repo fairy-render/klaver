@@ -1,7 +1,7 @@
 use domjohnson::{CaseSensitivity, NodeId};
-use klaver::throw_if;
 use locket::LockApi;
 use rquickjs::{class::Trace, prelude::Rest, Ctx, IntoJs, Value};
+use rquickjs_util::throw_if;
 
 use crate::lock::Locket;
 
@@ -107,6 +107,6 @@ impl ClassList {
             .map(ToString::to_string)
             .collect::<Vec<_>>();
 
-        klaver_shared::iter::Iter::new(items.into_iter()).into_js(&ctx)
+        rquickjs_util::iterator::NativeIter::new(items.into_iter()).into_js(&ctx)
     }
 }

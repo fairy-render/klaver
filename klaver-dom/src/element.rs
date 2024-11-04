@@ -1,8 +1,8 @@
 use crate::{class_list::ClassList, lock::Locket, node_list::NodeList};
 use domjohnson::NodeId;
-use klaver::throw;
 use locket::LockApi;
 use rquickjs::{class::Trace, Class, Ctx};
+use rquickjs_util::throw;
 
 #[rquickjs::class(rename = "Element")]
 pub struct JsElement {

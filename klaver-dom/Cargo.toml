@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rquickjs.workspace = true
+rquickjs-util = { path = "../rquickjs-util" }
+rquickjs-modules = { path = "../rquickjs-modules" }
+
 domjohnson = { git = "https://github.com/kildevaeld/domjohnson" }
-rquickjs = { version = "*", features = ["classes", "macro"] }
 locket = { git = "https://github.com/kildevaeld/locket-rs" }
-klaver-shared = { path = "../klaver-shared" }
-klaver = { path = "../klaver" }

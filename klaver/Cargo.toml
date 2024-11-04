@@ -9,6 +9,7 @@ transform = ["rquickjs-modules/transform"]
 http = ["rquickjs-wintercg/http"]
 encoding = ["rquickjs-wintercg/encoding"]
 crypto = ["rquickjs-wintercg/crypto"]
+dom = ["klaver-dom"]
 
 pool = ["deadpool", "tokio/rt", "rquickjs/parallel"]
 
@@ -17,6 +18,8 @@ rquickjs.workspace = true
 rquickjs-modules = { path = "../rquickjs-modules" }
 rquickjs-util = { path = "../rquickjs-util" }
 rquickjs-wintercg = { path = "../rquickjs-wintercg" }
+
+klaver-dom = { path = "../klaver-dom", optional = true }
 
 tokio = { version = "1", features = ["sync"] }
 deadpool = { version = "0.12", optional = true }
