@@ -1,4 +1,4 @@
-use rquickjs::{module::ModuleDef, prelude::Func, Class};
+use rquickjs::{module::ModuleDef, Class};
 use rquickjs_modules::module_info;
 use rquickjs_util::async_iterator::AsyncIterable;
 
@@ -19,8 +19,6 @@ use crate::{
 
 const TYPES: &'static str = include_str!(concat!(env!("OUT_DIR"), "/module.d.ts"));
 
-#[cfg(feature = "encoding")]
-use crate::encoding::{TextDecoder, TextEncoder};
 
 pub struct Module;
 
