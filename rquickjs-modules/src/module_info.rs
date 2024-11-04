@@ -11,7 +11,10 @@ pub struct ModuleBuilder<'a, M> {
 }
 
 impl<'a, M: ModuleInfo> ModuleBuilder<'a, M> {
-    pub fn new(modules: &'a mut ModulesBuilder, typings: &'a mut Typings) -> ModuleBuilder<'a, M> {
+    pub(crate) fn new(
+        modules: &'a mut ModulesBuilder,
+        typings: &'a mut Typings,
+    ) -> ModuleBuilder<'a, M> {
         ModuleBuilder {
             modules,
             typings,

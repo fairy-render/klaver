@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use relative_path::RelativePath;
 use rquickjs::Ctx;
+use tracing::trace;
 
 use super::loader::Resolver;
 
@@ -37,6 +38,8 @@ impl Resolver for BuiltinResolver {
                 name.to_string()
             }
         };
+
+        trace!(base = %base, name = %name, path = %full, "Resolved builtin module");
 
         if self.modules.contains(&full) {
             Ok(full)

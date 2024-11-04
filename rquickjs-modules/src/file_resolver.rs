@@ -1,6 +1,7 @@
 use crate::loader::Resolver;
 use oxc_resolver::ResolveOptions;
 use std::path::{Path, PathBuf};
+use tracing::trace;
 
 pub struct ModuleResolver {
     resolver: oxc_resolver::Resolver,
@@ -36,7 +37,7 @@ impl ModuleResolver {}
 impl Resolver for ModuleResolver {
     fn resolve<'js>(
         &self,
-        ctx: &rquickjs::Ctx<'js>,
+        _ctx: &rquickjs::Ctx<'js>,
         base: &str,
         name: &str,
     ) -> rquickjs::Result<String> {
@@ -50,6 +51,8 @@ impl Resolver for ModuleResolver {
             .resolver
             .resolve(parent, name)
             .map_err(|err| rquickjs::Error::new_resolving_message(base, name, err.to_string()))?;
+
+        trace!(base = %base, name = %name, path = ?resolution.full_path(), "Resolved path");
 
         Ok(resolution.full_path().display().to_string())
     }
