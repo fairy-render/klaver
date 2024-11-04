@@ -35,13 +35,8 @@ impl<'js> WinterCG<'js> {
         obj.get("config")
     }
 
-    pub fn set_http_client<T>(&mut self, client: T)
-    where
-        T: reggie::HttpClient<Body> + Send + Sync + 'static,
-        T::Body: Into<Body>,
-        for<'a> T::Future<'a>: Send,
-    {
-        self.http_client = reggie::Client::new(client);
+    pub fn set_http_client(&mut self, client: reggie::Client) {
+        self.http_client = client;
     }
 
     pub fn http_client(&self) -> &reggie::Client {
