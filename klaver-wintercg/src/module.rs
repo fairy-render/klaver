@@ -1,10 +1,10 @@
 use rquickjs::{
     module::ModuleDef,
-    prelude::{Async, Func},
-    Class, IntoJs,
+    prelude::Func,
+    Class,
 };
 use rquickjs_modules::module_info;
-use rquickjs_util::{async_iterator::AsyncIterable, util::FunctionExt};
+use rquickjs_util::async_iterator::AsyncIterable;
 
 use crate::{
     abort_controller::{AbortController, AbortSignal},

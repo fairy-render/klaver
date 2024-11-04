@@ -1,15 +1,13 @@
 use bytes::Bytes;
-use core::fmt;
 use futures::TryStreamExt;
 use reggie::Body;
 use rquickjs_util::{throw, throw_if};
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
 use rquickjs::{
-    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, IntoJs, Object,
+    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, IntoJs,
     Value,
 };
-use tokio::sync::oneshot::Receiver;
 
 use crate::{abort_controller::AbortSignal, streams::ReadableStream};
 

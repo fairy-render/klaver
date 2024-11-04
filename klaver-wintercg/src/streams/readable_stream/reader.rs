@@ -1,4 +1,3 @@
-use futures::future::LocalBoxFuture;
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, CaughtError, Class, Ctx, FromJs, IntoJs, Object, Promise,
     Value,

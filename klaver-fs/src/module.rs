@@ -1,9 +1,9 @@
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use rquickjs::{
     class::Trace,
-    function::{Func, MutFn, Opt},
+    function::Opt,
     module::ModuleDef,
-    ArrayBuffer, Ctx, FromJs, Function, IntoJs, Object,
+    ArrayBuffer, Ctx, FromJs, IntoJs, Object,
 };
 use rquickjs_modules::module_info;
 use rquickjs_util::{

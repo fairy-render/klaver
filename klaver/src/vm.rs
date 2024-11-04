@@ -76,6 +76,6 @@ impl Vm {
             + Send,
         R: Send + 'static,
     {
-        rquickjs_wintercg::run(&self.context, f).await
+        klaver_wintercg::run(&self.context, f).await
     }
 }

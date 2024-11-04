@@ -1,5 +1,5 @@
 use reggie::http::HeaderMap;
-use rquickjs::{class::Trace, function::Opt, Class, Ctx, FromJs, Value};
+use rquickjs::{class::Trace, function::Opt, Class, Ctx, FromJs};
 use std::collections::HashMap;
 
 #[derive(Trace)]

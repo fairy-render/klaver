@@ -1,4 +1,4 @@
-use domjohnson::{NodeId, Selection};
+use domjohnson::NodeId;
 use locket::LockApi;
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, function::MutFn, Array, Class, Ctx, Function, IntoJs,

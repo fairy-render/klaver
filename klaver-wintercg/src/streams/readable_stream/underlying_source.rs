@@ -1,10 +1,9 @@
 use async_trait::async_trait;
-use futures::future::{BoxFuture, LocalBoxFuture};
 use rquickjs::{
     class::Trace, CatchResultExt, CaughtError, Class, Ctx, FromJs, Function, IntoJs, Object, Value,
 };
 use rquickjs_util::async_iterator::DynamicStream;
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 use super::controller::ReadableStreamDefaultController;
 

@@ -14,7 +14,7 @@ pub struct Options {
 impl Default for Options {
     fn default() -> Self {
         Options {
-            builder: rquickjs_modules::Builder::default().global::<rquickjs_wintercg::Globals>(),
+            builder: rquickjs_modules::Builder::default().global::<klaver_wintercg::Globals>(),
             max_stack_size: None,
             memory_limit: None,
         }

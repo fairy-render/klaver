@@ -1,4 +1,4 @@
-use reggie::{Body, BoxClient};
+use reggie::Body;
 use rquickjs::{class::Trace, Class, Ctx, Module, Object};
 
 use crate::timers::Timers;

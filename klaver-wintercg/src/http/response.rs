@@ -1,8 +1,7 @@
-use futures::TryStreamExt;
 use reggie::Body;
 use reqwest::Version;
 use rquickjs::{
-    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Exception, FromJs, Object, Value,
+    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Exception, FromJs, Value,
 };
 use rquickjs_util::{throw, throw_if};
 
