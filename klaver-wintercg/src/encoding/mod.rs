@@ -7,7 +7,7 @@ pub use self::{b64::*, encoding::*};
 
 pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
     decl.declare(stringify!(TextDecoder))?;
-    decl.declare(stringify!(TExtEncoder))?;
+    decl.declare(stringify!(TextEncoder))?;
     decl.declare(stringify!(atob))?;
     decl.declare(stringify!(btoa))?;
     Ok(())

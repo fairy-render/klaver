@@ -71,6 +71,8 @@ fn create_vm() -> Options {
 async fn run(path: PathBuf) -> color_eyre::Result<()> {
     let vm = create_vm().build().await?;
 
+    // let vm = klaver::worker::Worker::new(create_vm().build_environ().into(), None, None).await?;
+
     let filename = path.display().to_string();
 
     let content = tokio::fs::read_to_string(path).await?;
