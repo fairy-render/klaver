@@ -118,7 +118,7 @@ impl<'js> IntoJs<'js> for Chunk<'js> {
 }
 
 impl<'js> FromJs<'js> for Chunk<'js> {
-    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+    fn from_js(_ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let obj = Object::from_value(value)?;
 
         Ok(Chunk {
