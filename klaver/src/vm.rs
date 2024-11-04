@@ -7,7 +7,7 @@ use rquickjs::{
 use rquickjs_modules::Environ;
 use rquickjs_util::RuntimeError;
 
-use crate::Options;
+use crate::{types::MaybeSend, Options};
 
 pub struct Vm {
     context: AsyncContext,
@@ -107,7 +107,10 @@ impl Vm {
 }
 
 pub struct Idle<'a> {
+    #[cfg(feature = "parallel")]
     inner: Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + Send + 'a>>,
+    #[cfg(not(feature = "parallel"))]
+    inner: Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + 'a>>,
 }
 
 impl<'a> Future for Idle<'a> {

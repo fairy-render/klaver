@@ -10,7 +10,8 @@ http = ["klaver-wintercg/http"]
 encoding = ["klaver-wintercg/encoding"]
 crypto = ["klaver-wintercg/crypto"]
 
-pool = ["deadpool", "tokio/rt", "rquickjs/parallel"]
+pool = ["deadpool", "tokio/rt", "parallel"]
+parallel = ["rquickjs/parallel"]
 
 [dependencies]
 futures.workspace = true
