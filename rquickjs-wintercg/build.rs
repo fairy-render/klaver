@@ -19,17 +19,28 @@ fn main() {
         files.push("crypto");
     }
 
-    let mut global = String::from("declare global {\n");
+    // let mut global = String::from("declare global {\n");
+    let mut global = String::from(include_str!("types/global.d.ts"));
     let mut module = String::new();
 
     for feature in files {
         let content =
             std::fs::read_to_string(format!("types/{feature}.d.ts")).expect("read type file");
         writeln!(module, "{}", content).expect("write module");
-        writeln!(global, "{}", content.replace("export", "")).expect("write global");
+        writeln!(
+            global,
+            "{}",
+            content
+                .replace("export class", "declare class")
+                .replace("export function", "declare function")
+                .replace("export const", "declare const")
+                .replace("export", "")
+        )
+        .expect("write global");
     }
 
-    global.push('}');
+    global.push_str(include_str!("types/outro.d.ts"));
+    // global.push('}');
 
     let module_path = Path::new(&out_dir).join("module.d.ts");
     let global_path = Path::new(&out_dir).join("global.d.ts");
@@ -42,4 +53,7 @@ fn main() {
     println!("cargo::rerun-if-changed=types/http.d.ts");
     println!("cargo::rerun-if-changed=types/crypto.d.ts");
     println!("cargo::rerun-if-changed=types/encoding.d.ts");
+
+    println!("cargo::rerun-if-changed=types/global.d.ts");
+    println!("cargo::rerun-if-changed=types/outro.d.ts");
 }

@@ -1,3 +1,5 @@
+import { open } from "@klaver/fs";
+
 console.log(typeof atob);
 
 const body = new TextEncoder().encode("Hello");

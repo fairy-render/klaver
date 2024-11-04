@@ -39,9 +39,22 @@ export class AbortSignal extends EventTarget {}
 
 interface ConsoleApi {
 	log(...args: unknown[]): void;
+	debug(...args: unknown[]): void;
+	warn(...args: unknown[]): void;
+	error(...args: unknown[]): void;
 }
 
 interface PerformanceApi {
 	now(): number;
 	timeOrigin: number;
+}
+
+// Streams
+
+export interface UnderlyingSource {
+	pull(): Promise<void>;
+}
+
+export class ReadableStream {
+	constructor(source: UnderlyingSource);
 }
