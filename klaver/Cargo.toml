@@ -6,9 +6,9 @@ edition = "2021"
 [features]
 default = []
 transform = ["rquickjs-modules/transform"]
-http = ["rquickjs-wintercg/http"]
-encoding = ["rquickjs-wintercg/encoding"]
-crypto = ["rquickjs-wintercg/crypto"]
+http = ["klaver-wintercg/http"]
+encoding = ["klaver-wintercg/encoding"]
+crypto = ["klaver-wintercg/crypto"]
 
 pool = ["deadpool", "tokio/rt", "rquickjs/parallel"]
 
@@ -16,7 +16,7 @@ pool = ["deadpool", "tokio/rt", "rquickjs/parallel"]
 rquickjs.workspace = true
 rquickjs-modules = { path = "../rquickjs-modules" }
 rquickjs-util = { path = "../rquickjs-util" }
-rquickjs-wintercg = { path = "../rquickjs-wintercg" }
+klaver-wintercg = { path = "../klaver-wintercg" }
 
 
 tokio = { version = "1", features = ["sync"] }

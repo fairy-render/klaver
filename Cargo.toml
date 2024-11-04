@@ -10,7 +10,7 @@ members = [
   "rquickjs-util",
   "klaver-fs",
   "klaver-dom",
-  "rquickjs-wintercg",
+  "klaver-wintercg",
   "rquickjs-modules",
   "klaver-cli",
   "klaver",

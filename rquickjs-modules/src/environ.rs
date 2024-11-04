@@ -1,4 +1,4 @@
-use rquickjs::{AsyncContext, CatchResultExt, Context};
+use rquickjs::{AsyncContext, CatchResultExt};
 use rquickjs_util::RuntimeError;
 
 use crate::{globals::Globals, Modules, Typings};

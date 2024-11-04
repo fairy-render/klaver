@@ -1209,10 +1209,10 @@ name = "klaver"
 version = "0.1.0"
 dependencies = [
  "deadpool",
+ "klaver-wintercg",
  "rquickjs",
  "rquickjs-modules",
  "rquickjs-util",
- "rquickjs-wintercg",
  "tokio",
 ]
 
@@ -1250,6 +1250,33 @@ dependencies = [
  "rquickjs-util",
  "tokio",
  "tokio-stream",
+]
+
+[[package]]
+name = "klaver-wintercg"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "async-trait",
+ "base64",
+ "bytes",
+ "encoding_rs",
+ "form_urlencoded",
+ "futures",
+ "rand 0.8.5",
+ "reggie",
+ "reqwest",
+ "rquickjs",
+ "rquickjs-modules",
+ "rquickjs-util",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "slotmap",
+ "tokio",
+ "url",
+ "urlencoding",
+ "uuid",
 ]
 
 [[package]]
@@ -2504,33 +2531,6 @@ dependencies = [
  "futures",
  "rquickjs",
  "vaerdi",
-]
-
-[[package]]
-name = "rquickjs-wintercg"
-version = "0.1.0"
-dependencies = [
- "async-stream",
- "async-trait",
- "base64",
- "bytes",
- "encoding_rs",
- "form_urlencoded",
- "futures",
- "rand 0.8.5",
- "reggie",
- "reqwest",
- "rquickjs",
- "rquickjs-modules",
- "rquickjs-util",
- "serde_json",
- "sha1",
- "sha2",
- "slotmap",
- "tokio",
- "url",
- "urlencoding",
- "uuid",
 ]
 
 [[package]]
