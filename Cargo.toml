@@ -5,7 +5,7 @@ resolver = "2"
 members = [
 
   # "klaver-gerning",
-  "rquickjs-image",
+  "klaver-image",
   # "klaver-os",
   "rquickjs-util",
   "klaver-fs",
@@ -14,6 +14,7 @@ members = [
   "rquickjs-modules",
   "klaver-cli",
   "klaver",
+  "klaver-handlebars",
 ]
 
 

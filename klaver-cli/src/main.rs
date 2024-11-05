@@ -64,6 +64,8 @@ fn create_vm() -> Options {
     let vm = Vm::new()
         .search_path(".")
         .module::<klaver_dom::Module>()
+        .module::<klaver_handlebars::Module>()
+        .module::<klaver_image::Module>()
         .module::<klaver_fs::Module>();
     vm
 }
