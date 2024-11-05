@@ -20,8 +20,10 @@ impl<'js> FetchResource<'js> {
     ) -> rquickjs::Result<Class<'js, Request<'js>>> {
         match self {
             Self::String(s) => {
-                let url = if s.starts_with(ctx.clone(), "/")? {
-                    let url = throw_if!(ctx, env.borrow().base_url().join(&s.to_string()?));
+                let url_str = s.to_string()?;
+
+                let url = if url_str.starts_with("/") {
+                    let url = throw_if!(ctx, env.borrow().base_url().join(&url_str));
                     StringOrUrl::Url(Url::from_url(&ctx, url)?)
                 } else {
                     StringOrUrl::String(s)
@@ -49,7 +51,7 @@ impl<'js> FromJs<'js> for FetchResource<'js> {
         } else if let Ok(ret) = Class::<Request>::from_js(ctx, value.clone()) {
             Ok(FetchResource::Request(ret.clone()))
         } else {
-            Err(rquickjs::Error::new_from_js(value.type_name(), "reqsource"))
+            Err(rquickjs::Error::new_from_js(value.type_name(), "resource"))
         }
     }
 }
