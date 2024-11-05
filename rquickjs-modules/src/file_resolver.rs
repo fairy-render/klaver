@@ -42,13 +42,13 @@ impl Resolver for ModuleResolver {
         base: &str,
         name: &str,
     ) -> rquickjs::Result<String> {
-        let parent = if base == "" {
+        let parent = if base.is_empty() {
             self.work_dir.as_path()
         } else {
             Path::new(base).parent().expect("parent")
         };
 
-        trace!(parent = ?parent, path = %name, "Resolving path");
+        trace!(parent = ?parent, base = %base, path = %name, "Resolving path");
 
         let resolution = self
             .resolver

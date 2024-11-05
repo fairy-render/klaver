@@ -85,6 +85,7 @@ impl Builder {
     pub fn build(self) -> Environ {
         let mut resolvers = Vec::<Box<dyn Resolver + Send + Sync>>::default();
         for path in self.search_paths {
+            let path = path.canonicalize().expect("path does not exists");
             let resolver = ModuleResolver::new_with(
                 path,
                 self.resolve_options.as_ref().cloned().unwrap_or_default(),
