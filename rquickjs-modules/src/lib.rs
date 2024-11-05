@@ -1,6 +1,6 @@
 mod file_resolver;
 mod global_info;
-mod loader;
+pub mod loader;
 mod module_info;
 mod modules;
 mod modules_builder;

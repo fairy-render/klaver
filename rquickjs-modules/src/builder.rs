@@ -127,7 +127,7 @@ impl Builder {
         #[cfg(not(feature = "transform"))]
         {
             let loader = rquickjs::loader::ScriptLoader::default();
-            loaders.push(Box::new(loader))
+            loaders.push(Box::new(QuickWrap::new(loader)))
         }
 
         let modules = Modules::new(resolvers, loaders);
