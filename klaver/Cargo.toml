@@ -13,6 +13,17 @@ crypto = ["klaver-wintercg/crypto"]
 pool = ["deadpool", "tokio/rt", "parallel"]
 parallel = ["rquickjs/parallel"]
 
+
+[[example]]
+name = "pool"
+path = "examples/pool.rs"
+required-features = ["pool"]
+
+[[example]]
+name = "worker"
+path = "examples/worker.rs"
+required-features = ["pool"]
+
 [dependencies]
 futures.workspace = true
 rquickjs.workspace = true
@@ -21,3 +32,7 @@ rquickjs-util = { path = "../rquickjs-util" }
 klaver-wintercg = { path = "../klaver-wintercg" }
 tokio = { version = "1", features = ["sync"] }
 deadpool = { version = "0.12", optional = true }
+
+
+[dev-dependencies]
+tokio = { version = "1", features = ["sync", "macros", "rt"] }

@@ -45,7 +45,7 @@ pub struct Worker {
 
 impl Worker {
     pub async fn new(
-        modules: Arc<Environ>,
+        modules: Environ,
         max_stack_size: Option<usize>,
         memory_limit: Option<usize>,
     ) -> Result<Worker, RuntimeError> {
@@ -190,7 +190,7 @@ impl Worker {
 }
 
 async fn create_worker(
-    modules: Arc<Environ>,
+    modules: Environ,
     max_stack_size: Option<usize>,
     memory_limit: Option<usize>,
     drive: bool,
@@ -212,7 +212,7 @@ async fn create_worker(
         let (sx, mut rx) = mpsc::channel(10);
 
         runtime.block_on(async move {
-            let vm = match Vm::new_with(&*modules, max_stack_size, memory_limit).await {
+            let vm = match Vm::new_with(&modules, max_stack_size, memory_limit).await {
                 Ok(vm) => vm,
                 Err(err) => {
                     set_ready.send(Err(err)).expect("send");

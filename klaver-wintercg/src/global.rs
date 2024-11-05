@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use rquickjs::{Class, Module, Object, Value};
+use rquickjs::{Class, Module, Object, Promise, Value};
 use rquickjs_modules::GlobalInfo;
 
 use crate::{config::WINTERCG_KEY, console::Console, performance::Performance};
@@ -34,7 +34,8 @@ impl rquickjs_modules::Global for Global {
                 return Ok(());
             }
 
-            let module = Module::import(&ctx, "@klaver/wintercg")?
+            let module = ctx
+                .eval::<Promise, _>("import('@klaver/wintercg')")?
                 .into_future::<Object>()
                 .await?;
 

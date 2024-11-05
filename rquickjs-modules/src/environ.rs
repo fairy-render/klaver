@@ -1,24 +1,37 @@
+use std::sync::Arc;
+
 use rquickjs::{AsyncContext, CatchResultExt};
 use rquickjs_util::RuntimeError;
 
 use crate::{globals::Globals, Modules, Typings};
 
-pub struct Environ {
+struct Inner {
     pub(crate) modules: Modules,
     pub(crate) globals: Globals,
     pub(crate) typings: Typings,
 }
 
+#[derive(Clone)]
+pub struct Environ(Arc<Inner>);
+
 impl Environ {
+    pub fn new(modules: Modules, globals: Globals, typings: Typings) -> Environ {
+        Environ(Arc::new(Inner {
+            modules,
+            globals,
+            typings,
+        }))
+    }
+
     pub fn typings(&self) -> &Typings {
-        &self.typings
+        &self.0.typings
     }
 
     pub async fn init(&self, context: &AsyncContext) -> Result<(), RuntimeError> {
-        self.modules.attach(context.runtime()).await?;
+        self.0.modules.attach(context.runtime()).await?;
 
         rquickjs::async_with!(context => |ctx| {
-          self.globals.attach(ctx.clone()).await.catch(&ctx).map_err(|err| RuntimeError::from(err))
+          self.0.globals.attach(ctx.clone()).await.catch(&ctx).map_err(|err| RuntimeError::from(err))
         })
         .await?;
 

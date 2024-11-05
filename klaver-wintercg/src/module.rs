@@ -19,7 +19,6 @@ use crate::{
 
 const TYPES: &'static str = include_str!(concat!(env!("OUT_DIR"), "/module.d.ts"));
 
-
 pub struct Module;
 
 module_info!("@klaver/wintercg" @types: TYPES => Module);

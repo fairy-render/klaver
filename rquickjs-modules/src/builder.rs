@@ -133,10 +133,6 @@ impl Builder {
         let modules = Modules::new(resolvers, loaders);
         let globals = Globals::new(self.modules.globals);
 
-        Environ {
-            modules,
-            globals,
-            typings: self.typings,
-        }
+        Environ::new(modules, globals, self.typings)
     }
 }

@@ -12,6 +12,7 @@ use crate::{types::MaybeSend, Options};
 pub struct Vm {
     context: AsyncContext,
     runtime: AsyncRuntime,
+    env: Environ,
 }
 
 impl Vm {
@@ -27,9 +28,21 @@ impl Vm {
         let runtime = AsyncRuntime::new()?;
         let context = AsyncContext::full(&runtime).await?;
 
+        if let Some(ss) = max_stack_size {
+            runtime.set_max_stack_size(ss).await;
+        }
+
+        if let Some(mm) = max_mem {
+            runtime.set_memory_limit(mm).await;
+        }
+
         env.init(&context).await?;
 
-        Ok(Vm { runtime, context })
+        Ok(Vm {
+            runtime,
+            context,
+            env: env.clone(),
+        })
     }
 
     pub async fn run_gc(&self) {

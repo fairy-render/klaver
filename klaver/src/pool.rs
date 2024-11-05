@@ -27,7 +27,7 @@ pub struct Manager {
 pub struct VmPoolOptions {
     pub max_stack_size: Option<usize>,
     pub memory_limit: Option<usize>,
-    pub modules: Arc<Environ>,
+    pub modules: Environ,
     pub worker_thread: bool,
 }
 
@@ -36,7 +36,7 @@ impl VmPoolOptions {
         Ok(VmPoolOptions {
             max_stack_size: options.max_stack_size,
             memory_limit: options.memory_limit,
-            modules: Arc::new(options.build_environ()),
+            modules: options.build_environ(),
             worker_thread: false,
         })
     }
@@ -88,6 +88,7 @@ impl deadpool::managed::Manager for Manager {
                     self.options.memory_limit,
                 )
                 .await?;
+
                 PooledVm::Vm(vm)
             };
 
