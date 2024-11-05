@@ -1,21 +1,13 @@
 import { open } from "@klaver/fs";
+import { Handlebars } from "@klaver/hbs";
 
-console.log(typeof atob);
+const hbs = new Handlebars();
 
-const body = new TextEncoder().encode("Hello");
+hbs.registerTemplate("main", "{{name}}, World");
 
-console.log(body);
+const output = hbs.render("main", { name: "Hello" });
 
-const resp = new Response(body, {
-	headers: {
-		"Content-Type": "text/html",
-	},
-});
-
-console.log(await resp.arrayBuffer());
-
-setTimeout(() => {}, 100);
-
+console.log(output);
 // console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
 
 // console.log(resp.headers.get("Content-Type"));

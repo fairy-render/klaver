@@ -54,7 +54,7 @@ impl<'js> Map<'js> {
     }
 
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
-        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("globalThis.Map")?;
+        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("Map")?;
 
         let Some(obj) = value.as_object() else {
             return Ok(false);
