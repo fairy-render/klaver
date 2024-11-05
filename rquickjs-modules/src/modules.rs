@@ -56,6 +56,7 @@ impl rquickjs::loader::Resolver for Modules {
     }
 }
 
+#[allow(async_fn_in_trait)]
 mod internal {
     pub trait Runtime {
         async fn set_loader<R, L>(&self, resolver: R, loader: L)

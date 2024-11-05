@@ -1,4 +1,5 @@
 use rquickjs::{prelude::Opt, Class, Ctx, Exception, FromJs, Value};
+use rquickjs_util::{throw_if, util::StringExt};
 
 use crate::config::WinterCG;
 
@@ -14,13 +15,20 @@ impl<'js> FetchResource<'js> {
     async fn into_request(
         self,
         ctx: Ctx<'js>,
+        env: &Class<'js, WinterCG<'js>>,
         init: Opt<RequestInit<'js>>,
     ) -> rquickjs::Result<Class<'js, Request<'js>>> {
         match self {
-            Self::String(s) => Class::instance(
-                ctx.clone(),
-                Request::new(ctx.clone(), StringOrUrl::String(s), init)?,
-            ),
+            Self::String(s) => {
+                let url = if s.starts_with(ctx.clone(), "/")? {
+                    let url = throw_if!(ctx, env.borrow().base_url().join(&s.to_string()?));
+                    StringOrUrl::Url(Url::from_url(&ctx, url)?)
+                } else {
+                    StringOrUrl::String(s)
+                };
+
+                Class::instance(ctx.clone(), Request::new(ctx.clone(), url, init)?)
+            }
             Self::Url(url) => Class::instance(
                 ctx.clone(),
                 Request::new(ctx.clone(), StringOrUrl::Url(url), init)?,
@@ -55,7 +63,7 @@ pub async fn fetch<'js>(
 ) -> rquickjs::Result<Class<'js, Response<'js>>> {
     let client = env.borrow().http_client().clone();
 
-    let req = request.into_request(ctx.clone(), init).await?;
+    let req = request.into_request(ctx.clone(), &env, init).await?;
 
     let mut req = req.borrow_mut();
     let (req, cancel) = req.into_request(ctx.clone()).await?;

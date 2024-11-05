@@ -19,6 +19,9 @@ pub mod crypto;
 pub mod encoding;
 #[cfg(feature = "http")]
 pub mod http;
+#[cfg(feature = "http")]
+pub use url;
+
 pub mod performance;
 mod process;
 

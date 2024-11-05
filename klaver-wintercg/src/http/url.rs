@@ -60,11 +60,7 @@ impl<'js> Url<'js> {
         &self.i
     }
 
-    pub fn from_reggie(
-        ctx: &Ctx<'js>,
-        uri: &reggie::http::Uri,
-    ) -> rquickjs::Result<Class<'js, Url<'js>>> {
-        let i = throw_if!(ctx, url::Url::parse(&uri.to_string()));
+    pub fn from_url(ctx: &Ctx<'js>, i: url::Url) -> rquickjs::Result<Class<'js, Url<'js>>> {
         let search_params = Class::instance(
             ctx.clone(),
             URLSearchParams::new(
@@ -77,6 +73,14 @@ impl<'js> Url<'js> {
         )?;
 
         Class::instance(ctx.clone(), Url { i, search_params })
+    }
+
+    pub fn from_reggie(
+        ctx: &Ctx<'js>,
+        uri: &reggie::http::Uri,
+    ) -> rquickjs::Result<Class<'js, Url<'js>>> {
+        let i = throw_if!(ctx, url::Url::parse(&uri.to_string()));
+        Self::from_url(ctx, i)
     }
 }
 

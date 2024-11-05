@@ -8,6 +8,8 @@ pub const WINTERCG_KEY: &'static str = "__engine";
 pub struct WinterCG<'js> {
     #[cfg(feature = "http")]
     http_client: reggie::Client,
+    #[cfg(feature = "http")]
+    base_url: url::Url,
     timers: Timers<'js>,
 }
 
@@ -20,7 +22,10 @@ impl<'js> Trace<'js> for WinterCG<'js> {
 impl<'js> WinterCG<'js> {
     pub fn new(_ctx: Ctx<'js>) -> rquickjs::Result<WinterCG<'js>> {
         Ok(WinterCG {
+            #[cfg(feature = "http")]
             http_client: reggie::Client::new(reqwest::Client::new()),
+            #[cfg(feature = "http")]
+            base_url: url::Url::parse("internal://internal.com").expect("base url"),
             timers: Timers::default(),
         })
     }
@@ -34,12 +39,24 @@ impl<'js> WinterCG<'js> {
         obj.get("config")
     }
 
+    #[cfg(feature = "http")]
     pub fn set_http_client(&mut self, client: reggie::Client) {
         self.http_client = client;
     }
 
+    #[cfg(feature = "http")]
     pub fn http_client(&self) -> &reggie::Client {
         &self.http_client
+    }
+
+    #[cfg(feature = "http")]
+    pub fn set_base_url(&mut self, url: url::Url) {
+        self.base_url = url;
+    }
+
+    #[cfg(feature = "http")]
+    pub fn base_url(&self) -> &url::Url {
+        &self.base_url
     }
 
     pub fn timers(&self) -> &Timers<'js> {
