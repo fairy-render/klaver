@@ -1,4 +1,4 @@
-use rquickjs::{class::Trace, Class, Ctx, Object, Symbol, Value};
+use rquickjs::{class::Trace, Array, Class, Ctx, FromIteratorJs, Object, Symbol, Value};
 use rquickjs_util::{create_proxy, throw, typed_map::TypedMap, Prop, ProxyHandler};
 
 use crate::WinterCG;
@@ -55,6 +55,19 @@ impl<'js> ProxyHandler<'js, TypedMap<'js, rquickjs::String<'js>, rquickjs::Strin
         target.set(prop, value)?;
 
         Ok(true)
+    }
+
+    fn own_keys(
+        &self,
+        ctx: Ctx<'js>,
+        target: TypedMap<'js, rquickjs::String<'js>, rquickjs::String<'js>>,
+    ) -> rquickjs::Result<rquickjs::Array<'js>> {
+        let entries = target
+            .entries()?
+            .map(|m| m.map(|(k, _)| k))
+            .collect::<rquickjs::Result<Vec<_>>>()?;
+
+        Array::from_iter_js(&ctx, entries)
     }
 }
 

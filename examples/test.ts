@@ -12,7 +12,7 @@ console.log(output);
 console.log(process.env.PATH);
 process.env.RAPPER = "Rasmus";
 
-console.log(process.env.RAPPER);
+console.log(Object.keys(process.env));
 // console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
 
 // console.log(resp.headers.get("Content-Type"));

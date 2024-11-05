@@ -66,6 +66,10 @@ pub trait ProxyHandler<'js, T> {
     ) -> rquickjs::Result<()> {
         Ok(())
     }
+
+    fn own_keys(&self, ctx: Ctx<'js>, target: T) -> rquickjs::Result<Array<'js>> {
+        Array::new(ctx)
+    }
 }
 
 trait DynamicProxy<'js>: Trace<'js> {
@@ -93,6 +97,8 @@ trait DynamicProxy<'js>: Trace<'js> {
         this: Value<'js>,
         args: Array<'js>,
     ) -> rquickjs::Result<()>;
+
+    fn own_keys(&self, ctx: Ctx<'js>, target: Value<'js>) -> rquickjs::Result<Array<'js>>;
 }
 
 struct HandlerBox<H, T>(H, PhantomData<T>);
@@ -144,6 +150,11 @@ where
         let target = T::from_js(&ctx, target)?;
         self.0.apply(ctx, target, this, args)
     }
+
+    fn own_keys(&self, ctx: Ctx<'js>, target: Value<'js>) -> rquickjs::Result<Array<'js>> {
+        let target = T::from_js(&ctx, target)?;
+        self.0.own_keys(ctx, target)
+    }
 }
 
 #[rquickjs::class]
@@ -188,6 +199,11 @@ impl<'js> NativeProxy<'js> {
         args: Array<'js>,
     ) -> rquickjs::Result<()> {
         self.i.apply(ctx, target, this, args)
+    }
+
+    #[qjs(rename = "ownKeys")]
+    fn own_keys(&self, ctx: Ctx<'js>, target: Value<'js>) -> rquickjs::Result<Array<'js>> {
+        self.i.own_keys(ctx, target)
     }
 }
 
