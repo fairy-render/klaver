@@ -1,6 +1,9 @@
 use crate::loader::Resolver;
 use oxc_resolver::ResolveOptions;
-use std::path::{Path, PathBuf};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
 use tracing::trace;
 
 pub struct ModuleResolver {
@@ -42,10 +45,15 @@ impl Resolver for ModuleResolver {
         base: &str,
         name: &str,
     ) -> rquickjs::Result<String> {
-        let parent = if base.is_empty() {
-            self.work_dir.as_path()
+        let parent: Cow<'_, Path> = if base.is_empty() {
+            self.work_dir.as_path().into()
         } else {
-            Path::new(base).parent().expect("parent")
+            let path = Path::new(base).parent().expect("parent");
+            if !path.is_absolute() {
+                self.work_dir.join(path).into()
+            } else {
+                path.into()
+            }
         };
 
         trace!(parent = ?parent, base = %base, path = %name, "Resolving path");
