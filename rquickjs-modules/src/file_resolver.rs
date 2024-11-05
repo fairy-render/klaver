@@ -48,6 +48,8 @@ impl Resolver for ModuleResolver {
             Path::new(base).parent().expect("parent")
         };
 
+        trace!(parent = ?parent, path = %name, "Resolving path");
+
         let resolution = self
             .resolver
             .resolve(parent, name)

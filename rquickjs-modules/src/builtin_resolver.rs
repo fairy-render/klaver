@@ -39,9 +39,9 @@ impl Resolver for BuiltinResolver {
             }
         };
 
-        trace!(base = %base, name = %name, path = %full, "Resolved builtin module");
-
         if self.modules.contains(&full) {
+            trace!(base = %base, name = %name, path = %full, "Resolved builtin module");
+
             Ok(full)
         } else {
             Err(rquickjs::Error::new_resolving(base, name))
