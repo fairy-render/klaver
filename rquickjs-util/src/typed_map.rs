@@ -24,6 +24,21 @@ impl<'js, K, T> Trace<'js> for TypedMap<'js, K, T> {
     }
 }
 
+impl<'js, K, T> FromJs<'js> for TypedMap<'js, K, T> {
+    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+        Ok(TypedMap {
+            i: Map::from_js(ctx, value)?,
+            ty: PhantomData,
+        })
+    }
+}
+
+impl<'js, K, T> IntoJs<'js> for TypedMap<'js, K, T> {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
+        self.i.into_js(ctx)
+    }
+}
+
 impl<'js, K, T> TypedMap<'js, K, T>
 where
     T: FromJs<'js> + IntoJs<'js>,

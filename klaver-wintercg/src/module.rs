@@ -96,7 +96,7 @@ impl ModuleDef for Module {
         #[cfg(feature = "crypto")]
         crate::crypto::evaluate(ctx, exports)?;
 
-        let process = crate::process::process(ctx.clone())?;
+        let process = crate::process::process(ctx.clone(), config.clone())?;
         exports.export("process", process)?;
 
         Ok(())

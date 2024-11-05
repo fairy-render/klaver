@@ -14,3 +14,5 @@ pub use rquickjs_modules::ResolveOptions;
 pub use rquickjs_util::RuntimeError;
 
 pub use rquickjs_modules as modules;
+
+pub use klaver_wintercg::WinterCG;

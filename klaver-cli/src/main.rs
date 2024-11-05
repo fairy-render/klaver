@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use klaver::{modules::transformer::Compiler, Options, Vm};
+use klaver::{modules::transformer::Compiler, Options, Vm, WinterCG};
 
 use clap::{Parser, Subcommand};
 use rquickjs::{CatchResultExt, Module};
@@ -84,6 +84,11 @@ async fn run(path: PathBuf) -> color_eyre::Result<()> {
     let content = compiler.compile(&content, &filename).unwrap();
 
     klaver::async_with!(vm => |ctx| {
+
+        let config = WinterCG::get(&ctx).await?;
+
+        config.borrow().init_env_from_os(ctx.clone())?;
+
         Module::evaluate(ctx.clone(), filename, content.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
         Ok(())
     })

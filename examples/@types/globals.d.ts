@@ -8,21 +8,21 @@
 /// <reference lib="es2022.string" />
 
  type Buffer =
-	| ArrayBuffer
-	| Uint8Array
-	| Int8Array
-	| Uint16Array
-	| Int16Array
-	| Uint32Array
-	| Int32Array;
+  | ArrayBuffer
+  | Uint8Array
+  | Int8Array
+  | Uint16Array
+  | Int16Array
+  | Uint32Array
+  | Int32Array;
 
  type TypedArray =
-	| Uint8Array
-	| Int8Array
-	| Uint16Array
-	| Int16Array
-	| Uint32Array
-	| Int32Array;
+  | Uint8Array
+  | Int8Array
+  | Uint16Array
+  | Int16Array
+  | Uint32Array
+  | Int32Array;
 
  type TimerId = unknown;
 
@@ -31,42 +31,53 @@ declare function setTimeout(callback: () => void, timeout?: number): unknown;
 declare class Event {}
 
 declare class EventTarget {
-	constructor();
+  constructor();
 
-	addEventListener(event: string, callback: (event: Event) => void): void;
+  addEventListener(event: string, callback: (event: Event) => void): void;
 }
 
 declare class AbortController {
-	constructor();
+  constructor();
 
-	readonly signal: AbortSignal;
+  readonly signal: AbortSignal;
 
-	abort(): void;
+  abort(): void;
 }
 
 declare class AbortSignal extends EventTarget {}
 
 interface ConsoleApi {
-	log(...args: unknown[]): void;
-	debug(...args: unknown[]): void;
-	warn(...args: unknown[]): void;
-	error(...args: unknown[]): void;
+  log(...args: unknown[]): void;
+  debug(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
 }
 
 interface PerformanceApi {
-	now(): number;
-	timeOrigin: number;
+  now(): number;
+  timeOrigin: number;
 }
 
 // Streams
 
  interface UnderlyingSource {
-	pull(): Promise<void>;
+  pull(): Promise<void>;
 }
 
 declare class ReadableStream {
-	constructor(source: UnderlyingSource);
+  constructor(source: UnderlyingSource);
 }
+
+ interface Environ {
+  [key: string]: string;
+  [Symbol.iterator](): Iterator<[key: string, value: string]>;
+}
+
+ interface ProcessApi {
+  readonly env: Environ;
+}
+
+declare const process: ProcessApi;
 
 declare class TextEncoder {
 	constructor(label?: string);

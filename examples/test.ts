@@ -8,6 +8,11 @@ hbs.registerTemplate("main", "{{name}}, World");
 const output = hbs.render("main", { name: "Hello" });
 
 console.log(output);
+
+console.log(process.env.PATH);
+process.env.RAPPER = "Rasmus";
+
+console.log(process.env.RAPPER);
 // console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
 
 // console.log(resp.headers.get("Content-Type"));

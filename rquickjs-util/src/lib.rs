@@ -7,6 +7,7 @@ mod error;
 pub mod format;
 pub mod iterator;
 pub mod map;
+mod proxy;
 pub mod set;
 pub mod string;
 pub mod typed_list;
@@ -17,7 +18,7 @@ pub mod val;
 
 mod r#static;
 
-pub use self::{buffer::*, date::Date, error::RuntimeError, map::*, r#static::*, set::*};
+pub use self::{buffer::*, date::Date, error::RuntimeError, map::*, proxy::*, r#static::*, set::*};
 
 #[cfg(feature = "vaerdi")]
 pub use self::val::Val;

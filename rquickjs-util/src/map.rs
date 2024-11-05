@@ -130,6 +130,12 @@ impl<'js, K, V> Trace<'js> for MapEntries<'js, K, V> {
     }
 }
 
+impl<'js, K, V> MapEntries<'js, K, V> {
+    pub fn this(&self) -> Object<'js> {
+        self.this.clone()
+    }
+}
+
 impl<'js, K, V> Iterator for MapEntries<'js, K, V>
 where
     K: FromJs<'js>,
