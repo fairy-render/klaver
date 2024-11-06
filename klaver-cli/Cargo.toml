@@ -7,6 +7,9 @@ edition = "2021"
 name = "klaver"
 path = "src/main.rs"
 
+[features]
+cross = ["openssl"]
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 color-eyre = "0.6"
@@ -24,3 +27,6 @@ klaver-dom = { path = "../klaver-dom" }
 klaver-fs = { path = "../klaver-fs" }
 klaver-image = { path = "../klaver-image" }
 klaver-handlebars = { path = "../klaver-handlebars" }
+
+
+openssl = { version = "0.10", features = ["vendored"], optional = true }
