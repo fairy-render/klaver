@@ -12,9 +12,9 @@ impl<'js> ProxyHandler<'js, Object<'js>> for TestProxy {
     fn get(
         &self,
         ctx: rquickjs::Ctx<'js>,
-        target: Object<'js>,
+        _target: Object<'js>,
         prop: rquickjs_util::Prop<'js>,
-        receiver: rquickjs::Value<'js>,
+        _receiver: rquickjs::Value<'js>,
     ) -> rquickjs::Result<rquickjs::Value<'js>> {
         let prop = prop.to_string(&ctx)?;
         if prop.as_str() == "ost" {
