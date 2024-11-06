@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use rquickjs::{Ctx, Module};
+use std::sync::Arc;
 
 use crate::loader::{Loader, Resolver};
 

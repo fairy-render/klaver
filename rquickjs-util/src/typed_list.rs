@@ -1,8 +1,6 @@
 use std::marker::PhantomData;
 
-use rquickjs::{
-    array::ArrayIter, class::Trace, Array, Ctx, FromJs, IntoJs, Value,
-};
+use rquickjs::{array::ArrayIter, class::Trace, Array, Ctx, FromJs, IntoJs, Value};
 
 use crate::util::ArrayExt;
 
@@ -65,7 +63,7 @@ impl<'js, T> FromJs<'js> for TypedList<'js, T> {
 }
 
 impl<'js, T> IntoJs<'js> for TypedList<'js, T> {
-    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+    fn into_js(self, _ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         Ok(self.i.into_value())
     }
 }

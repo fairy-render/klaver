@@ -1,12 +1,5 @@
-use std::{borrow::Cow, collections::HashMap};
-
 use relative_path::RelativePathBuf;
-
-// #[derive(Debug)]
-// pub struct ModuleTypings {
-//     pub name: Cow<'static, str>,
-//     pub typings: Cow<'static, str>,
-// }
+use std::{borrow::Cow, collections::HashMap};
 
 pub struct File {
     pub path: RelativePathBuf,

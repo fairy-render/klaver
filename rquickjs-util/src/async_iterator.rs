@@ -5,7 +5,7 @@ use rquickjs::{
     atom::PredefinedAtom,
     class::{JsClass, Trace},
     prelude::{Func, This},
-    Class, Ctx, Exception, FromJs, IntoJs, Symbol, Value,
+    Class, Ctx, Exception, IntoJs, Symbol, Value,
 };
 
 use crate::iterator::IterResult;

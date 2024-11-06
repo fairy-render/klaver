@@ -9,6 +9,12 @@ pub struct NativeEvent {
     ty: Arc<str>,
 }
 
+impl NativeEvent {
+    pub fn ty(&self) -> &str {
+        self.ty.as_ref()
+    }
+}
+
 #[rquickjs::class]
 #[derive(Trace)]
 pub struct EventTarget<'js> {
@@ -200,7 +206,7 @@ impl<'js> EventKey<'js> {
     pub fn to_string(&self) -> rquickjs::Result<String> {
         match self {
             Self::String(s) => Ok(s.to_string()),
-            Self::Symbol(s) => panic!("string"),
+            Self::Symbol(_) => panic!("string"),
         }
     }
 }

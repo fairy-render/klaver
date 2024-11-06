@@ -38,7 +38,7 @@ impl JsElement {
 
     pub fn remove_child<'js>(
         &self,
-        ctx: Ctx<'js>,
+        _ctx: Ctx<'js>,
         child: Class<'js, JsElement>,
     ) -> rquickjs::Result<Class<'js, JsElement>> {
         let mut dom = self.dom.write().unwrap();
