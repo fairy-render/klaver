@@ -1,46 +1,42 @@
-use std::{any::Any, future::Future, pin::Pin};
+use std::{any::Any, future::Future, pin::Pin, sync::Arc};
 
 use rquickjs::{runtime::MemoryUsage, Ctx};
+use rquickjs_modules::Environ;
+use rquickjs_util::RuntimeError;
 use tokio::sync::{mpsc, oneshot};
 
-use crate::{modules::Modules, Error, Vm, VmOptions};
+use crate::Vm;
 
 pub type WithAsyncFn = Box<
     dyn for<'a> Fn(
             Ctx<'a>,
-        )
-            -> Pin<Box<dyn Future<Output = Result<Box<dyn Any + Send>, Error>> + 'a + Send>>
-        + Send,
+        ) -> Pin<
+            Box<dyn Future<Output = Result<Box<dyn Any + Send>, RuntimeError>> + 'a + Send>,
+        > + Send,
 >;
 
 enum Request {
     With {
-        func: Box<dyn for<'a> FnOnce(Ctx<'a>) -> Result<Box<dyn Any + Send>, Error> + Send>,
-        returns: oneshot::Sender<Result<Box<dyn Any + Send>, Error>>,
+        func: Box<dyn for<'a> FnOnce(Ctx<'a>) -> Result<Box<dyn Any + Send>, RuntimeError> + Send>,
+        returns: oneshot::Sender<Result<Box<dyn Any + Send>, RuntimeError>>,
     },
     WithAsync {
         func: Box<
             dyn for<'a> FnOnce(
                     Ctx<'a>,
                 ) -> Pin<
-                    Box<dyn Future<Output = Result<Box<dyn Any + Send>, Error>> + 'a + Send>,
+                    Box<dyn Future<Output = Result<Box<dyn Any + Send>, RuntimeError>> + 'a + Send>,
                 > + Send,
         >,
-        returns: oneshot::Sender<Result<Box<dyn Any + Send>, Error>>,
+        returns: oneshot::Sender<Result<Box<dyn Any + Send>, RuntimeError>>,
     },
     RunGc,
     MemoryUsage {
         returns: oneshot::Sender<MemoryUsage>,
     },
     Idle {
-        returns: oneshot::Sender<Result<(), Error>>,
+        returns: oneshot::Sender<Result<(), RuntimeError>>,
     },
-}
-
-impl VmOptions {
-    pub async fn build_worker(self) -> Result<Worker, Error> {
-        Worker::new(self).await
-    }
 }
 
 pub struct Worker {
@@ -48,60 +44,63 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub async fn new_with(
-        modules: Modules,
+    pub async fn new(
+        modules: Environ,
         max_stack_size: Option<usize>,
         memory_limit: Option<usize>,
-    ) -> Result<Worker, Error> {
+    ) -> Result<Worker, RuntimeError> {
         let sx = create_worker(modules, max_stack_size, memory_limit, false).await?;
         Ok(Worker { sx })
     }
 
-    pub async fn idle(&self) -> Result<(), Error> {
+    pub async fn idle(&self) -> Result<(), RuntimeError> {
         let (sx, rx) = oneshot::channel();
 
         self.sx
             .send(Request::Idle { returns: sx })
             .await
-            .map_err(|err| Error::Message(Some(err.to_string())))?;
+            .map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
 
-        rx.await.map_err(|err| Error::Custom(Box::new(err)))?
+        rx.await
+            .map_err(|err| RuntimeError::Custom(Box::new(err)))?
     }
 
-    pub async fn new(options: VmOptions) -> Result<Worker, Error> {
-        Self::new_with(
-            options.modules.build()?,
-            options.max_stack_size,
-            options.memory_limit,
-        )
-        .await
-    }
+    // pub async fn new(options: VmOptions) -> Result<Worker, RuntimeError> {
+    //     Self::new_with(
+    //         options.modules.build()?,
+    //         options.max_stack_size,
+    //         options.memory_limit,
+    //     )
+    //     .await
+    // }
 
     pub async fn run_gc(&self) {
         self.sx
             .send(Request::RunGc)
             .await
-            .map_err(|err| Error::Message(Some(err.to_string())))
+            .map_err(|err| RuntimeError::Message(Some(err.to_string())))
             .ok();
     }
 
-    pub async fn memory_usage(&self) -> Result<MemoryUsage, Error> {
+    pub async fn memory_usage(&self) -> Result<MemoryUsage, RuntimeError> {
         let (sx, rx) = oneshot::channel();
 
         self.sx
             .send(Request::MemoryUsage { returns: sx })
             .await
-            .map_err(|err| Error::Message(Some(err.to_string())))?;
+            .map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
 
-        let ret = rx.await.map_err(|err| Error::Custom(Box::new(err)))?;
+        let ret = rx
+            .await
+            .map_err(|err| RuntimeError::Custom(Box::new(err)))?;
 
         Ok(ret)
     }
 
-    pub async fn with<T, R>(&self, func: T) -> Result<R, Error>
+    pub async fn with<T, R>(&self, func: T) -> Result<R, RuntimeError>
     where
         T: Send + 'static,
-        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, Error>,
+        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, RuntimeError>,
         R: Send + 'static,
     {
         let (sx, rx) = oneshot::channel();
@@ -115,20 +114,22 @@ impl Worker {
                 returns: sx,
             })
             .await
-            .map_err(|err| Error::Message(Some(err.to_string())))?;
+            .map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
 
-        let ret = rx.await.map_err(|err| Error::Custom(Box::new(err)))??;
+        let ret = rx
+            .await
+            .map_err(|err| RuntimeError::Custom(Box::new(err)))??;
 
         Ok(*ret
             .downcast()
-            .map_err(|_| Error::Custom("type error".into()))?)
+            .map_err(|_| RuntimeError::Custom("type RuntimeError".into()))?)
     }
 
-    pub async fn async_with<T, R>(&self, func: T) -> Result<R, Error>
+    pub async fn async_with<T, R>(&self, func: T) -> Result<R, RuntimeError>
     where
         T: Send,
         for<'js> T:
-            FnOnce(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>>,
+            FnOnce(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<R, RuntimeError>> + 'js + Send>>,
         R: Send + 'static,
     {
         let (sx, rx) = oneshot::channel();
@@ -137,26 +138,26 @@ impl Worker {
             as Box<
                 dyn for<'a> FnOnce(
                         Ctx<'a>,
-                    )
-                        -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'a + Send>>
-                    + Send,
+                    ) -> Pin<
+                        Box<dyn Future<Output = Result<R, RuntimeError>> + 'a + Send>,
+                    > + Send,
             >;
 
         unsafe fn lift<'a, 'b, R>(
             func: Box<
                 dyn for<'js> FnOnce(
                         Ctx<'js>,
-                    )
-                        -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>>
-                    + Send
+                    ) -> Pin<
+                        Box<dyn Future<Output = Result<R, RuntimeError>> + 'js + Send>,
+                    > + Send
                     + 'a,
             >,
         ) -> Box<
             dyn for<'js> FnOnce(
                     Ctx<'js>,
-                )
-                    -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>>
-                + Send
+                ) -> Pin<
+                    Box<dyn Future<Output = Result<R, RuntimeError>> + 'js + Send>,
+                > + Send
                 + 'b,
         > {
             std::mem::transmute(func)
@@ -176,22 +177,24 @@ impl Worker {
                 returns: sx,
             })
             .await
-            .map_err(|err| Error::Message(Some(err.to_string())))?;
+            .map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
 
-        let ret = rx.await.map_err(|err| Error::Custom(Box::new(err)))??;
+        let ret = rx
+            .await
+            .map_err(|err| RuntimeError::Custom(Box::new(err)))??;
 
         Ok(*ret
             .downcast()
-            .map_err(|_| Error::Custom("type error".into()))?)
+            .map_err(|_| RuntimeError::Custom("type RuntimeError".into()))?)
     }
 }
 
 async fn create_worker(
-    modules: Modules,
+    modules: Environ,
     max_stack_size: Option<usize>,
     memory_limit: Option<usize>,
     drive: bool,
-) -> Result<mpsc::Sender<Request>, Error> {
+) -> Result<mpsc::Sender<Request>, RuntimeError> {
     let (set_ready, ready) = oneshot::channel();
 
     std::thread::spawn(move || {
@@ -201,7 +204,7 @@ async fn create_worker(
         {
             Ok(ret) => ret,
             Err(err) => {
-                set_ready.send(Err(Error::Custom(err.into()))).ok();
+                set_ready.send(Err(RuntimeError::Custom(err.into()))).ok();
                 return;
             }
         };
@@ -209,7 +212,7 @@ async fn create_worker(
         let (sx, mut rx) = mpsc::channel(10);
 
         runtime.block_on(async move {
-            let vm = match Vm::new_with(modules, max_stack_size, memory_limit).await {
+            let vm = match Vm::new_with(&modules, max_stack_size, memory_limit).await {
                 Ok(vm) => vm,
                 Err(err) => {
                     set_ready.send(Err(err)).expect("send");
@@ -243,7 +246,7 @@ async fn create_worker(
         });
     });
 
-    ready.await.map_err(|_| Error::Message(None))?
+    ready.await.map_err(|_| RuntimeError::Message(None))?
 }
 
 async fn process(vm: &Vm, next: Request) {

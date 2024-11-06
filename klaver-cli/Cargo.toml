@@ -7,16 +7,26 @@ edition = "2021"
 name = "klaver"
 path = "src/main.rs"
 
+[features]
+cross = ["openssl"]
+
 [dependencies]
-klaver = { path = "../klaver", features = ["typescript"] }
-klaver-compat = { path = "../klaver-compat" }
-klaver-os = { path = "../klaver-os" }
-klaver-streams = { path = "../klaver-streams" }
-klaver-image = { path = "../klaver-image", features = ["webp"] }
-klaver-fs = { path = "../klaver-fs" }
-klaver-dom = { path = "../klaver-dom" }
-
 clap = { version = "4", features = ["derive"] }
-
+color-eyre = "0.6"
 
 tokio = { version = "1", features = ["rt", "macros", "fs"] }
+rquickjs.workspace = true
+
+klaver = { path = "../klaver", features = [
+  "http",
+  "encoding",
+  "crypto",
+  "transform",
+] }
+klaver-dom = { path = "../klaver-dom" }
+klaver-fs = { path = "../klaver-fs" }
+klaver-image = { path = "../klaver-image" }
+klaver-handlebars = { path = "../klaver-handlebars" }
+
+
+openssl = { version = "0.10", features = ["vendored"], optional = true }

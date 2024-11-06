@@ -163,7 +163,7 @@ mod test {
         let runtime = Runtime::new().unwrap();
         let context = Context::full(&runtime).unwrap();
 
-        let value = context
+        let _value = context
             .with(|ctx| {
                 //
                 let val = ctx.eval::<Val, _>("({name: new Date(), age: 20})")?;

@@ -1,0 +1,13 @@
+[package]
+name = "klaver-handlebars"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rquickjs-util = { path = "../rquickjs-util" }
+rquickjs-modules = { path = "../rquickjs-modules" }
+rquickjs.workspace = true
+handlebars = { version = "6" }
+vaerdi = { git = "https://github.com/kildevaeld/vaerdi-rs", features = [
+    "serde",
+] }

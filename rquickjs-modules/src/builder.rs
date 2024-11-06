@@ -85,6 +85,7 @@ impl Builder {
     pub fn build(self) -> Environ {
         let mut resolvers = Vec::<Box<dyn Resolver + Send + Sync>>::default();
         for path in self.search_paths {
+            let path = path.canonicalize().expect("path does not exists");
             let resolver = ModuleResolver::new_with(
                 path,
                 self.resolve_options.as_ref().cloned().unwrap_or_default(),
@@ -127,16 +128,12 @@ impl Builder {
         #[cfg(not(feature = "transform"))]
         {
             let loader = rquickjs::loader::ScriptLoader::default();
-            loaders.push(Box::new(loader))
+            loaders.push(Box::new(crate::loader::QuickWrap::new(loader)))
         }
 
         let modules = Modules::new(resolvers, loaders);
         let globals = Globals::new(self.modules.globals);
 
-        Environ {
-            modules,
-            globals,
-            typings: self.typings,
-        }
+        Environ::new(modules, globals, self.typings)
     }
 }

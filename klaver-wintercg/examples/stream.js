@@ -66,8 +66,8 @@
 // }
 
 const hashBuffer = await crypto.subtle.digest(
-	"sha1",
-	new TextEncoder().encode("Hello, World!"),
+  "sha1",
+  new TextEncoder().encode("Hello, World!")
 );
 
 const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
@@ -80,11 +80,14 @@ const url = new URLSearchParams("hello=world&test=rapper");
 console.log(url.toString());
 
 for (const pair of url) {
-	console.log(pair);
+  console.log(pair);
 }
 
 console.log(await fetch("https://github.com").then((m) => m.text()));
 
 setTimeout(() => {
-	console.log("Hello, from timeout");
+  console.log("Hello, from timeout");
 }, 2000);
+
+console.log(dims.ikke);
+console.log(dims.ost);

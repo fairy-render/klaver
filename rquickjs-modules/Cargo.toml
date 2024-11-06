@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["transform"]
+default = []
 transform = ["oxc"]
 
 
@@ -12,7 +12,7 @@ transform = ["oxc"]
 rquickjs = { workspace = true, features = ["loader", "futures"] }
 rquickjs-util = { path = "../rquickjs-util" }
 oxc_resolver = { version = "2" }
-oxc = { version = "0.34", features = [
+oxc = { version = "0.35", features = [
   "transformer",
   "codegen",
   "sourcemap",
@@ -21,8 +21,7 @@ oxc = { version = "0.34", features = [
 relative-path = { version = "1" }
 parking_lot = { version = "0.12" }
 
-samling = { git = "https://github.com/fairy-render/samling" }
-
+tracing = { version = "0.1" }
 
 [dev-dependencies]
 futures = { version = "0.3" }

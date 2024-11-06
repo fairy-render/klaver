@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use relative_path::RelativePath;
 use rquickjs::Ctx;
+use tracing::trace;
 
 use super::loader::Resolver;
 
@@ -17,12 +18,12 @@ impl BuiltinResolver {
         self
     }
 
-    /// Add builtin module
-    #[must_use]
-    pub fn with_module<P: Into<String>>(mut self, path: P) -> Self {
-        self.add_module(path);
-        self
-    }
+    // /// Add builtin module
+    // #[must_use]
+    // pub fn with_module<P: Into<String>>(mut self, path: P) -> Self {
+    //     self.add_module(path);
+    //     self
+    // }
 }
 
 impl Resolver for BuiltinResolver {
@@ -39,6 +40,8 @@ impl Resolver for BuiltinResolver {
         };
 
         if self.modules.contains(&full) {
+            trace!(base = %base, name = %name, path = %full, "Resolved builtin module");
+
             Ok(full)
         } else {
             Err(rquickjs::Error::new_resolving(base, name))

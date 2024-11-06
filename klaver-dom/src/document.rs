@@ -1,4 +1,4 @@
-use rquickjs::{class::Trace, qjs};
+use rquickjs::class::Trace;
 
 use crate::{element::JsElement, lock::Locket, node_list::NodeList};
 use locket::LockApi as _;

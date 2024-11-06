@@ -1,6 +1,6 @@
 mod file_resolver;
 mod global_info;
-mod loader;
+pub mod loader;
 mod module_info;
 mod modules;
 mod modules_builder;
@@ -17,8 +17,11 @@ mod globals;
 
 pub use self::{
     builder::Builder,
+    environ::Environ,
     global_info::{Global, GlobalBuilder, GlobalInfo},
     module_info::{ModuleBuilder, ModuleInfo},
     modules::Modules,
     types::Typings,
 };
+
+pub use oxc_resolver::ResolveOptions;

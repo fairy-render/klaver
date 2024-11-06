@@ -91,7 +91,7 @@ mod test {
         context
             .with(|ctx| {
                 //
-                let date = ctx.eval::<Date, _>("new Date")?;
+                let _date = ctx.eval::<Date, _>("new Date")?;
 
                 rquickjs::Result::Ok(())
             })

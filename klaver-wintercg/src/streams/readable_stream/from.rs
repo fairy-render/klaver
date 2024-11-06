@@ -1,5 +1,5 @@
 use rquickjs::{
-    atom::PredefinedAtom, class::Trace, prelude::This, Class, Ctx, FromJs, Function, Object,
+    atom::PredefinedAtom, class::Trace, Class, Ctx, FromJs, Function, Object,
     Promise, Symbol, Value,
 };
 use rquickjs_util::{

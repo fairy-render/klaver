@@ -1,18 +1,14 @@
-use std::{cell::RefCell, marker::PhantomData, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use futures::{future::LocalBoxFuture, Stream, TryStream, TryStreamExt};
 use rquickjs::{
     atom::PredefinedAtom,
     class::{JsClass, Trace},
-    prelude::{Func, MutFn, This},
-    Class, Ctx, Exception, FromJs, Function, IntoJs, Object, Symbol, Value,
+    prelude::{Func, This},
+    Class, Ctx, Exception, IntoJs, Symbol, Value,
 };
 
-use crate::{
-    iterator::IterResult,
-    util::{is_iterator, ObjectExt},
-    Next,
-};
+use crate::iterator::IterResult;
 
 pub struct StreamContainer<T>(pub T);
 

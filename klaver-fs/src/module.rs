@@ -1,15 +1,12 @@
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use klaver::{module_info, throw, throw_if};
-use klaver_shared::{
-    buffer::Buffer,
-    iter::{AsyncIter, AsyncIterable},
-    Static,
-};
 use rquickjs::{
-    class::Trace,
-    function::{Func, MutFn, Opt},
-    module::ModuleDef,
-    ArrayBuffer, Ctx, FromJs, Function, IntoJs, Object,
+    class::Trace, function::Opt, module::ModuleDef, ArrayBuffer, Ctx, FromJs, IntoJs, Object,
+};
+use rquickjs_modules::module_info;
+use rquickjs_util::{
+    async_iterator::{AsyncIter, AsyncIterable},
+    buffer::Buffer,
+    throw, throw_if, Static,
 };
 use tokio::fs::OpenOptions;
 
@@ -34,77 +31,6 @@ impl<'js> IntoJs<'js> for JsDirEntry {
         obj.into_js(ctx)
     }
 }
-
-// #[rquickjs::module(rename_vars = "camelCase")]
-// pub mod fs {
-//     use futures::{StreamExt, TryStreamExt};
-//     use klaver::{throw, throw_if};
-//     use klaver_shared::{buffer::Buffer, iter::AsyncIter, Static};
-//     use rquickjs::{ArrayBuffer, Ctx, IntoJs};
-
-//     use super::JsDirEntry;
-
-//     #[rquickjs::function]
-//     pub async fn read<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<ArrayBuffer<'js>> {
-//         let bytes = throw_if!(ctx, tokio::fs::read(path).await);
-//         ArrayBuffer::new(ctx, bytes)
-//     }
-
-//     #[rquickjs::function]
-//     pub async fn resolve(ctx: Ctx<'_>, path: String) -> rquickjs::Result<String> {
-//         let path = throw_if!(
-//             ctx,
-//             tokio::fs::canonicalize(path)
-//                 .await
-//                 .map(|m| m.display().to_string())
-//         );
-
-//         Ok(path)
-//     }
-
-//     #[rquickjs::function]
-//     pub async fn write<'js>(
-//         ctx: Ctx<'js>,
-//         path: String,
-//         content: Buffer<'js>,
-//     ) -> rquickjs::Result<()> {
-//         let Some(content) = content.as_raw() else {
-//             throw!(ctx, "Buuffer is detached")
-//         };
-//         throw_if!(ctx, tokio::fs::write(path, content.slice()).await);
-
-//         Ok(())
-//     }
-
-//     #[rquickjs::function(rename = "readDir")]
-//     pub async fn read_dir<'js>(
-//         ctx: Ctx<'js>,
-//         path: String,
-//     ) -> rquickjs::Result<rquickjs::Value<'js>> {
-//         let read_dir = throw_if!(ctx, tokio::fs::read_dir(path).await);
-
-//         let stream = tokio_stream::wrappers::ReadDirStream::new(read_dir)
-//             .and_then(|item| async move {
-//                 let ty = item.file_type().await?;
-
-//                 let ty = if ty.is_dir() {
-//                     "dir"
-//                 } else if ty.is_file() {
-//                     "file"
-//                 } else {
-//                     "symlink"
-//                 };
-
-//                 Result::<_, std::io::Error>::Ok(JsDirEntry {
-//                     path: item.path().display().to_string(),
-//                     ty,
-//                 })
-//             })
-//             .boxed();
-
-//         AsyncIter::new(Static(stream)).into_js(&ctx)
-//     }
-// }
 
 pub struct Module;
 
@@ -201,7 +127,7 @@ pub async fn resolve(ctx: Ctx<'_>, path: String) -> rquickjs::Result<String> {
 #[rquickjs::function]
 pub async fn write<'js>(ctx: Ctx<'js>, path: String, content: Buffer<'js>) -> rquickjs::Result<()> {
     let Some(content) = content.as_raw() else {
-        throw!(ctx, "Buuffer is detached")
+        throw!(ctx, "Buffer is detached")
     };
     throw_if!(ctx, tokio::fs::write(path, content.slice()).await);
 
@@ -250,7 +176,7 @@ impl<'js> AsyncIterable<'js> for ReadDir {
 
     type Stream = Static<BoxStream<'static, Result<Self::Item, Self::Error>>>;
 
-    fn stream(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<AsyncIter<Self::Stream>> {
+    fn stream(&mut self, _ctx: &Ctx<'js>) -> rquickjs::Result<AsyncIter<Self::Stream>> {
         let Some(stream) = self.stream.take() else {
             panic!("stream already consumed")
         };

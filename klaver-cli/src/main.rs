@@ -1,12 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use klaver::{
-    modules::typescript::{CompileOptions, Compiler},
-    quick::{CatchResultExt, Module},
-    vm::VmOptions,
-};
+use klaver::{modules::transformer::Compiler, Options, Vm, WinterCG};
 
 use clap::{Parser, Subcommand};
+use rquickjs::{CatchResultExt, Module};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -24,105 +21,90 @@ enum Commands {
     Typings { path: Option<PathBuf> },
 }
 
-fn create_vm_options() -> VmOptions {
-    VmOptions::default()
-        .search_path(Path::new("."))
-        .module::<klaver_streams::Module>()
-        .module::<klaver_os::shell::Module>()
-        .module::<klaver_compat::Compat>()
-        .module::<klaver_image::Module>()
-        .module::<klaver_fs::Module>()
-        .module::<klaver_dom::Module>()
-}
-
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let cli = Cli::parse();
+async fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
 
-    let compiler = Compiler::new();
+    let cli = Cli::parse();
 
     match cli.command {
         Some(Commands::Compile { path }) => {
-            let content = tokio::fs::read_to_string(&path).await?;
-            let source = compiler.compile(
-                &path.display().to_string(),
-                &content,
-                CompileOptions {
-                    jsx: true,
-                    jsx_import_source: None,
-                    typescript: true,
-                    ts_decorators: false,
-                },
-            )?;
-            println!("{}", source.code);
-            return Ok(());
+            compile(path).await?;
         }
         Some(Commands::Typings { path }) => {
-            let options = create_vm_options();
-            let types = options.typings();
+            let root = path.unwrap_or_else(|| PathBuf::from("@types"));
 
-            if let Some(path) = path {
-                tokio::fs::create_dir_all(&path).await?;
-
-                for ty in types {
-                    let pkg_path = path.join(ty.name);
-                    tokio::fs::create_dir_all(&pkg_path).await?;
-                    let pkg = format!(
-                        r#"{{
-"name": "{}",
-"types": "index.d.ts"                    
-                    }}"#,
-                        ty.name
-                    );
-
-                    tokio::fs::write(pkg_path.join("package.json"), pkg).await?;
-                    tokio::fs::write(pkg_path.join("index.d.ts"), ty.typings.as_bytes()).await?;
+            let env = create_vm().build_environ();
+            let files = env.typings().files();
+            for file in files {
+                let path = file.path.to_logical_path(&root);
+                if let Some(parent) = path.parent() {
+                    tokio::fs::create_dir_all(parent).await?;
                 }
-            } else {
-                println!("{:#?}", types);
+
+                tokio::fs::write(path, file.content).await?;
+            }
+        }
+        None => {
+            let args = std::env::args().skip(1).collect::<Vec<_>>();
+
+            if args.is_empty() {
+                eprintln!("Usage: {} <file>", std::env::args().next().unwrap());
+                return Ok(());
             }
 
-            return Ok(());
+            run((&args[0]).into()).await?;
         }
-        _ => {}
     }
 
-    let vm = create_vm_options().build().await?;
+    Ok(())
+}
 
-    klaver::async_with!(vm => |ctx| {
-        klaver_compat::init(&ctx).await
-    })
-    .await?;
+fn create_vm() -> Options {
+    let vm = Vm::new()
+        .search_path(".")
+        .module::<klaver_dom::Module>()
+        .module::<klaver_handlebars::Module>()
+        .module::<klaver_image::Module>()
+        .module::<klaver_fs::Module>();
+    vm
+}
 
-    let args = std::env::args().skip(1).collect::<Vec<_>>();
+async fn run(path: PathBuf) -> color_eyre::Result<()> {
+    let vm = create_vm().build().await?;
 
-    if args.is_empty() {
-        eprintln!("Usage: {} <file>", std::env::args().next().unwrap());
-        return Ok(());
-    }
+    let filename = path.display().to_string();
 
-    let content = std::fs::read_to_string(&args[0])?;
+    let content = tokio::fs::read_to_string(path).await?;
 
-    let source = compiler.compile(
-        &args[0],
-        &content,
-        CompileOptions {
-            jsx_import_source: None,
-            jsx: true,
-            typescript: true,
-            ts_decorators: false,
-        },
-    )?;
+    let compiler = Compiler::default();
+
+    let content = compiler.compile(&content, &filename).unwrap();
 
     klaver::async_with!(vm => |ctx| {
 
-        Module::evaluate(ctx.clone(), &*args[0], source.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
+        let config = WinterCG::get(&ctx).await?;
 
+        config.borrow().init_env_from_os(ctx.clone())?;
+
+        Module::evaluate(ctx.clone(), filename, content.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
         Ok(())
     })
     .await?;
 
-    vm.idle().await?;
+    Ok(())
+}
+
+async fn compile(path: PathBuf) -> color_eyre::Result<()> {
+    let compiler = Compiler::default();
+
+    let content = tokio::fs::read_to_string(&path).await?;
+
+    let name = path.display().to_string();
+
+    let ret = compiler.compile(&content, &name)?;
+
+    println!("{}", ret.code);
 
     Ok(())
 }

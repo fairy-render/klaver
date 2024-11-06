@@ -54,7 +54,7 @@ impl<'js> Map<'js> {
     }
 
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
-        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("globalThis.Map")?;
+        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("Map")?;
 
         let Some(obj) = value.as_object() else {
             return Ok(false);
@@ -127,6 +127,12 @@ impl<'js, K, V> Trace<'js> for MapEntries<'js, K, V> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.this.trace(tracer);
         self.next.trace(tracer);
+    }
+}
+
+impl<'js, K, V> MapEntries<'js, K, V> {
+    pub fn this(&self) -> Object<'js> {
+        self.this.clone()
     }
 }
 

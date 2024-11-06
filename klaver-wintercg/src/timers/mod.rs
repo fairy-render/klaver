@@ -42,7 +42,10 @@ pub fn evaluate<'js>(
     winter: &Class<'js, WinterCG<'js>>,
 ) -> rquickjs::Result<()> {
     let timer = Func::new(set_timeout).into_js(ctx)?.get::<Function>()?;
-    let clear = Func::new(clear_timeout).into_js(ctx)?.get::<Function>()?;
+    let clear = Func::new(clear_timeout)
+        .into_js(ctx)?
+        .get::<Function>()?
+        .bind(ctx.clone(), (ctx.globals(), winter.clone()))?;
 
     exports.export(
         "setTimeout",

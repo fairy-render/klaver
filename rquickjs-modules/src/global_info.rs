@@ -15,7 +15,10 @@ pub struct GlobalBuilder<'a, M> {
 }
 
 impl<'a, M: GlobalInfo> GlobalBuilder<'a, M> {
-    pub fn new(modules: &'a mut ModulesBuilder, typings: &'a mut Typings) -> GlobalBuilder<'a, M> {
+    pub(crate) fn new(
+        modules: &'a mut ModulesBuilder,
+        typings: &'a mut Typings,
+    ) -> GlobalBuilder<'a, M> {
         GlobalBuilder {
             modules,
             typings,

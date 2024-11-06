@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use rquickjs::{Ctx, Module};
+use std::sync::Arc;
 
 use crate::loader::{Loader, Resolver};
 
@@ -22,7 +21,7 @@ impl Modules {
 }
 
 impl Modules {
-    pub async fn attach<T: Runtime>(&self, runtime: &T) -> rquickjs::Result<()> {
+    pub async fn attach<T: internal::Runtime>(&self, runtime: &T) -> rquickjs::Result<()> {
         runtime.set_loader(self.clone(), self.clone()).await;
         Ok(())
     }
@@ -56,29 +55,32 @@ impl rquickjs::loader::Resolver for Modules {
     }
 }
 
-pub(crate) trait Runtime {
-    async fn set_loader<R, L>(&self, resolver: R, loader: L)
-    where
-        R: rquickjs::loader::Resolver + 'static,
-        L: rquickjs::loader::Loader + 'static;
-}
-
-impl Runtime for rquickjs::Runtime {
-    async fn set_loader<R, L>(&self, resolver: R, loader: L)
-    where
-        R: rquickjs::loader::Resolver + 'static,
-        L: rquickjs::loader::Loader + 'static,
-    {
-        self.set_loader(resolver, loader)
+#[allow(async_fn_in_trait)]
+mod internal {
+    pub trait Runtime {
+        async fn set_loader<R, L>(&self, resolver: R, loader: L)
+        where
+            R: rquickjs::loader::Resolver + 'static,
+            L: rquickjs::loader::Loader + 'static;
     }
-}
 
-impl Runtime for rquickjs::AsyncRuntime {
-    async fn set_loader<R, L>(&self, resolver: R, loader: L)
-    where
-        R: rquickjs::loader::Resolver + 'static,
-        L: rquickjs::loader::Loader + 'static,
-    {
-        self.set_loader(resolver, loader).await
+    impl Runtime for rquickjs::Runtime {
+        async fn set_loader<R, L>(&self, resolver: R, loader: L)
+        where
+            R: rquickjs::loader::Resolver + 'static,
+            L: rquickjs::loader::Loader + 'static,
+        {
+            self.set_loader(resolver, loader)
+        }
+    }
+
+    impl Runtime for rquickjs::AsyncRuntime {
+        async fn set_loader<R, L>(&self, resolver: R, loader: L)
+        where
+            R: rquickjs::loader::Resolver + 'static,
+            L: rquickjs::loader::Loader + 'static,
+        {
+            self.set_loader(resolver, loader).await
+        }
     }
 }

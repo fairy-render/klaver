@@ -9,8 +9,8 @@ webp = ["dep:webp", "image/webp"]
 
 
 [dependencies]
-klaver = { path = "../klaver" }
-klaver-shared = { path = "../klaver-shared" }
+rquickjs-util = { path = "../rquickjs-util" }
+rquickjs-modules = { path = "../rquickjs-modules" }
 rquickjs.workspace = true
 image = { version = "0.25", features = [
   "png",

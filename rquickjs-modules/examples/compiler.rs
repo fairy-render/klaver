@@ -1,7 +1,7 @@
 use rquickjs_modules::transformer::Compiler;
 
 fn main() {
-    let mut compiler = Compiler::default();
+    let compiler = Compiler::default();
 
     // compiler.transform_options.jsx.import_source = Some("@klaver/template".to_string());
 

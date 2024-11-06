@@ -1,8 +1,7 @@
 use core::fmt;
 use rquickjs::{
     class::Trace,
-    function::{Func, Opt},
-    module::{Declarations, Exports, ModuleDef},
+    function::Opt,
     Class, Ctx, Exception, Result, Value,
 };
 use rquickjs_util::Buffer;

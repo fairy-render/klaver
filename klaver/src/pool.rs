@@ -2,24 +2,22 @@ use std::{future::Future, option, pin::Pin, sync::Arc};
 
 use deadpool::managed::{Metrics, RecycleResult};
 use rquickjs::{runtime::MemoryUsage, AsyncContext, AsyncRuntime, Ctx};
+use rquickjs_modules::Environ;
+use rquickjs_util::RuntimeError;
 
-use crate::{
-    base::init as base_init,
-    modules::Modules,
-    vm::{Vm, VmOptions},
-    worker::Worker,
-    Error,
-};
+use crate::{worker::Worker, Options, Vm};
 
 pub type CustomizeFn = Arc<
-    dyn for<'a> Fn(&'a PooledVm) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
+    dyn for<'a> Fn(
+            &'a PooledVm,
+        ) -> Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + Send + 'a>>
         + Send
         + Sync,
 >;
 
 pub type Pool = deadpool::managed::Pool<Manager>;
 
-pub type PoolError = deadpool::managed::PoolError<Error>;
+pub type PoolError = deadpool::managed::PoolError<RuntimeError>;
 
 pub struct Manager {
     init: Option<CustomizeFn>,
@@ -29,34 +27,26 @@ pub struct Manager {
 pub struct VmPoolOptions {
     pub max_stack_size: Option<usize>,
     pub memory_limit: Option<usize>,
-    pub modules: Modules,
+    pub modules: Environ,
     pub worker_thread: bool,
 }
 
 impl VmPoolOptions {
-    pub fn from(options: VmOptions) -> Result<VmPoolOptions, Error> {
-        let modules = options.modules.build()?;
+    pub fn from(options: Options) -> Result<VmPoolOptions, RuntimeError> {
         Ok(VmPoolOptions {
             max_stack_size: options.max_stack_size,
             memory_limit: options.memory_limit,
-            modules,
+            modules: options.build_environ(),
             worker_thread: false,
         })
     }
 }
 
 impl Manager {
-    pub fn new(options: VmOptions) -> Result<Manager, Error> {
-        let modules = options.modules.build()?;
-
+    pub fn new(options: VmPoolOptions) -> Result<Manager, RuntimeError> {
         Ok(Manager {
             init: None,
-            options: VmPoolOptions {
-                max_stack_size: options.max_stack_size,
-                memory_limit: options.memory_limit,
-                modules,
-                worker_thread: false,
-            },
+            options,
         })
     }
 
@@ -68,7 +58,8 @@ impl Manager {
     pub fn init<T>(mut self, init: T) -> Self
     where
         T: Send + Sync + 'static,
-        for<'a> T: Fn(&'a PooledVm) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>,
+        for<'a> T:
+            Fn(&'a PooledVm) -> Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + Send + 'a>>,
     {
         self.init = Some(Arc::new(init));
         self
@@ -78,12 +69,12 @@ impl Manager {
 impl deadpool::managed::Manager for Manager {
     type Type = PooledVm;
 
-    type Error = Error;
+    type Error = RuntimeError;
 
     fn create(&self) -> impl std::future::Future<Output = Result<Self::Type, Self::Error>> + Send {
         async move {
             let vm = if self.options.worker_thread {
-                let vm = Worker::new_with(
+                let vm = Worker::new(
                     self.options.modules.clone(),
                     self.options.max_stack_size,
                     self.options.memory_limit,
@@ -92,11 +83,12 @@ impl deadpool::managed::Manager for Manager {
                 PooledVm::Worker(vm)
             } else {
                 let vm = Vm::new_with(
-                    self.options.modules.clone(),
+                    &self.options.modules,
                     self.options.max_stack_size,
                     self.options.memory_limit,
                 )
                 .await?;
+
                 PooledVm::Vm(vm)
             };
 
@@ -123,10 +115,10 @@ pub enum PooledVm {
 }
 
 impl PooledVm {
-    pub async fn with<T, R>(&self, func: T) -> Result<R, Error>
+    pub async fn with<T, R>(&self, func: T) -> Result<R, RuntimeError>
     where
         T: Send + 'static,
-        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, Error>,
+        for<'js> T: FnOnce(Ctx<'js>) -> Result<R, RuntimeError>,
         R: Send + 'static,
     {
         match self {
@@ -135,11 +127,11 @@ impl PooledVm {
         }
     }
 
-    pub async fn async_with<T, R>(&self, func: T) -> Result<R, Error>
+    pub async fn async_with<T, R>(&self, func: T) -> Result<R, RuntimeError>
     where
         T: Send,
         for<'js> T:
-            FnOnce(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<R, Error>> + 'js + Send>>,
+            FnOnce(Ctx<'js>) -> Pin<Box<dyn Future<Output = Result<R, RuntimeError>> + 'js + Send>>,
         R: Send + 'static,
     {
         match self {
@@ -155,14 +147,14 @@ impl PooledVm {
         }
     }
 
-    pub async fn memory_usage(&self) -> Result<MemoryUsage, Error> {
+    pub async fn memory_usage(&self) -> Result<MemoryUsage, RuntimeError> {
         match self {
             PooledVm::Vm(vm) => Ok(vm.memory_usage().await),
             PooledVm::Worker(vm) => vm.memory_usage().await,
         }
     }
 
-    pub async fn idle(&self) -> Result<(), Error> {
+    pub async fn idle(&self) -> Result<(), RuntimeError> {
         match self {
             PooledVm::Vm(vm) => vm.idle().await,
             PooledVm::Worker(worker) => worker.idle().await,

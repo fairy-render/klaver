@@ -11,7 +11,10 @@ pub struct ModuleBuilder<'a, M> {
 }
 
 impl<'a, M: ModuleInfo> ModuleBuilder<'a, M> {
-    pub fn new(modules: &'a mut ModulesBuilder, typings: &'a mut Typings) -> ModuleBuilder<'a, M> {
+    pub(crate) fn new(
+        modules: &'a mut ModulesBuilder,
+        typings: &'a mut Typings,
+    ) -> ModuleBuilder<'a, M> {
         ModuleBuilder {
             modules,
             typings,
@@ -62,7 +65,7 @@ macro_rules! module_info {
         }
     };
     ($name: literal @types: $types:expr => $module: ident) => {
-        impl $crate::modules::ModuleInfo for $module {
+        impl $crate::ModuleInfo for $module {
             const NAME: &'static str = $name;
             fn register(mut modules: &mut $crate::ModuleBuilder<'_, Self>) {
                 modules.register::<$module>();

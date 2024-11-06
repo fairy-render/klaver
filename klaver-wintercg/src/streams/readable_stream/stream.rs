@@ -69,8 +69,6 @@ impl<'js> ReadableStream<'js> {
                     if let Some(bytes) = buffer.as_raw() {
                         output.extend_from_slice(bytes.slice());
                     }
-
-                    buffer.detach()?;
                 }
             }
 

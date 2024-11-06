@@ -37,7 +37,7 @@ impl<'js> Set<'js> {
     }
 
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
-        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("globalThis.Set")?;
+        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("Set")?;
 
         let Some(obj) = value.as_object() else {
             return Ok(false);

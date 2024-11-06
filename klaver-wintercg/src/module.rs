@@ -1,10 +1,5 @@
-use rquickjs::{
-    module::ModuleDef,
-    prelude::{Async, Func},
-    Class, IntoJs,
-};
+use rquickjs::{module::ModuleDef, Class};
 use rquickjs_modules::module_info;
-use rquickjs_util::{async_iterator::AsyncIterable, util::FunctionExt};
 
 use crate::{
     abort_controller::{AbortController, AbortSignal},
@@ -14,19 +9,14 @@ use crate::{
     dom_exception::DOMException,
     event_target::{Emitter, Event, EventTarget},
     performance::Performance,
-    streams::{
-        ByteLengthQueuingStrategy, CountQueuingStrategy, ReadableStream,
-        ReadableStreamDefaultReader,
-    },
     timers,
 };
 
-#[cfg(feature = "encoding")]
-use crate::encoding::{TextDecoder, TextEncoder};
+const TYPES: &'static str = include_str!(concat!(env!("OUT_DIR"), "/module.d.ts"));
 
 pub struct Module;
 
-module_info!("@klaver/wintercg" => Module);
+module_info!("@klaver/wintercg" @types: TYPES => Module);
 
 impl ModuleDef for Module {
     fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
@@ -39,22 +29,15 @@ impl ModuleDef for Module {
         decl.declare(stringify!(Blob))?;
         decl.declare(stringify!(Console))?;
         decl.declare(stringify!(Performance))?;
+        decl.declare(stringify!(process))?;
 
         // // Stream api
-        decl.declare(stringify!(ReadableStream))?;
-        decl.declare(stringify!(ReadableStreamDefaultReader))?;
-        decl.declare(stringify!(CountQueuingStrategy))?;
-        decl.declare(stringify!(ByteLengthQueuingStrategy))?;
+        crate::streams::declare(decl)?;
 
         timers::declare(decl)?;
 
         #[cfg(feature = "encoding")]
-        {
-            decl.declare("TextDecoder")?;
-            decl.declare("TextEncoder")?;
-            decl.declare("atob")?;
-            decl.declare("btoa")?;
-        }
+        crate::encoding::declare(decl)?;
 
         #[cfg(feature = "http")]
         crate::http::declare(decl)?;
@@ -84,30 +67,30 @@ impl ModuleDef for Module {
         export!(exports, ctx, Blob, Console, Performance);
 
         // // Streams
-        export!(
-            exports,
-            ctx,
-            ReadableStream,
-            ReadableStreamDefaultReader,
-            CountQueuingStrategy,
-            ByteLengthQueuingStrategy
-        );
-        ReadableStream::add_async_iterable_prototype(ctx)?;
+        // export!(
+        //     exports,
+        //     ctx,
+        //     ReadableStream,
+        //     ReadableStreamDefaultReader,
+        //     CountQueuingStrategy,
+        //     ByteLengthQueuingStrategy
+        // );
+        // ReadableStream::add_async_iterable_prototype(ctx)?;
+        crate::streams::evaluate(ctx, exports)?;
 
         timers::evaluate(ctx, exports, &config)?;
 
         #[cfg(feature = "encoding")]
-        {
-            export!(exports, ctx, TextEncoder, TextDecoder);
-            exports.export("atob", Func::new(crate::encoding::atob))?;
-            exports.export("btoa", Func::new(crate::encoding::btoa))?;
-        }
+        crate::encoding::evaluate(ctx, exports)?;
 
         #[cfg(feature = "http")]
         crate::http::evaluate(ctx, exports, &config)?;
 
         #[cfg(feature = "crypto")]
         crate::crypto::evaluate(ctx, exports)?;
+
+        let process = crate::process::process(ctx.clone(), config.clone())?;
+        exports.export("process", process)?;
 
         Ok(())
     }

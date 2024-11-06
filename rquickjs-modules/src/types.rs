@@ -1,16 +1,9 @@
-use std::{borrow::Cow, collections::HashMap, path::PathBuf};
-
 use relative_path::RelativePathBuf;
-
-// #[derive(Debug)]
-// pub struct ModuleTypings {
-//     pub name: Cow<'static, str>,
-//     pub typings: Cow<'static, str>,
-// }
+use std::{borrow::Cow, collections::HashMap};
 
 pub struct File {
-    path: RelativePathBuf,
-    content: Vec<u8>,
+    pub path: RelativePathBuf,
+    pub content: Vec<u8>,
 }
 
 #[derive(Debug, Default)]
@@ -42,12 +35,12 @@ impl Typings {
             let idx_path = mod_path.join("index.d.ts");
 
             files.push(File {
-                path: idx_path,
+                path: pkg_path,
                 content: format!(include_str!("./package.json"), name).into(),
             });
 
             files.push(File {
-                path: pkg_path,
+                path: idx_path,
                 content: module.to_owned().to_string().into_bytes(),
             });
         }

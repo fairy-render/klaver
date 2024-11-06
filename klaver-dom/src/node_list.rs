@@ -1,4 +1,4 @@
-use domjohnson::{NodeId, Selection};
+use domjohnson::NodeId;
 use locket::LockApi;
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, function::MutFn, Array, Class, Ctx, Function, IntoJs,
@@ -89,7 +89,7 @@ impl NodeList {
 
     pub fn entries<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let dom = self.dom.clone();
-        klaver_shared::iter::Iter::new(self.nodes.clone().into_iter().enumerate().map(
+        rquickjs_util::iterator::NativeIter::new(self.nodes.clone().into_iter().enumerate().map(
             move |(index, id)| Entry {
                 index,
                 element: JsElement {
@@ -102,10 +102,12 @@ impl NodeList {
     }
 
     pub fn values<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        let dom = self.dom.clone();
-        klaver_shared::iter::Iter::new(self.nodes.clone().into_iter().map(move |id| JsElement {
-            id,
-            dom: dom.clone(),
+        let dom: std::rc::Rc<std::cell::RefCell<domjohnson::Document>> = self.dom.clone();
+        rquickjs_util::iterator::NativeIter::new(self.nodes.clone().into_iter().map(move |id| {
+            JsElement {
+                id,
+                dom: dom.clone(),
+            }
         }))
         .into_js(&ctx)
     }

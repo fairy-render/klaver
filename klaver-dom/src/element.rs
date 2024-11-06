@@ -1,6 +1,5 @@
 use crate::{class_list::ClassList, lock::Locket, node_list::NodeList};
 use domjohnson::NodeId;
-use klaver::throw;
 use locket::LockApi;
 use rquickjs::{class::Trace, Class, Ctx};
 
@@ -17,7 +16,7 @@ impl<'js> Trace<'js> for JsElement {
 #[rquickjs::methods]
 impl JsElement {
     pub fn kind(&self, ctx: Ctx<'_>) -> Result<(), rquickjs::Error> {
-        let Some(el) = self.dom.read().unwrap().get(self.id) else {
+        let Some(_el) = self.dom.read().unwrap().get(self.id) else {
             fail!(ctx, "Element does no longer exists")
         };
 
@@ -39,7 +38,7 @@ impl JsElement {
 
     pub fn remove_child<'js>(
         &self,
-        ctx: Ctx<'js>,
+        _ctx: Ctx<'js>,
         child: Class<'js, JsElement>,
     ) -> rquickjs::Result<Class<'js, JsElement>> {
         let mut dom = self.dom.write().unwrap();
