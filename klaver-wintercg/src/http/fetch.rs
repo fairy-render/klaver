@@ -1,5 +1,5 @@
 use rquickjs::{prelude::Opt, Class, Ctx, Exception, FromJs, Value};
-use rquickjs_util::{throw_if, util::StringExt};
+use rquickjs_util::throw_if;
 
 use crate::config::WinterCG;
 

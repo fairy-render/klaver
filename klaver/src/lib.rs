@@ -1,6 +1,5 @@
 mod macros;
 mod options;
-mod types;
 mod vm;
 
 #[cfg(feature = "pool")]

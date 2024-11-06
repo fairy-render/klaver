@@ -1,4 +1,4 @@
-use rquickjs::{class::Trace, Array, Class, Ctx, FromIteratorJs, Object, Symbol, Value};
+use rquickjs::{class::Trace, Array, Class, Ctx, FromIteratorJs, Object, Value};
 use rquickjs_util::{create_proxy, throw, typed_map::TypedMap, Prop, ProxyHandler};
 
 use crate::WinterCG;
@@ -16,7 +16,7 @@ impl<'js> ProxyHandler<'js, TypedMap<'js, rquickjs::String<'js>, rquickjs::Strin
     ) -> rquickjs::Result<rquickjs::Value<'js>> {
         let prop = match prop {
             Prop::String(prop) => prop,
-            Prop::Symbol(sym) => {
+            Prop::Symbol(_sym) => {
                 // if sym == Symbol::iterator(ctx.clone()) {
                 //     target.entries()?.this()
                 // } else {

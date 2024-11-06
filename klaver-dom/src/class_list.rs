@@ -12,7 +12,7 @@ pub struct ClassList {
 }
 
 impl<'js> Trace<'js> for ClassList {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {}
+    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
 
 #[rquickjs::methods]

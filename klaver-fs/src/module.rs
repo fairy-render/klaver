@@ -1,9 +1,6 @@
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use rquickjs::{
-    class::Trace,
-    function::Opt,
-    module::ModuleDef,
-    ArrayBuffer, Ctx, FromJs, IntoJs, Object,
+    class::Trace, function::Opt, module::ModuleDef, ArrayBuffer, Ctx, FromJs, IntoJs, Object,
 };
 use rquickjs_modules::module_info;
 use rquickjs_util::{
@@ -179,7 +176,7 @@ impl<'js> AsyncIterable<'js> for ReadDir {
 
     type Stream = Static<BoxStream<'static, Result<Self::Item, Self::Error>>>;
 
-    fn stream(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<AsyncIter<Self::Stream>> {
+    fn stream(&mut self, _ctx: &Ctx<'js>) -> rquickjs::Result<AsyncIter<Self::Stream>> {
         let Some(stream) = self.stream.take() else {
             panic!("stream already consumed")
         };

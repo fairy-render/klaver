@@ -1,6 +1,5 @@
 use rquickjs::{module::ModuleDef, Class};
 use rquickjs_modules::module_info;
-use rquickjs_util::async_iterator::AsyncIterable;
 
 use crate::{
     abort_controller::{AbortController, AbortSignal},
@@ -10,10 +9,6 @@ use crate::{
     dom_exception::DOMException,
     event_target::{Emitter, Event, EventTarget},
     performance::Performance,
-    streams::{
-        ByteLengthQueuingStrategy, CountQueuingStrategy, ReadableStream,
-        ReadableStreamDefaultReader,
-    },
     timers,
 };
 
@@ -37,10 +32,7 @@ impl ModuleDef for Module {
         decl.declare(stringify!(process))?;
 
         // // Stream api
-        decl.declare(stringify!(ReadableStream))?;
-        decl.declare(stringify!(ReadableStreamDefaultReader))?;
-        decl.declare(stringify!(CountQueuingStrategy))?;
-        decl.declare(stringify!(ByteLengthQueuingStrategy))?;
+        crate::streams::declare(decl)?;
 
         timers::declare(decl)?;
 
@@ -75,15 +67,16 @@ impl ModuleDef for Module {
         export!(exports, ctx, Blob, Console, Performance);
 
         // // Streams
-        export!(
-            exports,
-            ctx,
-            ReadableStream,
-            ReadableStreamDefaultReader,
-            CountQueuingStrategy,
-            ByteLengthQueuingStrategy
-        );
-        ReadableStream::add_async_iterable_prototype(ctx)?;
+        // export!(
+        //     exports,
+        //     ctx,
+        //     ReadableStream,
+        //     ReadableStreamDefaultReader,
+        //     CountQueuingStrategy,
+        //     ByteLengthQueuingStrategy
+        // );
+        // ReadableStream::add_async_iterable_prototype(ctx)?;
+        crate::streams::evaluate(ctx, exports)?;
 
         timers::evaluate(ctx, exports, &config)?;
 

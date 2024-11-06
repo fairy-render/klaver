@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use rquickjs::{Class, Module, Object, Promise, Value};
+use rquickjs::{Class, Object, Promise, Value};
 use rquickjs_modules::GlobalInfo;
 
 use crate::{config::WINTERCG_KEY, console::Console, performance::Performance};

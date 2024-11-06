@@ -1,9 +1,4 @@
-
-use rquickjs::{
-    class::Trace,
-    prelude::Opt,
-    Array, Ctx, FromJs, Function, IntoJs, Value,
-};
+use rquickjs::{class::Trace, prelude::Opt, Array, Ctx, FromJs, Function, IntoJs, Value};
 use rquickjs_util::{
     iterator::{Iterable, JsIterator, NativeIter},
     typed_list::TypedList,
@@ -170,7 +165,7 @@ impl<'js> URLSearchParams<'js> {
     }
 
     #[qjs(rename = "toString")]
-    pub fn to_string(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<String> {
+    pub fn to_string(&mut self, _ctx: Ctx<'js>) -> rquickjs::Result<String> {
         let entries = self.map.entries()?;
         let mut output = String::new();
         for (idx, entry) in entries.enumerate() {

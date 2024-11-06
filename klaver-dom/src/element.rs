@@ -16,7 +16,7 @@ impl<'js> Trace<'js> for JsElement {
 #[rquickjs::methods]
 impl JsElement {
     pub fn kind(&self, ctx: Ctx<'_>) -> Result<(), rquickjs::Error> {
-        let Some(el) = self.dom.read().unwrap().get(self.id) else {
+        let Some(_el) = self.dom.read().unwrap().get(self.id) else {
             fail!(ctx, "Element does no longer exists")
         };
 

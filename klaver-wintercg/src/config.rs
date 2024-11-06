@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use rquickjs::{class::Trace, Class, Ctx, Module, Object};
 use rquickjs_util::typed_map::TypedMap;

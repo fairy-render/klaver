@@ -1,8 +1,8 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::marker::PhantomData;
 
 use rquickjs::{
-    atom::PredefinedAtom, class::Trace, function::Constructor, Array, Ctx, FromJs, Function,
-    IntoJs, Object, Value,
+    class::Trace, function::Constructor, Array, Ctx, FromJs,
+    IntoJs, Value,
 };
 
 pub enum Prop<'js> {

@@ -3,6 +3,9 @@ name = "klaver-dom"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+parallel = ["rquickjs/parallel"]
+
 [dependencies]
 rquickjs.workspace = true
 rquickjs-util = { path = "../rquickjs-util" }

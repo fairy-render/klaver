@@ -7,7 +7,7 @@ use rquickjs::{
 use rquickjs_modules::Environ;
 use rquickjs_util::RuntimeError;
 
-use crate::{types::MaybeSend, Options};
+use crate::Options;
 
 pub struct Vm {
     context: AsyncContext,
@@ -43,6 +43,10 @@ impl Vm {
             context,
             env: env.clone(),
         })
+    }
+
+    pub fn env(&self) -> &Environ {
+        &self.env
     }
 
     pub async fn run_gc(&self) {
