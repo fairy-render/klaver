@@ -3,11 +3,16 @@ name = "klaver-cli"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "klaver"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 color-eyre = "0.6"
 
 tokio = { version = "1", features = ["rt", "macros", "fs"] }
+rquickjs.workspace = true
 
 klaver = { path = "../klaver", features = [
   "http",
@@ -15,8 +20,6 @@ klaver = { path = "../klaver", features = [
   "crypto",
   "transform",
 ] }
-rquickjs.workspace = true
-
 klaver-dom = { path = "../klaver-dom" }
 klaver-fs = { path = "../klaver-fs" }
 klaver-image = { path = "../klaver-image" }
