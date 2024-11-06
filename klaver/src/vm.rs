@@ -20,7 +20,7 @@ impl Vm {
         Options::default()
     }
 
-    pub(super) async fn new_with(
+    pub async fn new_with(
         env: &Environ,
         max_stack_size: Option<usize>,
         max_mem: Option<usize>,
