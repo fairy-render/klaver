@@ -160,4 +160,11 @@ impl PooledVm {
             PooledVm::Worker(worker) => worker.idle().await,
         }
     }
+
+    pub fn env(&self) -> &Environ {
+        match self {
+            PooledVm::Vm(vm) => vm.env(),
+            PooledVm::Worker(worker) => worker.env(),
+        }
+    }
 }

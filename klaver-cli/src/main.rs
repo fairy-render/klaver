@@ -74,7 +74,6 @@ async fn run(path: PathBuf) -> color_eyre::Result<()> {
     let vm = create_vm().build().await?;
 
     let filename = path.display().to_string();
-
     let content = tokio::fs::read_to_string(path).await?;
 
     let compiler = Compiler::default();

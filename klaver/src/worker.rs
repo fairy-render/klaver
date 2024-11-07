@@ -41,6 +41,7 @@ enum Request {
 
 pub struct Worker {
     sx: mpsc::Sender<Request>,
+    env: Environ,
 }
 
 impl Worker {
@@ -49,8 +50,12 @@ impl Worker {
         max_stack_size: Option<usize>,
         memory_limit: Option<usize>,
     ) -> Result<Worker, RuntimeError> {
-        let sx = create_worker(modules, max_stack_size, memory_limit, false).await?;
-        Ok(Worker { sx })
+        let sx = create_worker(modules.clone(), max_stack_size, memory_limit, false).await?;
+        Ok(Worker { sx, env: modules })
+    }
+
+    pub fn env(&self) -> &Environ {
+        &self.env
     }
 
     pub async fn idle(&self) -> Result<(), RuntimeError> {
