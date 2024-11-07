@@ -128,6 +128,12 @@ impl Loader for FileLoader {
         ctx: &rquickjs::Ctx<'js>,
         name: &str,
     ) -> rquickjs::Result<rquickjs::Module<'js, rquickjs::module::Declared>> {
+        if !Path::new(name).exists() {
+            return Err(rquickjs::Error::new_loading_message(
+                name,
+                "does not exists",
+            ));
+        }
         let content = std::fs::read_to_string(name).unwrap();
         let codegen = self
             .compiler
