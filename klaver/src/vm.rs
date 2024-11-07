@@ -25,8 +25,7 @@ impl Vm {
         max_stack_size: Option<usize>,
         max_mem: Option<usize>,
     ) -> Result<Vm, RuntimeError> {
-        let runtime = AsyncRuntime::new()?;
-        let context = AsyncContext::full(&runtime).await?;
+        let runtime = env.create_runtime().await?;
 
         if let Some(ss) = max_stack_size {
             runtime.set_max_stack_size(ss).await;
@@ -35,6 +34,8 @@ impl Vm {
         if let Some(mm) = max_mem {
             runtime.set_memory_limit(mm).await;
         }
+
+        let context = AsyncContext::full(&runtime).await?;
 
         env.init(&context).await?;
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rquickjs::{AsyncContext, CatchResultExt};
+use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt};
 use rquickjs_util::RuntimeError;
 
 use crate::{globals::Globals, Modules, Typings};
@@ -27,9 +27,15 @@ impl Environ {
         &self.0.typings
     }
 
-    pub async fn init(&self, context: &AsyncContext) -> Result<(), RuntimeError> {
-        self.0.modules.attach(context.runtime()).await?;
+    pub async fn create_runtime(&self) -> Result<AsyncRuntime, RuntimeError> {
+        let runtime = AsyncRuntime::new()?;
 
+        self.0.modules.attach(&runtime).await?;
+
+        Ok(runtime)
+    }
+
+    pub async fn init(&self, context: &AsyncContext) -> Result<(), RuntimeError> {
         rquickjs::async_with!(context => |ctx| {
           self.0.globals.attach(ctx.clone()).await.catch(&ctx).map_err(|err| RuntimeError::from(err))
         })
