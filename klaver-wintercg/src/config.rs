@@ -1,4 +1,4 @@
-use rquickjs::{class::Trace, Class, Ctx, Module, Object};
+use rquickjs::{class::Trace, Class, Ctx};
 use rquickjs_util::typed_map::TypedMap;
 
 use crate::timers::Timers;
