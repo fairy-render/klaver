@@ -1,4 +1,3 @@
-
 use rquickjs::{class::Trace, Class, Ctx, Module, Object};
 use rquickjs_util::typed_map::TypedMap;
 
@@ -39,11 +38,8 @@ impl<'js> WinterCG<'js> {
 }
 
 impl<'js> WinterCG<'js> {
-    pub async fn get(ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, WinterCG<'js>>> {
-        let obj = Module::import(ctx, "@klaver/wintercg")?
-            .into_future::<Object>()
-            .await?;
-        obj.get("config")
+    pub fn get(ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, WinterCG<'js>>> {
+        ctx.globals().get(WINTERCG_KEY)
     }
 
     #[cfg(feature = "http")]

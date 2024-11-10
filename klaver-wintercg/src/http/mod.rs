@@ -1,8 +1,6 @@
 mod body_init;
 mod body_state;
-// mod client;
 mod convert;
-// mod facotry;
 mod fetch;
 mod headers;
 mod method;
@@ -32,15 +30,15 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
+pub fn register<'js>(
     ctx: &rquickjs::prelude::Ctx<'js>,
-    exports: &rquickjs::module::Exports<'js>,
     winter: &Class<'js, WinterCG<'js>>,
 ) -> rquickjs::Result<()> {
-    export!(exports, ctx, Response, Request, Headers, URLSearchParams);
+    define!(ctx, Response, Request, Headers, URLSearchParams);
     URLSearchParams::add_iterable_prototype(ctx)?;
 
-    exports.export("URL", Class::<Url>::create_constructor(&ctx)?)?;
+    ctx.globals()
+        .set("URL", Class::<Url>::create_constructor(&ctx)?)?;
 
     let fetch = Func::new(Async(fetch))
         .into_js(&ctx)?
@@ -48,7 +46,7 @@ pub fn evaluate<'js>(
         .unwrap();
 
     let fetch = fetch.bind(ctx.clone(), (ctx.globals(), winter.clone()))?;
-    exports.export("fetch", fetch)?;
+    ctx.globals().set("fetch", fetch)?;
 
     Ok(())
 }

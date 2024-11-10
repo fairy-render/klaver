@@ -7,6 +7,14 @@ macro_rules! export {
   };
 }
 
+macro_rules! define {
+    ($ctx: expr, $($instance: ty),*) => {
+        $(
+            rquickjs::Class::<$instance>::define(&$ctx.globals())?;
+        )*
+    };
+}
+
 #[macro_export]
 macro_rules! run{
   ($context:expr => |$ctx:ident| { $($t:tt)* }) => {

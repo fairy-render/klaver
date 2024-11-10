@@ -73,7 +73,7 @@ impl<'js> ProxyHandler<'js, TypedMap<'js, rquickjs::String<'js>, rquickjs::Strin
 
 pub fn process<'js>(
     ctx: Ctx<'js>,
-    winter: Class<'js, WinterCG<'js>>,
+    winter: &Class<'js, WinterCG<'js>>,
 ) -> rquickjs::Result<Object<'js>> {
     let obj = Object::new(ctx.clone())?;
 

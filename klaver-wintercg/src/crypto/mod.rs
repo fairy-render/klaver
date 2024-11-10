@@ -14,10 +14,7 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
-    ctx: &rquickjs::prelude::Ctx<'js>,
-    exports: &rquickjs::module::Exports<'js>,
-) -> rquickjs::Result<()> {
+pub fn evaluate<'js>(ctx: &rquickjs::prelude::Ctx<'js>) -> rquickjs::Result<()> {
     let object = Object::new(ctx.clone())?;
 
     let subtle = Object::new(ctx.clone())?;
@@ -39,7 +36,7 @@ pub fn evaluate<'js>(
     object.set("getRandomValues", Func::new(random_values))?;
     object.set("randomUUID", Func::new(random_uuid))?;
 
-    exports.export("crypto", object)?;
+    ctx.globals().set("crypto", object)?;
 
     Ok(())
 }

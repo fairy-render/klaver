@@ -82,9 +82,9 @@ async fn run(path: PathBuf) -> color_eyre::Result<()> {
 
     klaver::async_with!(vm => |ctx| {
 
-        let config = WinterCG::get(&ctx).await?;
+        let config = WinterCG::get(&ctx).catch(&ctx)?;
 
-        config.borrow().init_env_from_os(ctx.clone())?;
+        config.borrow().init_env_from_os(ctx.clone()).catch(&ctx)?;
 
         Module::evaluate(ctx.clone(), filename, content.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
         Ok(())

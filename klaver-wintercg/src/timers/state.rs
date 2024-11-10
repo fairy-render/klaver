@@ -121,18 +121,18 @@ impl<'js> Timers<'js> {
     }
 }
 
-async fn get_timers<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Timers<'js>> {
-    let core = WinterCG::get(ctx).await?;
+fn get_timers<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Timers<'js>> {
+    let core = WinterCG::get(ctx)?;
     let core = core.borrow();
     Ok(core.timers().clone())
 }
 
-pub async fn poll_timers(ctx: &Ctx<'_>) -> rquickjs::Result<Sleep> {
-    let timers = get_timers(ctx).await?;
+pub fn poll_timers(ctx: &Ctx<'_>) -> rquickjs::Result<Sleep> {
+    let timers = get_timers(ctx)?;
     Ok(timers.sleep())
 }
 
-pub async fn process_timers(ctx: &Ctx<'_>) -> rquickjs::Result<bool> {
-    let timers = get_timers(ctx).await?;
+pub fn process_timers(ctx: &Ctx<'_>) -> rquickjs::Result<bool> {
+    let timers = get_timers(ctx)?;
     timers.process(ctx)
 }

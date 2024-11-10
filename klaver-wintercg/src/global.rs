@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
-use rquickjs::{Class, Object, Promise, Value};
+use rquickjs::Class;
 use rquickjs_modules::GlobalInfo;
 
-use crate::{config::WINTERCG_KEY, console::Console, performance::Performance};
+use crate::{config::WINTERCG_KEY, console::Console, performance::Performance, WinterCG};
 
 const TYPES: &'static str = include_str!(concat!(env!("OUT_DIR"), "/global.d.ts"));
 
@@ -11,7 +11,6 @@ pub struct Globals;
 
 impl GlobalInfo for Globals {
     fn register(builder: &mut rquickjs_modules::GlobalBuilder<'_, Self>) {
-        builder.dependency::<crate::Module>();
         builder.register(Global)
     }
 
@@ -34,30 +33,29 @@ impl rquickjs_modules::Global for Global {
                 return Ok(());
             }
 
-            let module = ctx
-                .eval::<Promise, _>("import('@klaver/wintercg')")?
-                .into_future::<Object>()
-                .await?;
+            let config = Class::instance(ctx.clone(), WinterCG::new(ctx.clone())?)?;
 
-            for k in module.keys::<String>() {
-                let k = k?;
-                if k.as_str() == "Performance"
-                    || k.as_str() == "Console"
-                    || k.as_str() == "Client"
-                    || k.as_str() == "config"
-                {
-                    continue;
-                }
-                let value = module.get::<_, rquickjs::Value>(&k)?;
-                globals.set(k, value)?;
-            }
+            crate::base::register(&ctx)?;
+            crate::streams::register(&ctx)?;
+            crate::timers::register(&ctx, &config)?;
+
+            #[cfg(feature = "http")]
+            crate::http::register(&ctx, &config)?;
+
+            #[cfg(feature = "encoding")]
+            crate::encoding::register(&ctx)?;
+
+            #[cfg(feature = "crypto")]
+            crate::encoding::register(&ctx)?;
 
             let console = Class::instance(ctx.clone(), Console::new())?;
             let performance = Class::instance(ctx.clone(), Performance::new())?;
-            let config: Value = module.get("config")?;
 
             globals.set("performance", performance)?;
             globals.set("console", console)?;
+
+            let process = crate::process::process(ctx.clone(), &config)?;
+            globals.set("process", process)?;
 
             globals.set(WINTERCG_KEY, config)?;
 

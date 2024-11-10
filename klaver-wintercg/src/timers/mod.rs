@@ -36,9 +36,8 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
+pub fn register<'js>(
     ctx: &rquickjs::prelude::Ctx<'js>,
-    exports: &rquickjs::module::Exports<'js>,
     winter: &Class<'js, WinterCG<'js>>,
 ) -> rquickjs::Result<()> {
     let timer = Func::new(set_timeout).into_js(ctx)?.get::<Function>()?;
@@ -47,38 +46,34 @@ pub fn evaluate<'js>(
         .get::<Function>()?
         .bind(ctx.clone(), (ctx.globals(), winter.clone()))?;
 
-    exports.export(
+    let globals = ctx.globals();
+
+    globals.set(
         "setTimeout",
         timer.bind(ctx.clone(), (ctx.globals(), winter.clone(), false)),
     )?;
 
-    exports.export("clearTimeout", clear.clone())?;
+    globals.set("clearTimeout", clear.clone())?;
 
-    exports.export(
+    globals.set(
         "setInterval",
         timer.bind(ctx.clone(), (ctx.globals(), winter.clone(), true)),
     )?;
 
-    exports.export("clearInterval", clear.clone())?;
+    globals.set("clearInterval", clear.clone())?;
 
     Ok(())
 }
 
 pub async fn wait_timers<'a>(context: &'a AsyncContext) -> rquickjs::Result<()> {
     loop {
-        let has_timers = rquickjs::async_with!(context => |ctx| {
-          process_timers(&ctx).await
-        })
-        .await?;
+        let has_timers = context.with(|ctx| process_timers(&ctx)).await?;
 
         if !has_timers && !context.runtime().is_job_pending().await {
             break;
         }
 
-        let sleep = rquickjs::async_with!(context => |ctx| {
-          poll_timers(&ctx).await
-        })
-        .await?;
+        let sleep = context.with(|ctx| poll_timers(&ctx)).await?;
 
         sleep.await;
     }

@@ -13,12 +13,9 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
-    ctx: &rquickjs::prelude::Ctx<'js>,
-    exports: &rquickjs::module::Exports<'js>,
-) -> rquickjs::Result<()> {
-    export!(exports, ctx, TextEncoder, TextDecoder);
-    exports.export(stringify!(atob), Func::new(atob))?;
-    exports.export(stringify!(btoa), Func::new(btoa))?;
+pub fn register<'js>(ctx: &rquickjs::prelude::Ctx<'js>) -> rquickjs::Result<()> {
+    define!(ctx, TextEncoder, TextDecoder);
+    ctx.globals().set(stringify!(atob), Func::new(atob))?;
+    ctx.globals().set(stringify!(btoa), Func::new(btoa))?;
     Ok(())
 }

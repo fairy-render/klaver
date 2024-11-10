@@ -2,13 +2,13 @@
 mod macros;
 
 pub mod abort_controller;
+mod base;
 mod blob;
 mod config;
 pub mod console;
 pub mod dom_exception;
 pub mod event_target;
 mod global;
-mod module;
 mod multimap;
 pub mod streams;
 mod timers;
@@ -27,7 +27,6 @@ mod process;
 
 use std::{future::Future, pin::Pin};
 
-pub use module::Module;
 use rquickjs::{AsyncContext, Ctx};
 
 pub use self::{
