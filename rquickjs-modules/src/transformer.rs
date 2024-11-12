@@ -93,7 +93,7 @@ impl Compiler {
 
         let (symbols, scopes) = ret.semantic.into_symbol_table_and_scope_tree();
 
-        let ret = Transformer::new(&allocator, Path::new(path), self.transform_options.clone())
+        let ret = Transformer::new(&allocator, Path::new(path), &self.transform_options)
             .build_with_symbols_and_scopes(symbols, scopes, &mut program);
 
         if !ret.errors.is_empty() {

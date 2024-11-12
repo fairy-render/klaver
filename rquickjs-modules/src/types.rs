@@ -1,10 +1,6 @@
+use geenie::{File, FileList};
 use relative_path::RelativePathBuf;
 use std::{borrow::Cow, collections::HashMap};
-
-pub struct File {
-    pub path: RelativePathBuf,
-    pub content: Vec<u8>,
-}
 
 #[derive(Debug, Default)]
 pub struct Typings {
@@ -27,7 +23,7 @@ impl Typings {
         self
     }
 
-    pub fn files(&self) -> Vec<File> {
+    pub fn files(&self) -> FileList {
         let mut files = Vec::with_capacity(self.modules.len() * 2 + self.globals.len());
         for (name, module) in &self.modules {
             let mod_path = RelativePathBuf::from(name);
@@ -52,6 +48,6 @@ impl Typings {
             content: globals.into_bytes(),
         });
 
-        files
+        files.into()
     }
 }
