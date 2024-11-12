@@ -2,7 +2,7 @@ use geenie::{File, FileList};
 use relative_path::RelativePathBuf;
 use std::{borrow::Cow, collections::HashMap};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Typings {
     modules: HashMap<Cow<'static, str>, Cow<'static, str>>,
     globals: Vec<Cow<'static, str>>,
