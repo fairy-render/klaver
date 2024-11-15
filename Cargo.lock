@@ -829,7 +829,7 @@ dependencies = [
 [[package]]
 name = "geenie"
 version = "0.1.0"
-source = "git+https://github.com/fairy-render/geenie.git#818be356bd881e13e4555c4e0adcbab97f6b1fd2"
+source = "git+https://github.com/fairy-render/geenie.git#2613d4a6e77992edcc1acd287862a43f59c753ce"
 dependencies = [
  "relative-path",
  "thiserror 2.0.3",
