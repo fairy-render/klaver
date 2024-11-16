@@ -41,6 +41,8 @@ impl ModuleDef for Module {
         decl.declare("resolve")?;
         decl.declare("readDir")?;
         decl.declare("open")?;
+        decl.declare("exists")?;
+        decl.declare("mkdir")?;
 
         Ok(())
     }
@@ -54,6 +56,8 @@ impl ModuleDef for Module {
         exports.export("resolve", js_resolve)?;
         exports.export("readDir", js_read_dir)?;
         exports.export("open", js_open_file)?;
+        exports.export("exists", js_exists)?;
+        exports.export("mkdir", js_mkdir)?;
 
         Ok(())
     }
@@ -104,6 +108,18 @@ pub async fn open_file<'js>(
     );
 
     Ok(JsFile::new(file))
+}
+
+#[rquickjs::function]
+pub async fn mkdir<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<()> {
+    throw_if!(ctx, tokio::fs::create_dir_all(path).await);
+    Ok(())
+}
+
+#[rquickjs::function]
+pub async fn exists<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<bool> {
+    let ret = throw_if!(ctx, tokio::fs::try_exists(path).await);
+    Ok(ret)
 }
 
 #[rquickjs::function]

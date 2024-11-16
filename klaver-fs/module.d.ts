@@ -24,3 +24,7 @@ export function readDir(path: string): Promise<AsyncIterable<DirEntry>>;
 export function resolve(path: string): Promise<string>;
 
 export function open(path: string, flag?: OpenFlag): Promise<File>;
+
+export function mkdir(path: string): Promise<void>;
+
+export function exists(path: string): Promise<boolean>;
