@@ -24,4 +24,5 @@ pub use self::{
     types::Typings,
 };
 
+pub use oxc_resolver as resolver;
 pub use oxc_resolver::ResolveOptions;
