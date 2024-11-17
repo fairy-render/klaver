@@ -82,5 +82,7 @@ pub fn process<'js>(
         create_proxy(ctx.clone(), winter.borrow().env().clone(), Env),
     )?;
 
+    obj.set("args", Array::new(ctx)?)?;
+
     Ok(obj)
 }

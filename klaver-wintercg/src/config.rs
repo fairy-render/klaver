@@ -1,4 +1,4 @@
-use rquickjs::{class::Trace, Class, Ctx};
+use rquickjs::{class::Trace, Class, Ctx, Object};
 use rquickjs_util::typed_map::TypedMap;
 
 use crate::timers::Timers;
@@ -60,6 +60,10 @@ impl<'js> WinterCG<'js> {
     #[cfg(feature = "http")]
     pub fn base_url(&self) -> &url::Url {
         &self.base_url
+    }
+
+    pub fn set_args(&self, ctx: Ctx<'js>, args: Vec<String>) -> rquickjs::Result<()> {
+        ctx.globals().get::<_, Object>("process")?.set("args", args)
     }
 
     pub fn timers(&self) -> &Timers<'js> {
