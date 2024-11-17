@@ -72,4 +72,21 @@ export class URL {
 	password: string;
 	protocol: string;
 	search: string;
+	pathname: string;
+}
+
+export function fetch(
+	url: string | URL | Request,
+	opts?: RequestInit,
+): Promise<Response>;
+
+export class URLSearchParams {
+	constructor(init: string | [string, string][]);
+	get(key: string): string | undefined;
+	has(key: string): boolean;
+	getAll(key: string): string[];
+	set(key: string, value: string): void;
+	append(key: string, value: string): void;
+	delete(key: string): void;
+	entries(): IterableIterator<[string, string]>;
 }

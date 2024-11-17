@@ -66,6 +66,7 @@ export interface Environ {
 
 export interface ProcessApi {
   readonly env: Environ;
+  readonly args: readonly string[];
 }
 
 export const process: ProcessApi;
