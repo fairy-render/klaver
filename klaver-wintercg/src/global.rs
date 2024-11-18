@@ -48,6 +48,9 @@ impl rquickjs_modules::Global for Global {
             #[cfg(feature = "crypto")]
             crate::encoding::register(&ctx)?;
 
+            #[cfg(feature = "icu")]
+            crate::intl::register(&ctx)?;
+
             let console = Class::instance(ctx.clone(), Console::new())?;
             let performance = Class::instance(ctx.clone(), Performance::new())?;
 

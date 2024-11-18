@@ -22,6 +22,9 @@ pub mod http;
 #[cfg(feature = "http")]
 pub use url;
 
+#[cfg(feature = "icu")]
+pub mod intl;
+
 pub mod performance;
 mod process;
 

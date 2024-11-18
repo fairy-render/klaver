@@ -6,7 +6,7 @@ edition = "2021"
 build = "build.rs"
 
 [features]
-default = ["encoding", "http", "crypto"]
+default = ["encoding", "http", "crypto", "icu"]
 encoding = ["encoding_rs", "base64"]
 http = [
   "tokio/sync",
@@ -19,6 +19,7 @@ http = [
   "form_urlencoded",
 ]
 crypto = ["rand", "uuid", "sha1", "sha2"]
+icu = ["icu_locid", "icu_datetime", "icu_calendar"]
 
 [dependencies]
 rquickjs.workspace = true
@@ -54,6 +55,10 @@ uuid = { version = "1", features = ["v4"], optional = true }
 sha1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
 
+## Icu
+icu_locid = { version = "1", optional = true }
+icu_datetime = { version = "1", optional = true }
+icu_calendar = { version = "1", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros"] }

@@ -11,6 +11,36 @@ impl<'js> Date<'js> {
         func.call((This(self.object.clone()),))
     }
 
+    pub fn month(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getMonth")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn date(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getDate")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn hours(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getHours")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn minutes(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getMinutes")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn seconds(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getSeconds")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn timezone_offset(&self) -> rquickjs::Result<i32> {
+        let func = self.object.get::<_, Function>("getTimezoneOffset")?;
+        func.call((This(self.object.clone()),))
+    }
+
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
         let date_ctor: Value<'_> = ctx.globals().get::<_, Value>("Date")?;
 
