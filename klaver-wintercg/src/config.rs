@@ -1,5 +1,5 @@
 use rquickjs::{class::Trace, Class, Ctx, Object};
-use rquickjs_util::typed_map::TypedMap;
+use rquickjs_util::{throw, typed_map::TypedMap};
 
 use crate::timers::Timers;
 
@@ -39,7 +39,7 @@ impl<'js> WinterCG<'js> {
             provider: None,
             #[cfg(all(feature = "icu", feature = "icu-compiled"))]
             provider: Some(crate::intl::provider::DynProvider::new(
-                icu::datetime::provider::Baked,
+                crate::intl::baked::Baked::new(),
             )),
         })
     }
@@ -80,6 +80,26 @@ impl<'js> WinterCG<'js> {
 
     pub fn env(&self) -> &Environ<'js> {
         &self.env
+    }
+
+    #[cfg(feature = "icu")]
+    pub fn icu_provider(
+        &self,
+        ctx: &Ctx<'js>,
+    ) -> rquickjs::Result<&crate::intl::provider::DynProvider> {
+        let Some(provider) = self.provider.as_ref() else {
+            throw!(ctx, "ICU dataprovider not set")
+        };
+
+        Ok(provider)
+    }
+
+    #[cfg(feature = "icu")]
+    pub fn set_icu_provider<P: crate::intl::provider::ProviderTrait + 'static>(
+        &mut self,
+        provider: P,
+    ) {
+        self.provider = Some(crate::intl::provider::DynProvider::new(provider));
     }
 
     pub fn init_env_from_os(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {

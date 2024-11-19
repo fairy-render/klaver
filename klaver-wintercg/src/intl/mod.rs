@@ -2,6 +2,9 @@ mod datetime;
 mod locale;
 pub mod provider;
 
+#[cfg(feature = "icu-compiled")]
+pub mod baked;
+
 use locale::JsLocale;
 use rquickjs::{Class, Object};
 
