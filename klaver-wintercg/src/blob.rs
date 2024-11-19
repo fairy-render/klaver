@@ -1,4 +1,4 @@
-use rquickjs::{class::Trace, ArrayBuffer, Class, Ctx, FromJs};
+use rquickjs::{class::Trace, ArrayBuffer, Class, Ctx, FromJs, JsLifetime};
 use rquickjs_util::{buffer::Buffer, throw_if};
 
 pub enum BlobInit<'js> {
@@ -72,6 +72,10 @@ impl<'js> FromJs<'js> for BlobInit<'js> {
 #[rquickjs::class]
 pub struct Blob<'js> {
     i: Vec<BlobInit<'js>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for Blob<'js> {
+    type Changed<'to> = Blob<'to>;
 }
 
 impl<'js> Blob<'js> {

@@ -4,7 +4,8 @@ use rquickjs_util::{throw, throw_if};
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
 use rquickjs::{
-    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, Value,
+    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Error, Exception, FromJs, JsLifetime,
+    Value,
 };
 
 use crate::{abort_controller::AbortSignal, streams::ReadableStream};
@@ -63,6 +64,10 @@ pub struct Request<'js> {
     headers: Class<'js, Headers<'js>>,
     body: Option<ResponseBodyKind<'js>>,
     signal: Option<Class<'js, AbortSignal<'js>>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for Request<'js> {
+    type Changed<'to> = Request<'to>;
 }
 
 impl<'js> Trace<'js> for Request<'js> {

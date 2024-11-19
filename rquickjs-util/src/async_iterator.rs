@@ -5,7 +5,7 @@ use rquickjs::{
     atom::PredefinedAtom,
     class::{JsClass, Trace},
     prelude::{Func, This},
-    Class, Ctx, Exception, IntoJs, Symbol, Value,
+    Class, Ctx, Exception, IntoJs, JsLifetime, Symbol, Value,
 };
 
 use crate::iterator::IterResult;
@@ -103,6 +103,10 @@ pub struct AsyncIterator<'js> {
     stream: Rc<RefCell<Box<dyn DynamicStream<'js> + 'js>>>,
 }
 
+unsafe impl<'js> JsLifetime<'js> for AsyncIterator<'js> {
+    type Changed<'to> = AsyncIterator<'to>;
+}
+
 impl<'js> AsyncIterator<'js> {
     pub fn new<T>(stream: T) -> AsyncIterator<'js>
     where
@@ -146,7 +150,7 @@ where
     fn stream(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<AsyncIter<Self::Stream>>;
 
     fn add_async_iterable_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
-        let proto = Class::<Self>::prototype(ctx.clone()).unwrap();
+        let proto = Class::<Self>::prototype(ctx)?.expect("Prototype");
 
         let symbol = Symbol::async_iterator(ctx.clone());
 

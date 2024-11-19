@@ -95,6 +95,7 @@ impl<'js> FromJs<'js> for ReizeOptions {
     }
 }
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class(rename = "Image")]
 pub struct JsImage {
     image: image::DynamicImage,

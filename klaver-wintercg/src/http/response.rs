@@ -1,7 +1,7 @@
 use reggie::Body;
 use reqwest::Version;
 use rquickjs::{
-    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Exception, FromJs, Value,
+    class::Trace, function::Opt, ArrayBuffer, Class, Ctx, Exception, FromJs, JsLifetime, Value,
 };
 use rquickjs_util::{throw, throw_if};
 
@@ -108,6 +108,10 @@ pub struct Response<'js> {
     headers: Class<'js, Headers<'js>>,
     body: Option<ResponseBodyKind<'js>>,
     version: reggie::http::Version,
+}
+
+unsafe impl<'js> JsLifetime<'js> for Response<'js> {
+    type Changed<'to> = Response<'to>;
 }
 
 impl<'js> Trace<'js> for Response<'js> {

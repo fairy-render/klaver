@@ -10,7 +10,7 @@ chrono = ["dep:chrono"]
 
 
 [dependencies]
-rquickjs = { version = "0.6", features = [
+rquickjs = { workspace = true, features = [
   # "futures",
   "macro",
   "classes",

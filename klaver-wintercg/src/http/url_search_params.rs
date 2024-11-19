@@ -1,4 +1,6 @@
-use rquickjs::{class::Trace, prelude::Opt, Array, Ctx, FromJs, Function, IntoJs, Value};
+use rquickjs::{
+    class::Trace, prelude::Opt, Array, Ctx, FromJs, Function, IntoJs, JsLifetime, Value,
+};
 use rquickjs_util::{
     iterator::{Iterable, JsIterator, NativeIter},
     typed_list::TypedList,
@@ -90,6 +92,10 @@ impl<'js> FromJs<'js> for URLSearchParamsInit<'js> {
 #[rquickjs::class]
 pub struct URLSearchParams<'js> {
     map: JsMultiMap<'js, rquickjs::String<'js>, rquickjs::String<'js>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for URLSearchParams<'js> {
+    type Changed<'to> = URLSearchParams<'to>;
 }
 
 #[rquickjs::methods]

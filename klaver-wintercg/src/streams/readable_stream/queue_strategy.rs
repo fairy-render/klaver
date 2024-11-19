@@ -1,5 +1,6 @@
 use rquickjs::{class::Trace, ArrayBuffer, Class, Ctx, FromJs, Function, Object};
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 #[derive(Debug, Trace)]
 pub struct CountQueuingStrategy {
@@ -25,6 +26,7 @@ impl CountQueuingStrategy {
     }
 }
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 #[derive(Debug, Trace)]
 pub struct ByteLengthQueuingStrategy {

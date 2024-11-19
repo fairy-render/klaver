@@ -117,7 +117,7 @@ where
     fn entries(&mut self) -> rquickjs::Result<NativeIter<Self::Iter>>;
 
     fn add_iterable_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
-        let proto = Class::<Self>::prototype(ctx.clone()).unwrap();
+        let proto = Class::<Self>::prototype(ctx)?.expect("Prototype");
 
         proto.set(
             PredefinedAtom::SymbolIterator,

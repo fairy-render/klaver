@@ -1,6 +1,6 @@
 use rquickjs::{
-    atom::PredefinedAtom, class::Trace, CaughtError, Class, Ctx, FromJs, IntoJs, Object, Promise,
-    Value,
+    atom::PredefinedAtom, class::Trace, CaughtError, Class, Ctx, FromJs, IntoJs, JsLifetime,
+    Object, Promise, Value,
 };
 use rquickjs_util::throw;
 
@@ -10,6 +10,10 @@ use super::{controller::ControllerWrap, ReadableStream};
 #[rquickjs::class]
 pub struct ReadableStreamDefaultReader<'js> {
     pub(super) ctrl: ControllerWrap<'js>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for ReadableStreamDefaultReader<'js> {
+    type Changed<'to> = ReadableStreamDefaultReader<'to>;
 }
 
 // impl<'js> Drop for ReadableStreamDefaultReader<'js> {

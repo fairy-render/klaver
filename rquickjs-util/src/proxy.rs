@@ -1,8 +1,7 @@
 use std::marker::PhantomData;
 
 use rquickjs::{
-    class::Trace, function::Constructor, Array, Ctx, FromJs,
-    IntoJs, Value,
+    class::Trace, function::Constructor, Array, Ctx, FromJs, IntoJs, JsLifetime, Value,
 };
 
 pub enum Prop<'js> {
@@ -160,6 +159,10 @@ where
 #[rquickjs::class]
 struct NativeProxy<'js> {
     i: Box<dyn DynamicProxy<'js> + 'js>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for NativeProxy<'js> {
+    type Changed<'to> = NativeProxy<'to>;
 }
 
 impl<'js> Trace<'js> for NativeProxy<'js> {

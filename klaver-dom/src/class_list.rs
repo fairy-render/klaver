@@ -5,6 +5,7 @@ use rquickjs_util::throw_if;
 
 use crate::lock::Locket;
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct ClassList {
     pub node: NodeId,

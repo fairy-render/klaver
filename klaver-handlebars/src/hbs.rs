@@ -1,6 +1,7 @@
 use rquickjs::{class::Trace, Ctx};
 use rquickjs_util::{throw_if, Val};
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct Handlebars {
     i: handlebars::Handlebars<'static>,

@@ -1,17 +1,10 @@
 use core::fmt;
-use rquickjs::{
-    class::Trace,
-    function::Opt,
-    Class, Ctx, Exception, Result, Value,
-};
+use rquickjs::{class::Trace, function::Opt, Class, Ctx, Exception, Result, Value};
 use rquickjs_util::Buffer;
 
 pub fn init(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
     let globals = ctx.globals();
-    Class::<TextDecoder>::register(ctx)?;
     Class::<TextDecoder>::define(&globals)?;
-
-    Class::<TextEncoder>::register(ctx)?;
     Class::<TextEncoder>::define(&globals)?;
 
     Ok(())
@@ -55,7 +48,7 @@ impl fmt::Display for UnknownEncoding {
 
 impl std::error::Error for UnknownEncoding {}
 
-#[derive(Debug)]
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct TextDecoder {
     decoder: &'static encoding_rs::Encoding,
@@ -105,7 +98,7 @@ impl TextDecoder {
     }
 }
 
-#[derive(Debug)]
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct TextEncoder {
     decoder: &'static encoding_rs::Encoding,

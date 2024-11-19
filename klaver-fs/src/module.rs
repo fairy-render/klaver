@@ -176,6 +176,7 @@ pub async fn read_dir<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<rqui
     AsyncIter::new(Static(stream)).into_js(&ctx)
 }
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 struct ReadDir {
     stream: Option<tokio_stream::wrappers::ReadDirStream>,

@@ -1,5 +1,5 @@
 use reggie::http::HeaderMap;
-use rquickjs::{class::Trace, function::Opt, Class, Ctx, FromJs};
+use rquickjs::{class::Trace, function::Opt, Class, Ctx, FromJs, JsLifetime};
 use std::collections::HashMap;
 
 #[derive(Trace)]
@@ -40,6 +40,10 @@ impl<'js> FromJs<'js> for HeadersInit<'js> {
 #[rquickjs::class]
 pub struct Headers<'js> {
     pub inner: HashMap<String, Vec<rquickjs::String<'js>>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for Headers<'js> {
+    type Changed<'to> = Headers<'to>;
 }
 
 impl<'js> Headers<'js> {

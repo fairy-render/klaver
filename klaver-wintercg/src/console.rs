@@ -45,6 +45,7 @@ impl ConsoleWriter for StdConsoleWriter {
     }
 }
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct Console {
     writer: Box<dyn ConsoleWriter>,

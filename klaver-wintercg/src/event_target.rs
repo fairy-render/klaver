@@ -1,7 +1,7 @@
 use rquickjs::{
     class::{JsClass, Trace},
     function::{Func, This},
-    Class, Ctx, FromJs, Function, Symbol, Value,
+    Class, Ctx, FromJs, Function, JsLifetime, Symbol, Value,
 };
 use std::{collections::HashMap, rc::Rc, sync::Arc};
 
@@ -19,6 +19,10 @@ impl NativeEvent {
 #[derive(Trace)]
 pub struct EventTarget<'js> {
     listeners: EventList<'js>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for EventTarget<'js> {
+    type Changed<'to> = EventTarget<'to>;
 }
 
 #[rquickjs::methods]
@@ -45,6 +49,10 @@ impl<'js> Emitter<'js> for EventTarget<'js> {
 #[rquickjs::class]
 pub struct Event<'js> {
     ty: EventKey<'js>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for Event<'js> {
+    type Changed<'to> = Event<'to>;
 }
 
 #[rquickjs::methods]
@@ -112,7 +120,7 @@ where
     }
 
     fn add_event_target_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
-        let proto = Class::<Self>::prototype(ctx.clone()).unwrap();
+        let proto = Class::<Self>::prototype(ctx)?.expect("EventEmitter.prototype");
         proto.set("addEventListener", Func::new(Self::add_event_listener))?;
         proto.set(
             "removeEventListener",

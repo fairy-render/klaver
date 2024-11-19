@@ -22,7 +22,7 @@ impl<'js> FromJs<'js> for LocalOptions {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(rquickjs::JsLifetime, Debug, Clone)]
 #[rquickjs::class(rename = "Locale")]
 pub struct JsLocale {
     locale: Locale,

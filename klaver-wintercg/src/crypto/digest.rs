@@ -65,6 +65,7 @@ impl DigestImpl {
     }
 }
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct Digest {
     inner: DigestImpl,

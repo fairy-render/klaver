@@ -1,4 +1,4 @@
-use rquickjs::{class::Trace, Class, Ctx, Object};
+use rquickjs::{class::Trace, Class, Ctx, JsLifetime, Object};
 use rquickjs_util::{throw, typed_map::TypedMap};
 
 use crate::timers::Timers;
@@ -17,6 +17,10 @@ pub struct WinterCG<'js> {
     env: Environ<'js>,
     #[cfg(feature = "icu")]
     provider: Option<crate::intl::provider::DynProvider>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for WinterCG<'js> {
+    type Changed<'to> = WinterCG<'to>;
 }
 
 impl<'js> Trace<'js> for WinterCG<'js> {

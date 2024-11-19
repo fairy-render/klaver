@@ -3,6 +3,7 @@ use rquickjs::class::Trace;
 use crate::{element::JsElement, lock::Locket, node_list::NodeList};
 use locket::LockApi as _;
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class(rename = "Document")]
 pub struct JsDocument {
     pub inner: Locket<domjohnson::Document>,

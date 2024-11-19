@@ -1,5 +1,5 @@
 use futures::{stream::LocalBoxStream, TryStream};
-use rquickjs::{class::Trace, prelude::Opt, Class, Ctx, FromJs, IntoJs, Value};
+use rquickjs::{class::Trace, prelude::Opt, Class, Ctx, FromJs, IntoJs, JsLifetime, Value};
 use rquickjs_util::{
     async_iterator::{AsyncIter, AsyncIterable, StreamContainer},
     Buffer, Static,
@@ -21,6 +21,10 @@ use super::{
 pub struct ReadableStream<'js> {
     v: UnderlyingSource<'js>,
     pub(super) ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for ReadableStream<'js> {
+    type Changed<'to> = ReadableStream<'to>;
 }
 
 impl<'js> Trace<'js> for ReadableStream<'js> {

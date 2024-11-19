@@ -57,6 +57,7 @@ impl<'js> FromJs<'js> for LocalesInit {
     }
 }
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct DateTimeFormat {
     formatter: ZonedDateTimeFormatter,

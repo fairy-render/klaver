@@ -2,6 +2,7 @@ use rquickjs::{class::Trace, Ctx, IntoJs, Value};
 use rquickjs_util::{async_iterator::AsyncIter, buffer::Buffer, throw, throw_if, Static};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 #[derive(Trace)]
 pub struct JsFile {

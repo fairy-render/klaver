@@ -1,7 +1,7 @@
 use rquickjs::{
     class::Trace,
     function::{Args, Opt, This},
-    Class, Ctx, Function,
+    Class, Ctx, Function, JsLifetime,
 };
 use rquickjs_util::throw;
 
@@ -15,6 +15,10 @@ use crate::{
 pub struct AbortController<'js> {
     #[qjs(get)]
     signal: Class<'js, AbortSignal<'js>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for AbortController<'js> {
+    type Changed<'to> = AbortController<'to>;
 }
 
 #[rquickjs::methods]
@@ -68,6 +72,10 @@ pub struct AbortSignal<'js> {
     #[qjs(get, set)]
     onabort: Option<Function<'js>>,
     chan: Option<tokio::sync::oneshot::Sender<()>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for AbortSignal<'js> {
+    type Changed<'to> = AbortSignal<'to>;
 }
 
 impl<'js> Trace<'js> for AbortSignal<'js> {

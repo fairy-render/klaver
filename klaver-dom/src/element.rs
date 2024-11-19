@@ -3,6 +3,7 @@ use domjohnson::NodeId;
 use locket::LockApi;
 use rquickjs::{class::Trace, Class, Ctx};
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class(rename = "Element")]
 pub struct JsElement {
     pub dom: Locket<domjohnson::Document>,

@@ -7,6 +7,7 @@ use rquickjs::{
 
 use crate::{element::JsElement, lock::Locket};
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct Children {
     pub dom: Locket<domjohnson::Document>,
@@ -60,6 +61,7 @@ impl Children {
     }
 }
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct NodeList {
     nodes: Vec<NodeId>,

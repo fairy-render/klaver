@@ -1,6 +1,7 @@
 use rquickjs::{class::Trace, Ctx, Exception, Value};
 use std::time::SystemTime;
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct Performance {
     origin: SystemTime,

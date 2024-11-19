@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, rc::Rc};
 
-use rquickjs::{class::Trace, CaughtError, Class, Ctx, Value};
+use rquickjs::{class::Trace, CaughtError, Class, Ctx, JsLifetime, Value};
 use rquickjs_util::throw;
 use tokio::sync::Notify;
 
@@ -58,6 +58,10 @@ pub struct ReadableStreamDefaultController<'js> {
     // Signal readers that something happended
     pub(super) wait: Rc<Notify>,
     pub state: State<'js>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for ReadableStreamDefaultController<'js> {
+    type Changed<'to> = ReadableStreamDefaultController<'to>;
 }
 
 impl<'js> ReadableStreamDefaultController<'js> {

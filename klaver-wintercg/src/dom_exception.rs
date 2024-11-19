@@ -4,6 +4,7 @@ use rquickjs::{
     Class, Ctx, Object, Result,
 };
 
+#[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 #[derive(rquickjs::class::Trace)]
 pub struct DOMException {
@@ -14,7 +15,7 @@ pub struct DOMException {
 
 impl DOMException {
     pub fn init(ctx: &Ctx<'_>) -> Result<()> {
-        let dom_ex_proto = Class::<DOMException>::prototype(ctx.clone()).unwrap();
+        let dom_ex_proto = Class::<DOMException>::prototype(ctx)?.expect("DomExpection.prototype");
         let error_ctor: Object = ctx.globals().get(PredefinedAtom::Error)?;
         let error_proto = error_ctor.get_prototype();
         dom_ex_proto.set_prototype(error_proto.as_ref())?;

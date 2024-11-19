@@ -1,6 +1,6 @@
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, function::Opt, Array, Atom, Class, Ctx, FromAtom, FromJs,
-    String as JsString,
+    JsLifetime, String as JsString,
 };
 use rquickjs_util::{string::concat, throw_if, util::ArrayExt, util::StringExt};
 
@@ -47,6 +47,10 @@ pub struct Url<'js> {
     i: url::Url,
     #[qjs(rename = "searchParams")]
     search_params: Class<'js, URLSearchParams<'js>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for Url<'js> {
+    type Changed<'to> = Url<'to>;
 }
 
 impl<'js> Trace<'js> for Url<'js> {
@@ -200,7 +204,7 @@ impl<'js> Url<'js> {
         Ok(self.i.port().map(|m| m.to_string()))
     }
 
-    #[qjs(get, rename = "port")]
+    #[qjs(set, rename = "port")]
     pub fn set_port(&mut self, ctx: Ctx<'_>, port: Opt<String>) -> rquickjs::Result<()> {
         let port = if let Some(port) = port.0 {
             Some(throw_if!(ctx, port.parse::<u16>()))
@@ -273,6 +277,10 @@ pub struct Url2<'js> {
     search: JsString<'js>,
     #[qjs(get, rename = "searchParams")]
     search_params: Class<'js, URLSearchParams<'js>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for Url2<'js> {
+    type Changed<'to> = Url2<'to>;
 }
 
 impl<'js> Url2<'js> {
