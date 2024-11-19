@@ -9,6 +9,8 @@ transform = ["rquickjs-modules/transform"]
 http = ["klaver-wintercg/http"]
 encoding = ["klaver-wintercg/encoding"]
 crypto = ["klaver-wintercg/crypto"]
+icu = ["klaver-wintercg/icu"]
+icu-compiled = ["klaver-wintercg/icu-compiled"]
 
 pool = ["deadpool", "tokio/rt", "parallel"]
 parallel = ["rquickjs/parallel"]

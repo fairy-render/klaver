@@ -28,7 +28,7 @@ icu = [
   "sys-locale",
   "rquickjs-util/chrono",
 ]
-icu-compiled = ["icu/compiled_data"]
+icu-compiled = ["icu", "icu/compiled_data"]
 
 [dependencies]
 rquickjs.workspace = true
