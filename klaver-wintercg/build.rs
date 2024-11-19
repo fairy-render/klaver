@@ -19,6 +19,10 @@ fn main() {
         files.push("crypto");
     }
 
+    if cfg!(feature = "icu") {
+        files.push("intl");
+    }
+
     // let mut global = String::from("declare global {\n");
     let mut global = String::from(include_str!("types/global.d.ts"));
     let mut module = String::new();
@@ -53,6 +57,7 @@ fn main() {
     println!("cargo::rerun-if-changed=types/http.d.ts");
     println!("cargo::rerun-if-changed=types/crypto.d.ts");
     println!("cargo::rerun-if-changed=types/encoding.d.ts");
+    println!("cargo::rerun-if-changed=types/intl.d.ts");
 
     println!("cargo::rerun-if-changed=types/global.d.ts");
     println!("cargo::rerun-if-changed=types/outro.d.ts");

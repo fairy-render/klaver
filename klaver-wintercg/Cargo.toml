@@ -6,7 +6,7 @@ edition = "2021"
 build = "build.rs"
 
 [features]
-default = ["encoding", "http", "crypto", "icu"]
+default = ["encoding", "http", "crypto"]
 encoding = ["encoding_rs", "base64"]
 http = [
   "tokio/sync",
