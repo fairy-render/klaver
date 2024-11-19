@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use chrono::{Local, Offset as _, TimeZone as _};
-use icu_calendar::{AnyCalendar, AnyCalendarKind, DateTime};
-use icu_datetime::{
+use icu::calendar::{AnyCalendar, AnyCalendarKind, DateTime};
+use icu::datetime::{
     options::{
         components::{Bag, Day, Month, Numeric, Text, TimeZoneName, Year},
         length, preferences,
@@ -11,9 +11,9 @@ use icu_datetime::{
     DateTimeFormatter as IcuDateTimeFormatter, DateTimeFormatterOptions, Error as DateTimeError,
     ZonedDateTimeFormatter,
 };
-use icu_locid::{locale, Locale};
+use icu::locid::{locale, Locale};
+use icu::timezone::{CustomTimeZone, GmtOffset, TimeZoneIdMapper};
 use icu_provider::DataLocale;
-use icu_timezone::{CustomTimeZone, GmtOffset, TimeZoneIdMapper};
 use rquickjs::{class::Trace, prelude::Opt, Ctx, FromJs, IntoJs, Object};
 use rquickjs_util::throw;
 

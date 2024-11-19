@@ -1,9 +1,9 @@
 use chrono::{Datelike, Timelike};
-use icu_calendar::DateTime;
-use icu_datetime::{
+use icu::calendar::DateTime;
+use icu::datetime::{
     time_zone::TimeZoneFormatterOptions, Error as DateTimeError, ZonedDateTimeFormatter,
 };
-use icu_locid::Locale;
+use icu::locid::Locale;
 
 use rquickjs::{class::Trace, prelude::Opt, Ctx, FromJs};
 use rquickjs_util::{throw, throw_if, Date};

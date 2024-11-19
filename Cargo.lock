@@ -1180,6 +1180,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "icu"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dff5e3018d703f168b00dcefa540a65f1bbc50754ae32f3f5f0e43fe5ee51502"
+dependencies = [
+ "icu_calendar",
+ "icu_casemap",
+ "icu_collator",
+ "icu_collections",
+ "icu_datetime",
+ "icu_decimal",
+ "icu_experimental",
+ "icu_list",
+ "icu_locid",
+ "icu_locid_transform",
+ "icu_normalizer",
+ "icu_plurals",
+ "icu_properties",
+ "icu_provider",
+ "icu_segmenter",
+ "icu_timezone",
+]
+
+[[package]]
 name = "icu_calendar"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1201,6 +1225,65 @@ name = "icu_calendar_data"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e009b7f0151ee6fb28c40b1283594397e0b7183820793e9ace3dcd13db126d0"
+
+[[package]]
+name = "icu_casemap"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ff0c8ae9f8d31b12e27fc385ff9ab1f3cd9b17417c665c49e4ec958c37da75f"
+dependencies = [
+ "displaydoc",
+ "icu_casemap_data",
+ "icu_collections",
+ "icu_locid",
+ "icu_properties",
+ "icu_provider",
+ "writeable",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_casemap_data"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d57966d5ab748f74513be4046867f9a20e801e2775d41f91d04a0f560b61f08"
+
+[[package]]
+name = "icu_collator"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d370371887d31d56f361c3eaa15743e54f13bc677059c9191c77e099ed6966b2"
+dependencies = [
+ "displaydoc",
+ "icu_collator_data",
+ "icu_collections",
+ "icu_locid_transform",
+ "icu_normalizer",
+ "icu_properties",
+ "icu_provider",
+ "smallvec",
+ "utf16_iter",
+ "utf8_iter",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_collator_data"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ee3f88741364b7d6269cce6827a3e6a8a2cf408a78f766c9224ab479d5e4ae5"
+
+[[package]]
+name = "icu_collections"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db2fa452206ebee18c4b5c2274dbf1de17008e874b4dc4f0aea9d01ca79e4526"
+dependencies = [
+ "displaydoc",
+ "yoke",
+ "zerofrom",
+ "zerovec",
+]
 
 [[package]]
 name = "icu_datetime"
@@ -1253,6 +1336,62 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d424c994071c6f5644f999925fc868c85fec82295326e75ad5017bc94b41523"
 
 [[package]]
+name = "icu_experimental"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "844ad7b682a165c758065d694bc4d74ac67f176da1c499a04d85d492c0f193b7"
+dependencies = [
+ "displaydoc",
+ "fixed_decimal",
+ "icu_collections",
+ "icu_decimal",
+ "icu_experimental_data",
+ "icu_locid",
+ "icu_locid_transform",
+ "icu_normalizer",
+ "icu_pattern",
+ "icu_plurals",
+ "icu_properties",
+ "icu_provider",
+ "litemap",
+ "num-bigint",
+ "num-rational",
+ "num-traits",
+ "smallvec",
+ "tinystr",
+ "writeable",
+ "zerofrom",
+ "zerotrie",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_experimental_data"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c178b9a34083fca5bd70d61f647575335e9c197d0f30c38e8ccd187babc69d0"
+
+[[package]]
+name = "icu_list"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbfeda1d7775b6548edd4e8b7562304a559a91ed56ab56e18961a053f367c365"
+dependencies = [
+ "displaydoc",
+ "icu_list_data",
+ "icu_locid_transform",
+ "icu_provider",
+ "regex-automata 0.2.0",
+ "writeable",
+]
+
+[[package]]
+name = "icu_list_data"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1825170d2c6679cb20dbd96a589d034e49f698aed9a2ef4fafc9a0101ed298f"
+
+[[package]]
 name = "icu_locid"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1286,6 +1425,43 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fdc8ff3388f852bede6b579ad4e978ab004f139284d7b28715f773507b946f6e"
 
 [[package]]
+name = "icu_normalizer"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19ce3e0da2ec68599d193c93d088142efd7f9c5d6fc9b803774855747dc6a84f"
+dependencies = [
+ "displaydoc",
+ "icu_collections",
+ "icu_normalizer_data",
+ "icu_properties",
+ "icu_provider",
+ "smallvec",
+ "utf16_iter",
+ "utf8_iter",
+ "write16",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_normalizer_data"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8cafbf7aa791e9b22bec55a167906f9e1215fd475cd22adfcf660e03e989516"
+
+[[package]]
+name = "icu_pattern"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7f36aafd098d6717de34e668a8120822275c1fba22b936e757b7de8a2fd7e4"
+dependencies = [
+ "displaydoc",
+ "either",
+ "writeable",
+ "yoke",
+ "zerofrom",
+]
+
+[[package]]
 name = "icu_plurals"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1304,6 +1480,27 @@ name = "icu_plurals_data"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e3e8f775b215d45838814a090a2227247a7431d74e9156407d9c37f6ef0f208"
+
+[[package]]
+name = "icu_properties"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93d6020766cfc6302c15dbbc9c8778c37e62c14427cb7f6e601d849e092aeef5"
+dependencies = [
+ "displaydoc",
+ "icu_collections",
+ "icu_locid_transform",
+ "icu_properties_data",
+ "icu_provider",
+ "tinystr",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_properties_data"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67a8effbc3dd3e4ba1afa8ad918d5684b8868b3b26500753effea8d2eed19569"
 
 [[package]]
 name = "icu_provider"
@@ -1332,6 +1529,28 @@ dependencies = [
  "quote",
  "syn 2.0.87",
 ]
+
+[[package]]
+name = "icu_segmenter"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a717725612346ffc2d7b42c94b820db6908048f39434504cb130e8b46256b0de"
+dependencies = [
+ "core_maths",
+ "displaydoc",
+ "icu_collections",
+ "icu_locid",
+ "icu_provider",
+ "icu_segmenter_data",
+ "utf8_iter",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_segmenter_data"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f739ee737260d955e330bc83fdeaaf1631f7fb7ed218761d3c04bb13bb7d79df"
 
 [[package]]
 name = "icu_timezone"
@@ -1560,11 +1779,8 @@ dependencies = [
  "encoding_rs",
  "form_urlencoded",
  "futures",
- "icu_calendar",
- "icu_datetime",
- "icu_locid",
+ "icu",
  "icu_provider",
- "icu_timezone",
  "localzone",
  "rand 0.8.5",
  "reggie",
@@ -1821,6 +2037,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "537b596b97c40fcf8056d153049eb22f481c17ebce72a513ec9286e4986d1bb6"
 dependencies = [
  "num-modular",
+]
+
+[[package]]
+name = "num-rational"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
+dependencies = [
+ "num-bigint",
+ "num-integer",
+ "num-traits",
 ]
 
 [[package]]
@@ -2753,8 +2980,17 @@ checksum = "b544ef1b4eac5dc2db33ea63606ae9ffcfac26c1416a2806ae0bf5f56b201191"
 dependencies = [
  "aho-corasick",
  "memchr",
- "regex-automata",
+ "regex-automata 0.4.9",
  "regex-syntax",
+]
+
+[[package]]
+name = "regex-automata"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9368763f5a9b804326f3af749e16f9abf378d227bcdee7634b13d8f17793782"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -3802,6 +4038,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
+name = "utf16_iter"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8232dd3cdaed5356e0f716d285e4b40b932ac434100fe9b7e0e8e935b9e6246"
+
+[[package]]
+name = "utf8_iter"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
+
+[[package]]
 name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4170,10 +4418,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "write16"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1890f4022759daae28ed4fe62859b1236caebfc61ede2f63ed4e695f3f6d936"
+
+[[package]]
 name = "writeable"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e9df38ee2d2c3c5948ea468a8406ff0db0b29ae1ffde1bcf20ef305bcc95c51"
+dependencies = [
+ "either",
+]
 
 [[package]]
 name = "yoke"

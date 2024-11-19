@@ -1,6 +1,6 @@
 use chrono::{Local, Offset as _, TimeZone as _};
-use icu_calendar::{DateTime, Iso};
-use icu_timezone::{CustomTimeZone, GmtOffset, MetazoneCalculator, TimeZoneIdMapper};
+use icu::calendar::{DateTime, Iso};
+use icu::timezone::{CustomTimeZone, GmtOffset, MetazoneCalculator, TimeZoneIdMapper};
 use rquickjs::{Ctx, FromJs};
 use rquickjs_util::{throw, throw_if};
 

@@ -1,4 +1,4 @@
-use icu_locid::{locale, Locale};
+use icu::locid::{locale, Locale};
 use rquickjs::{class::Trace, Ctx, FromJs, Object};
 use rquickjs_util::throw_if;
 

@@ -15,6 +15,8 @@ pub struct WinterCG<'js> {
     base_url: url::Url,
     timers: Timers<'js>,
     env: Environ<'js>,
+    #[cfg(feature = "icu")]
+    provider: Option<crate::intl::provider::DynProvider>,
 }
 
 impl<'js> Trace<'js> for WinterCG<'js> {
@@ -33,6 +35,12 @@ impl<'js> WinterCG<'js> {
             base_url: url::Url::parse("internal://internal.com").expect("base url"),
             timers: Timers::default(),
             env: TypedMap::new(ctx)?,
+            #[cfg(all(feature = "icu", not(feature = "icu-compiled")))]
+            provider: None,
+            #[cfg(all(feature = "icu", feature = "icu-compiled"))]
+            provider: Some(crate::intl::provider::DynProvider::new(
+                icu::datetime::provider::Baked,
+            )),
         })
     }
 }

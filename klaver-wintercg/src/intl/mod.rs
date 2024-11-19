@@ -1,5 +1,6 @@
 mod datetime;
 mod locale;
+pub mod provider;
 
 use locale::JsLocale;
 use rquickjs::{Class, Object};
