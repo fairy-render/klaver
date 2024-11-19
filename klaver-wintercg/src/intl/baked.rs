@@ -1,25 +1,33 @@
-use std::sync::Arc;
-
-use icu::calendar::any_calendar::{AnyCalendar, AnyCalendarKind};
-use icu::calendar::provider::{
-    ChineseCacheV1Marker, DangiCacheV1Marker, IslamicObservationalCacheV1Marker,
-    IslamicUmmAlQuraCacheV1Marker, JapaneseErasV1Marker, JapaneseExtendedErasV1Marker,
-    WeekDataV1Marker,
+use icu::{
+    calendar::{
+        any_calendar::{AnyCalendar, AnyCalendarKind},
+        provider::{
+            ChineseCacheV1Marker, DangiCacheV1Marker, IslamicObservationalCacheV1Marker,
+            IslamicUmmAlQuraCacheV1Marker, JapaneseErasV1Marker, JapaneseExtendedErasV1Marker,
+            WeekDataV1Marker,
+        },
+        DateTime, Time,
+    },
+    datetime::{
+        provider::{self, calendar::*},
+        DateTimeError, FormattedZonedDateTime,
+    },
+    decimal::provider::DecimalSymbolsV1Marker,
+    plurals::provider::OrdinalV1Marker,
+    timezone::provider::{
+        names::{IanaToBcp47MapV1Marker, IanaToBcp47MapV2Marker},
+        MetazonePeriodV1Marker,
+    },
 };
-use icu::calendar::{DateTime, Time};
-use icu::datetime::{
-    provider::{self, calendar::*},
-    DateTimeError, FormattedZonedDateTime,
-};
-use icu::decimal::provider::DecimalSymbolsV1Marker;
-use icu::plurals::provider::OrdinalV1Marker;
 use icu_provider::{DataError, DataProvider, DataRequest, DataResponse};
+use std::sync::Arc;
 
 pub struct Baked {
     datetime: icu::datetime::provider::Baked,
     calendar: icu::calendar::provider::Baked,
     plurals: icu::plurals::provider::Baked,
     decimal: icu::decimal::provider::Baked,
+    timezone: icu::timezone::provider::Baked,
 }
 
 impl Baked {
@@ -29,6 +37,7 @@ impl Baked {
             calendar: icu::calendar::provider::Baked,
             plurals: icu::plurals::provider::Baked,
             decimal: icu::decimal::provider::Baked,
+            timezone: icu::timezone::provider::Baked,
         }
     }
 }
@@ -412,5 +421,17 @@ impl DataProvider<RocDateSymbolsV1Marker> for Baked {
         req: DataRequest<'_>,
     ) -> Result<DataResponse<RocDateSymbolsV1Marker>, DataError> {
         self.datetime.load(req)
+    }
+}
+
+impl DataProvider<IanaToBcp47MapV2Marker> for Baked {
+    fn load(&self, req: DataRequest) -> Result<DataResponse<IanaToBcp47MapV2Marker>, DataError> {
+        self.timezone.load(req)
+    }
+}
+
+impl DataProvider<MetazonePeriodV1Marker> for Baked {
+    fn load(&self, req: DataRequest) -> Result<DataResponse<MetazonePeriodV1Marker>, DataError> {
+        self.timezone.load(req)
     }
 }

@@ -1,19 +1,16 @@
-use std::sync::Arc;
-
-use icu::calendar::any_calendar::{AnyCalendar, AnyCalendarKind};
-use icu::calendar::provider::{
-    ChineseCacheV1Marker, DangiCacheV1Marker, IslamicObservationalCacheV1Marker,
-    IslamicUmmAlQuraCacheV1Marker, JapaneseErasV1Marker, JapaneseExtendedErasV1Marker,
-    WeekDataV1Marker,
+use icu::{
+    calendar::provider::{
+        ChineseCacheV1Marker, DangiCacheV1Marker, IslamicObservationalCacheV1Marker,
+        IslamicUmmAlQuraCacheV1Marker, JapaneseErasV1Marker, JapaneseExtendedErasV1Marker,
+        WeekDataV1Marker,
+    },
+    datetime::provider::{self, calendar::*},
+    decimal::provider::DecimalSymbolsV1Marker,
+    plurals::provider::OrdinalV1Marker,
+    timezone::provider::{names::IanaToBcp47MapV2Marker, MetazonePeriodV1Marker},
 };
-use icu::calendar::{DateTime, Time};
-use icu::datetime::{
-    provider::{self, calendar::*},
-    DateTimeError, FormattedZonedDateTime,
-};
-use icu::decimal::provider::DecimalSymbolsV1Marker;
-use icu::plurals::provider::OrdinalV1Marker;
 use icu_provider::{DataError, DataProvider, DataRequest, DataResponse};
+use std::sync::Arc;
 
 pub trait ProviderTrait:
     DataProvider<TimeSymbolsV1Marker>
@@ -60,6 +57,8 @@ pub trait ProviderTrait:
     + DataProvider<PersianDateSymbolsV1Marker>
     + DataProvider<RocDateLengthsV1Marker>
     + DataProvider<RocDateSymbolsV1Marker>
+    + DataProvider<IanaToBcp47MapV2Marker>
+    + DataProvider<MetazonePeriodV1Marker>
 {
 }
 
@@ -108,9 +107,12 @@ impl<T> ProviderTrait for T where
         + DataProvider<PersianDateSymbolsV1Marker>
         + DataProvider<RocDateLengthsV1Marker>
         + DataProvider<RocDateSymbolsV1Marker>
+        + DataProvider<IanaToBcp47MapV2Marker>
+        + DataProvider<MetazonePeriodV1Marker>
 {
 }
 
+#[derive(Clone)]
 pub struct DynProvider {
     provider: Arc<dyn ProviderTrait>,
 }
@@ -161,7 +163,9 @@ impl DynProvider {
             + DataProvider<PersianDateLengthsV1Marker>
             + DataProvider<PersianDateSymbolsV1Marker>
             + DataProvider<RocDateLengthsV1Marker>
-            + DataProvider<RocDateSymbolsV1Marker>,
+            + DataProvider<RocDateSymbolsV1Marker>
+            + DataProvider<IanaToBcp47MapV2Marker>
+            + DataProvider<MetazonePeriodV1Marker>,
     {
         DynProvider {
             provider: Arc::new(provider),
@@ -642,5 +646,17 @@ impl DataProvider<RocDateSymbolsV1Marker> for DynProvider {
         req: DataRequest<'_>,
     ) -> Result<DataResponse<RocDateSymbolsV1Marker>, DataError> {
         <Arc<dyn ProviderTrait> as DataProvider<RocDateSymbolsV1Marker>>::load(&self.provider, req)
+    }
+}
+
+impl DataProvider<IanaToBcp47MapV2Marker> for DynProvider {
+    fn load(&self, req: DataRequest) -> Result<DataResponse<IanaToBcp47MapV2Marker>, DataError> {
+        <Arc<dyn ProviderTrait> as DataProvider<IanaToBcp47MapV2Marker>>::load(&self.provider, req)
+    }
+}
+
+impl DataProvider<MetazonePeriodV1Marker> for DynProvider {
+    fn load(&self, req: DataRequest) -> Result<DataResponse<MetazonePeriodV1Marker>, DataError> {
+        <Arc<dyn ProviderTrait> as DataProvider<MetazonePeriodV1Marker>>::load(&self.provider, req)
     }
 }

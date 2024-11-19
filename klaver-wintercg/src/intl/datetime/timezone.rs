@@ -4,6 +4,8 @@ use icu::timezone::{CustomTimeZone, GmtOffset, MetazoneCalculator, TimeZoneIdMap
 use rquickjs::{Ctx, FromJs};
 use rquickjs_util::{throw, throw_if};
 
+use crate::WinterCG;
+
 pub fn current_timezone() -> Option<TimeZone> {
     let tz = localzone::get_local_zone()?;
     Some(TimeZone(tz.parse().ok()?))
@@ -49,8 +51,10 @@ impl TimeZone {
         ctx: &Ctx<'_>,
         datetime: &DateTime<Iso>,
     ) -> rquickjs::Result<CustomTimeZone> {
-        let mapper = TimeZoneIdMapper::new();
-        let mzc = MetazoneCalculator::new();
+        let provider = WinterCG::get(&ctx)?.borrow().icu_provider(&ctx).cloned()?;
+
+        let mapper = throw_if!(ctx, TimeZoneIdMapper::try_new_unstable(&provider));
+        let mzc = throw_if!(ctx, MetazoneCalculator::try_new_unstable(&provider));
 
         let mut timezone = CustomTimeZone::new_empty();
         timezone.time_zone_id = mapper.as_borrowed().iana_to_bcp47(self.0.name());

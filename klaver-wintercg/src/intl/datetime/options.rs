@@ -15,7 +15,9 @@ use icu::locid::{locale, Locale};
 use icu::timezone::{CustomTimeZone, GmtOffset, TimeZoneIdMapper};
 use icu_provider::DataLocale;
 use rquickjs::{class::Trace, prelude::Opt, Ctx, FromJs, IntoJs, Object};
-use rquickjs_util::throw;
+use rquickjs_util::{throw, throw_if};
+
+use crate::WinterCG;
 
 use super::timezone::TimeZone;
 
@@ -380,13 +382,18 @@ impl Options {
         ctx: &Ctx<'_>,
         local: &DataLocale,
     ) -> rquickjs::Result<ResolvedOptions> {
+        let provider = WinterCG::get(&ctx)?.borrow().icu_provider(&ctx).cloned()?;
+
         let calendar = if let Some(calendar) = &self.calendar {
             let Some(kind) = AnyCalendarKind::get_for_bcp47_string(&calendar) else {
                 throw!(ctx, "Unknown calendar")
             };
-            AnyCalendar::new(kind)
+            throw_if!(ctx, AnyCalendar::try_new_unstable(&provider, kind))
         } else {
-            AnyCalendar::new_for_locale(local)
+            throw_if!(
+                ctx,
+                AnyCalendar::try_new_for_locale_unstable(&provider, local)
+            )
         };
 
         Ok(ResolvedOptions {

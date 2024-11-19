@@ -1536,7 +1536,6 @@ version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a717725612346ffc2d7b42c94b820db6908048f39434504cb130e8b46256b0de"
 dependencies = [
- "core_maths",
  "displaydoc",
  "icu_collections",
  "icu_locid",

@@ -9,6 +9,7 @@ use rquickjs::{class::Trace, prelude::Opt, Ctx, FromJs};
 use rquickjs_util::{throw, throw_if, Date};
 
 use crate::intl::locale::current_local;
+use crate::WinterCG;
 
 use super::options::{Options, ResolvedOptions};
 
@@ -74,6 +75,8 @@ impl DateTimeFormat {
         locals: Opt<LocalesInit>,
         options: Opt<Options>,
     ) -> rquickjs::Result<DateTimeFormat> {
+        let provider = WinterCG::get(&ctx)?.borrow().icu_provider(&ctx).cloned()?;
+
         let locales = if let Some(locale) = locals.0 {
             locale.into_locale(&ctx)?
         } else {
@@ -93,7 +96,8 @@ impl DateTimeFormat {
 
         for locale in locales {
             let date_locale = locale.into();
-            let formatter = ZonedDateTimeFormatter::try_new_experimental(
+            let formatter = ZonedDateTimeFormatter::try_new_experimental_unstable(
+                &provider,
                 &date_locale,
                 format_options.clone(),
                 time_zone_options.clone(),
@@ -122,7 +126,8 @@ impl DateTimeFormat {
 
         let formatter = throw_if!(
             ctx,
-            ZonedDateTimeFormatter::try_new_experimental(
+            ZonedDateTimeFormatter::try_new_experimental_unstable(
+                &provider,
                 &locale,
                 format_options,
                 time_zone_options
