@@ -1,8 +1,7 @@
 use chrono::{Datelike, Timelike};
 use icu_calendar::DateTime;
 use icu_datetime::{
-    time_zone::{FallbackFormat, TimeZoneFormatterOptions},
-    Error as DateTimeError, ZonedDateTimeFormatter,
+    time_zone::TimeZoneFormatterOptions, Error as DateTimeError, ZonedDateTimeFormatter,
 };
 use icu_locid::Locale;
 

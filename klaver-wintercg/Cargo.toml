@@ -6,7 +6,7 @@ edition = "2021"
 build = "build.rs"
 
 [features]
-default = ["encoding", "http", "crypto"]
+default = ["encoding", "http", "crypto", "icu"]
 encoding = ["encoding_rs", "base64"]
 http = [
   "tokio/sync",
@@ -30,6 +30,12 @@ icu = [
   "chrono-tz",
   "sys-locale",
   "rquickjs-util/chrono",
+  "icu-compiled",
+]
+icu-compiled = [
+  "icu_datetime/compiled_data",
+  # "icu_calendar/compiled_data",
+  # "icu_timezone/compiled_data",
 ]
 
 [dependencies]
@@ -68,11 +74,11 @@ sha2 = { version = "0.10", optional = true }
 
 ## Icu
 icu_locid = { version = "1.5.0", optional = true }
-icu_datetime = { version = "1.5.0", features = [
+icu_datetime = { version = "1.5.0", default-features = false, features = [
   "experimental",
 ], optional = true }
-icu_calendar = { version = "1.5.0", optional = true }
-icu_timezone = { version = "1.5.0", optional = true }
+icu_calendar = { version = "1.5.0", default-features = false, optional = true }
+icu_timezone = { version = "1.5.0", default-features = false, optional = true }
 icu_provider = { version = "1.5.0", optional = true }
 localzone = { version = "0.3", optional = true }
 chrono-tz = { version = "0.10", optional = true }
