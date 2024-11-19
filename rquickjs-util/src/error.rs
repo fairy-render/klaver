@@ -20,7 +20,7 @@ impl std::fmt::Display for RuntimeError {
             RuntimeError::Exception { message, stack } => {
                 //
                 "Error:".fmt(f)?;
-                let mut has_file = false;
+                let has_file = false;
                 // if let Some(file) = file {
                 //     '['.fmt(f)?;
                 //     file.fmt(f)?;

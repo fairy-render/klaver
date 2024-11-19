@@ -1,26 +1,18 @@
 use icu::{
-    calendar::{
-        any_calendar::{AnyCalendar, AnyCalendarKind},
-        provider::{
+    calendar::provider::{
             ChineseCacheV1Marker, DangiCacheV1Marker, IslamicObservationalCacheV1Marker,
             IslamicUmmAlQuraCacheV1Marker, JapaneseErasV1Marker, JapaneseExtendedErasV1Marker,
             WeekDataV1Marker,
         },
-        DateTime, Time,
-    },
-    datetime::{
-        provider::{self, calendar::*},
-        DateTimeError, FormattedZonedDateTime,
-    },
+    datetime::provider::{self, calendar::*},
     decimal::provider::DecimalSymbolsV1Marker,
     plurals::provider::OrdinalV1Marker,
     timezone::provider::{
-        names::{IanaToBcp47MapV1Marker, IanaToBcp47MapV2Marker},
+        names::IanaToBcp47MapV2Marker,
         MetazonePeriodV1Marker,
     },
 };
 use icu_provider::{DataError, DataProvider, DataRequest, DataResponse};
-use std::sync::Arc;
 
 pub struct Baked {
     datetime: icu::datetime::provider::Baked,

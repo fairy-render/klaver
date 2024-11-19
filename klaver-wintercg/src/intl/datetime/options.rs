@@ -1,20 +1,14 @@
 use std::rc::Rc;
 
-use chrono::{Local, Offset as _, TimeZone as _};
-use icu::calendar::{AnyCalendar, AnyCalendarKind, DateTime};
+use icu::calendar::{AnyCalendar, AnyCalendarKind};
 use icu::datetime::{
     options::{
         components::{Bag, Day, Month, Numeric, Text, TimeZoneName, Year},
-        length, preferences,
-    },
-    time_zone::TimeZoneFormatterOptions,
-    DateTimeFormatter as IcuDateTimeFormatter, DateTimeFormatterOptions, Error as DateTimeError,
-    ZonedDateTimeFormatter,
+        length,
+    }, DateTimeFormatterOptions,
 };
-use icu::locid::{locale, Locale};
-use icu::timezone::{CustomTimeZone, GmtOffset, TimeZoneIdMapper};
 use icu_provider::DataLocale;
-use rquickjs::{class::Trace, prelude::Opt, Ctx, FromJs, IntoJs, Object};
+use rquickjs::{Ctx, FromJs, IntoJs, Object};
 use rquickjs_util::{throw, throw_if};
 
 use crate::WinterCG;
