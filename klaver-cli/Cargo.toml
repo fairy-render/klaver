@@ -22,6 +22,7 @@ klaver = { path = "../klaver", features = [
   "encoding",
   "crypto",
   "transform",
+  "icu-compiled",
 ] }
 klaver-dom = { path = "../klaver-dom" }
 klaver-fs = { path = "../klaver-fs" }
