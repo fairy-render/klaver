@@ -41,6 +41,36 @@ impl<'js> Date<'js> {
         func.call((This(self.object.clone()),))
     }
 
+    pub fn utc_year(&self) -> rquickjs::Result<i32> {
+        let func = self.object.get::<_, Function>("getUTCFullYear")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn utc_month(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getUTCMonth")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn utc_date(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getUTCDate")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn utc_hours(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getUTCHours")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn utc_minutes(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getUTCMinutes")?;
+        func.call((This(self.object.clone()),))
+    }
+
+    pub fn utc_seconds(&self) -> rquickjs::Result<u8> {
+        let func = self.object.get::<_, Function>("getUTCSeconds")?;
+        func.call((This(self.object.clone()),))
+    }
+
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
         let date_ctor: Value<'_> = ctx.globals().get::<_, Value>("Date")?;
 

@@ -146,7 +146,7 @@ impl Console {
         let ret = ctx.eval::<Function, _>("(t) => !!t")?;
         let ret: rquickjs::Coerced<bool> = ret.call((condition,))?;
 
-        if ret.0 {
+        if !ret.0 {
             self.log(ctx, values)?;
         }
 
