@@ -1,5 +1,9 @@
 use core::fmt;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use oxc::{
     allocator::Allocator,
@@ -11,6 +15,7 @@ use oxc::{
     span::SourceType,
     transformer::{TransformOptions, Transformer},
 };
+use parking_lot::RwLock;
 
 use crate::loader::Loader;
 
@@ -38,6 +43,39 @@ impl CompileError {
                 .map(|m| m.with_source_code(NamedSource::new(source_name, source_text.to_string())))
                 .collect(),
         }
+    }
+}
+
+pub struct CacheEntry {
+    pub source: String,
+    pub transformed: CodegenReturn,
+}
+
+#[derive(Default, Clone)]
+pub struct Cache {
+    entries: Arc<RwLock<HashMap<String, Arc<CacheEntry>>>>,
+}
+
+impl Cache {
+    pub fn get(&self, path: &str) -> Option<Arc<CacheEntry>> {
+        let lock = self.entries.read();
+        lock.get(path).cloned()
+    }
+
+    pub fn clear(&self) {
+        self.entries.write().clear();
+    }
+
+    pub fn set(&self, path: &str, source: String, transformed: CodegenReturn) {
+        let mut lock = self.entries.write();
+        lock.insert(
+            path.to_string(),
+            CacheEntry {
+                source,
+                transformed,
+            }
+            .into(),
+        );
     }
 }
 
@@ -114,11 +152,17 @@ impl Compiler {
 #[derive(Default)]
 pub struct FileLoader {
     compiler: Compiler,
+    cache: Cache,
+    use_cache: bool,
 }
 
 impl FileLoader {
-    pub fn new(compiler: Compiler) -> FileLoader {
-        FileLoader { compiler }
+    pub fn new(compiler: Compiler, cache: Cache) -> FileLoader {
+        FileLoader {
+            compiler,
+            cache,
+            use_cache: true,
+        }
     }
 }
 
@@ -131,9 +175,16 @@ impl Loader for FileLoader {
         if !Path::new(name).exists() {
             return Err(rquickjs::Error::new_loading_message(
                 name,
-                "does not exists",
+                "File does not exists",
             ));
         }
+
+        if self.use_cache {
+            if let Some(entry) = self.cache.get(name) {
+                return rquickjs::Module::declare(ctx.clone(), name, &*entry.transformed.code);
+            }
+        }
+
         let content = std::fs::read_to_string(name).unwrap();
         let codegen = self
             .compiler

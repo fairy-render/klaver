@@ -116,14 +116,17 @@ impl Builder {
         loaders.push(Box::new(builtin_loader));
 
         #[cfg(feature = "transform")]
-        {
+        let cache = {
+            let cache = crate::transformer::Cache::default();
             let loader = if let Some(compiler) = self.compiler {
-                FileLoader::new(compiler)
+                FileLoader::new(compiler, cache.clone())
             } else {
                 FileLoader::default()
             };
-            loaders.push(Box::new(loader))
-        }
+            loaders.push(Box::new(loader));
+
+            cache
+        };
 
         #[cfg(not(feature = "transform"))]
         {
@@ -131,6 +134,9 @@ impl Builder {
             loaders.push(Box::new(crate::loader::QuickWrap::new(loader)))
         }
 
+        #[cfg(feature = "transform")]
+        let modules = Modules::new(cache, resolvers, loaders);
+        #[cfg(not(feature = "transform"))]
         let modules = Modules::new(resolvers, loaders);
         let globals = Globals::new(self.modules.globals);
 

@@ -18,22 +18,6 @@ impl ModuleResolver {
             work_dir,
         }
     }
-
-    // pub fn new() -> ModuleResolver {
-    //     Self::new_with(
-    //         std::env::current_dir().unwrap(),
-    //         ResolveOptions {
-    //             #[cfg(feature = "transform")]
-    //             extensions: vec![
-    //                 ".js".to_string(),
-    //                 ".ts".to_string(),
-    //                 ".tsx".to_string(),
-    //                 ".jsx".to_string(),
-    //             ],
-    //             ..Default::default()
-    //         },
-    //     )
-    // }
 }
 
 impl ModuleResolver {}

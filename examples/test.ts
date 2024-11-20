@@ -1,5 +1,6 @@
 import { open } from "@klaver/fs";
 import { Handlebars } from "@klaver/hbs";
+import { hello } from "./other.ts";
 
 const hbs = new Handlebars();
 
@@ -13,6 +14,8 @@ console.log(process.env.PATH);
 process.env.RAPPER = "Rasmus";
 
 console.log(Object.keys(process.env));
+
+hello();
 // console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
 
 // console.log(resp.headers.get("Content-Type"));

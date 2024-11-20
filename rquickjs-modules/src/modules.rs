@@ -6,17 +6,33 @@ use crate::loader::{Loader, Resolver};
 struct ModulesInner {
     resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
     loaders: Vec<Box<dyn Loader + Send + Sync>>,
+    #[cfg(feature = "transform")]
+    cache: crate::transformer::Cache,
 }
 
 #[derive(Clone)]
 pub struct Modules(Arc<ModulesInner>);
 
 impl Modules {
+    #[cfg(not(feature = "transform"))]
     pub fn new(
         resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
         loaders: Vec<Box<dyn Loader + Send + Sync>>,
     ) -> Modules {
         Modules(Arc::new(ModulesInner { resolvers, loaders }))
+    }
+
+    #[cfg(feature = "transform")]
+    pub fn new(
+        cache: crate::transformer::Cache,
+        resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
+        loaders: Vec<Box<dyn Loader + Send + Sync>>,
+    ) -> Modules {
+        Modules(Arc::new(ModulesInner {
+            resolvers,
+            loaders,
+            cache,
+        }))
     }
 }
 
