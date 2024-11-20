@@ -46,9 +46,36 @@ impl CompileError {
     }
 }
 
+pub struct SourceMap<'a> {
+    map: &'a oxc::sourcemap::SourceMap,
+    lookup_table: Vec<(u32, u32, u32)>,
+}
+
+impl<'a> SourceMap<'a> {
+    pub fn view(&self, line: u32, col: u32) -> Option<oxc::sourcemap::SourceViewToken<'_>> {
+        self.map
+            .lookup_source_view_token(&self.lookup_table, line, col)
+    }
+}
+
 pub struct CacheEntry {
     pub source: String,
     pub transformed: CodegenReturn,
+}
+
+impl CacheEntry {
+    pub fn source_map(&self) -> Option<SourceMap<'_>> {
+        let Some(source) = &self.transformed.map else {
+            return None;
+        };
+
+        let ids = source.generate_lookup_table();
+
+        Some(SourceMap {
+            map: source,
+            lookup_table: ids,
+        })
+    }
 }
 
 #[derive(Default, Clone)]
@@ -59,6 +86,7 @@ pub struct Cache {
 impl Cache {
     pub fn get(&self, path: &str) -> Option<Arc<CacheEntry>> {
         let lock = self.entries.read();
+
         lock.get(path).cloned()
     }
 
@@ -68,6 +96,7 @@ impl Cache {
 
     pub fn set(&self, path: &str, source: String, transformed: CodegenReturn) {
         let mut lock = self.entries.write();
+
         lock.insert(
             path.to_string(),
             CacheEntry {
@@ -157,11 +186,11 @@ pub struct FileLoader {
 }
 
 impl FileLoader {
-    pub fn new(compiler: Compiler, cache: Cache) -> FileLoader {
+    pub fn new(compiler: Compiler, cache: Cache, use_cache: bool) -> FileLoader {
         FileLoader {
             compiler,
             cache,
-            use_cache: true,
+            use_cache,
         }
     }
 }
@@ -179,7 +208,7 @@ impl Loader for FileLoader {
             ));
         }
 
-        if self.use_cache {
+        if !self.use_cache {
             if let Some(entry) = self.cache.get(name) {
                 return rquickjs::Module::declare(ctx.clone(), name, &*entry.transformed.code);
             }
@@ -191,6 +220,12 @@ impl Loader for FileLoader {
             .compile(&content, name)
             .map_err(|err| rquickjs::Error::new_loading_message(name, err.to_string()))?;
 
-        rquickjs::Module::declare(ctx.clone(), name, codegen.code)
+        self.cache.set(name, content, codegen);
+
+        let Some(entry) = self.cache.get(name) else {
+            return Err(rquickjs::Error::new_loading_message(name, "Cache error"));
+        };
+
+        rquickjs::Module::declare(ctx.clone(), name, &*entry.transformed.code)
     }
 }

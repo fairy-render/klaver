@@ -34,6 +34,11 @@ impl Modules {
             cache,
         }))
     }
+
+    #[cfg(feature = "transform")]
+    pub fn cache(&self) -> &crate::transformer::Cache {
+        &self.0.cache
+    }
 }
 
 impl Modules {

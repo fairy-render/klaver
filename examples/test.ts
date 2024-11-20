@@ -44,4 +44,4 @@ hello();
 
 // console.log(await digestMessage("Message"));
 
-throw new Error("Hello");
+// throw new Error("Hello");

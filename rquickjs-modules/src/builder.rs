@@ -27,6 +27,7 @@ pub struct Builder {
     search_paths: Vec<PathBuf>,
     #[cfg(feature = "transform")]
     compiler: Option<Compiler>,
+    cache: bool,
 }
 
 impl Builder {
@@ -38,6 +39,7 @@ impl Builder {
             search_paths: Vec::default(),
             #[cfg(feature = "transform")]
             compiler: None,
+            cache: false,
         }
     }
 
@@ -48,6 +50,11 @@ impl Builder {
 
     pub fn resolve_options(mut self, options: ResolveOptions) -> Self {
         self.resolve_options = Some(options);
+        self
+    }
+
+    pub fn cache(mut self, on: bool) -> Self {
+        self.cache = on;
         self
     }
 
@@ -119,9 +126,9 @@ impl Builder {
         let cache = {
             let cache = crate::transformer::Cache::default();
             let loader = if let Some(compiler) = self.compiler {
-                FileLoader::new(compiler, cache.clone())
+                FileLoader::new(compiler, cache.clone(), self.cache)
             } else {
-                FileLoader::default()
+                FileLoader::new(Compiler::default(), cache.clone(), self.cache)
             };
             loaders.push(Box::new(loader));
 

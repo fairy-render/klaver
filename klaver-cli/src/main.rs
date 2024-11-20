@@ -73,12 +73,16 @@ fn create_vm() -> Options {
 async fn run(path: PathBuf) -> color_eyre::Result<()> {
     let vm = create_vm().build().await?;
 
-    let filename = path.display().to_string();
-    let content = tokio::fs::read_to_string(path).await?;
+    let mut filename = path.display().to_string();
 
-    let compiler = Compiler::default();
+    if filename.starts_with("/") {
+        eprintln!("Path should be relative to current directory");
+        return Ok(());
+    }
 
-    let content = compiler.compile(&content, &filename).unwrap();
+    if !filename.starts_with("./") {
+        filename = format!("./{filename}");
+    }
 
     klaver::async_with!(vm => |ctx| {
 
@@ -86,7 +90,8 @@ async fn run(path: PathBuf) -> color_eyre::Result<()> {
 
         config.borrow().init_env_from_os(ctx.clone()).catch(&ctx)?;
 
-        Module::evaluate(ctx.clone(), filename, content.code).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
+        Module::import(&ctx, &*filename).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
+
         Ok(())
     })
     .await?;

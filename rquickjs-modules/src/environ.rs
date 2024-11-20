@@ -23,6 +23,10 @@ impl Environ {
         }))
     }
 
+    pub fn modules(&self) -> &Modules {
+        &self.0.modules
+    }
+
     pub fn typings(&self) -> &Typings {
         &self.0.typings
     }

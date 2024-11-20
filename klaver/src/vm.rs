@@ -63,7 +63,10 @@ impl Vm {
         F: for<'js> FnOnce(Ctx<'js>) -> Result<R, RuntimeError> + std::marker::Send,
         R: Send,
     {
-        self.context.with(|ctx| f(ctx)).await
+        self.context
+            .with(|ctx| f(ctx))
+            .await
+            .map_err(|err| update_locations(&self.env, err))
     }
 
     pub async fn run<S: Into<Vec<u8>> + Send, R>(
@@ -84,6 +87,7 @@ impl Vm {
             Ok(val)
         })
         .await
+        .map_err(|err| update_locations(&self.env, err))
     }
 
     pub async fn async_with<F, R>(&self, f: F) -> Result<R, RuntimeError>
@@ -95,7 +99,9 @@ impl Vm {
             + Send,
         R: Send + 'static,
     {
-        klaver_wintercg::run(&self.context, f).await
+        klaver_wintercg::run(&self.context, f)
+            .await
+            .map_err(|err| update_locations(&self.env, err))
     }
 
     pub fn idle(&self) -> Idle<'_> {
@@ -137,4 +143,31 @@ impl<'a> Future for Idle<'a> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         self.inner.as_mut().poll(cx)
     }
+}
+
+fn update_locations(env: &Environ, mut err: RuntimeError) -> RuntimeError {
+    #[cfg(feature = "transform")]
+    {
+        let RuntimeError::Exception { stack, .. } = &mut err else {
+            return err;
+        };
+
+        for trace in stack {
+            let Some(entry) = env.modules().cache().get(&trace.file) else {
+                continue;
+            };
+
+            let Some(source_map) = entry.source_map() else {
+                continue;
+            };
+
+            let Some(view) = source_map.view(trace.line, trace.column) else {
+                continue;
+            };
+
+            trace.line = view.get_src_line();
+            trace.column = view.get_src_col();
+        }
+    }
+    err
 }
