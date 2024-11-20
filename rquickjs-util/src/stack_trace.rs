@@ -1,17 +1,29 @@
+use core::fmt;
+
 use udled::{
     any,
-    token::{Alphabetic, Char, Ident, Many, Opt, Ws},
-    Input, Lex, Tokenizer, WithSpan,
+    token::{Char, Ident, Int, Many, Ws},
+    Input, Lex, Span, Tokenizer, WithSpan,
 };
 
 const WS: Many<Ws> = Many(Ws);
 
 #[derive(Debug)]
 pub struct StackTrace {
-    file: String,
-    line: u32,
-    column: u32,
-    function: String,
+    pub file: String,
+    pub line: u32,
+    pub column: u32,
+    pub function: String,
+}
+
+impl fmt::Display for StackTrace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{}]{}:{}:{}",
+            self.file, self.function, self.line, self.column
+        )
+    }
 }
 
 pub fn parse(input: &str) -> Result<Vec<StackTrace>, udled::Error> {
@@ -36,19 +48,6 @@ pub fn parse(input: &str) -> Result<Vec<StackTrace>, udled::Error> {
     Ok(files)
 }
 
-// struct Char;
-
-// impl Tokenizer for Char {
-//     type Token<'a> = &'a str;
-
-//     fn to_token<'a>(
-//         &self,
-//         reader: &mut udled::Reader<'_, 'a>,
-//     ) -> Result<Self::Token<'a>, udled::Error> {
-//         reader.eat_ch()
-//     }
-// }
-
 struct LineParser;
 
 impl Tokenizer for LineParser {
@@ -69,14 +68,39 @@ impl Tokenizer for LineParser {
 
         reader.eat((WS, "("))?;
 
-        let start = reader.parse(any!("./", "/", Char))?.span();
+        let path_start = reader.parse(any!("./", "/", Char))?.span();
 
-        loop {
+        let path_end = loop {
             if reader.eof() {
                 return Err(reader.error("Reached EOS"));
             }
-        }
 
-        todo!()
+            if reader.peek(':')? {
+                let end = reader.position();
+                reader.eat(':')?;
+                break end;
+            }
+
+            reader.eat_ch()?;
+        };
+
+        let fn_span = Span::new(path_start.start, path_end);
+
+        let line = reader.parse(Int)?;
+        reader.eat(':')?;
+        let column = reader.parse(Int)?;
+
+        reader.eat(")")?;
+
+        Ok(StackTrace {
+            file: fn_span.slice(reader.input()).unwrap().to_string(),
+            line: line.value as u32,
+            column: column.value as u32,
+            function: func.as_str().to_string(),
+        })
+    }
+
+    fn peek<'a>(&self, reader: &mut udled::Reader<'_, '_>) -> Result<bool, udled::Error> {
+        reader.peek("as")
     }
 }
