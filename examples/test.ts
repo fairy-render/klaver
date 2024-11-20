@@ -40,3 +40,5 @@ console.log(Object.keys(process.env));
 // }
 
 // console.log(await digestMessage("Message"));
+
+throw new Error("Hello");

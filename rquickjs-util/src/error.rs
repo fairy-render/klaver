@@ -1,6 +1,6 @@
 use rquickjs::CaughtError;
 
-use crate::stack_trace;
+use crate::stack_trace::{self, StackTrace};
 
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -9,7 +9,7 @@ pub enum RuntimeError {
     Message(Option<String>),
     Exception {
         message: Option<String>,
-        stack: Option<String>,
+        stack: Vec<StackTrace>,
     },
 }
 
@@ -22,34 +22,13 @@ impl std::fmt::Display for RuntimeError {
             RuntimeError::Exception { message, stack } => {
                 //
                 "Error:".fmt(f)?;
-                let has_file = false;
-                // if let Some(file) = file {
-                //     '['.fmt(f)?;
-                //     file.fmt(f)?;
-                //     ']'.fmt(f)?;
-                //     has_file = true;
-                // }
-                // if let Some(line) = line {
-                //     if *line > -1 {
-                //         if has_file {
-                //             ':'.fmt(f)?;
-                //         }
-                //         line.fmt(f)?;
-                //     }
-                // }
-                // if let Some(column) = column {
-                //     if *column > -1 {
-                //         ':'.fmt(f)?;
-                //         column.fmt(f)?;
-                //     }
-                // }
+
                 if let Some(message) = message {
                     ' '.fmt(f)?;
                     message.fmt(f)?;
                 }
-                if let Some(stack) = stack {
-                    '\n'.fmt(f)?;
-                    stack.fmt(f)?;
+                for trace in stack {
+                    write!(f, "\n  at {trace}")?;
                 }
 
                 Ok(())
@@ -65,13 +44,15 @@ impl<'js> From<CaughtError<'js>> for RuntimeError {
         match value {
             CaughtError::Error(err) => err.into(),
             CaughtError::Exception(e) => {
-                if let Some(stack) = e.stack() {
+                let stack = if let Some(stack) = e.stack() {
                     let traces = stack_trace::parse(&stack).unwrap();
-                    println!("traces {:?}", traces);
-                }
+                    traces
+                } else {
+                    Vec::default()
+                };
                 RuntimeError::Exception {
                     message: e.message(),
-                    stack: e.stack(),
+                    stack: stack,
                 }
             }
             CaughtError::Value(e) => {

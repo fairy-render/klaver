@@ -20,8 +20,8 @@ impl fmt::Display for StackTrace {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[{}]{}:{}:{}",
-            self.file, self.function, self.line, self.column
+            "{} ({}:{}:{})",
+            self.function, self.file, self.line, self.column
         )
     }
 }
