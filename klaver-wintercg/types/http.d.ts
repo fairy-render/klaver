@@ -35,8 +35,9 @@ export interface RequestInit {
 export class Request {
 	constructor(url: string | URL, opts?: RequestInit);
 
-	readonly url: URL;
+	readonly url: string;
 	readonly method: Method;
+	readonly headers: Headers;
 
 	text(): Promise<string>;
 	json<T = unknown>(): Promise<T>;
