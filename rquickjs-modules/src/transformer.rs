@@ -208,7 +208,7 @@ impl Loader for FileLoader {
             ));
         }
 
-        if !self.use_cache {
+        if self.use_cache {
             if let Some(entry) = self.cache.get(name) {
                 return rquickjs::Module::declare(ctx.clone(), name, &*entry.transformed.code);
             }
