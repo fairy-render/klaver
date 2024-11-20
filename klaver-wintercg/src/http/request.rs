@@ -57,7 +57,7 @@ impl<'js> FromJs<'js> for RequestInit<'js> {
 #[rquickjs::class]
 pub struct Request<'js> {
     #[qjs(get)]
-    url: Class<'js, Url<'js>>,
+    url: String,
     #[qjs(get)]
     method: Method,
     #[qjs(get)]
@@ -91,7 +91,6 @@ impl<'js> Request<'js> {
     {
         let (parts, body) = request.into_parts();
 
-        let url = Url::from_reggie(ctx, &parts.uri)?;
         let method = match parts.method {
             reggie::http::Method::GET => Method::GET,
             reggie::http::Method::POST => Method::POST,
@@ -110,7 +109,7 @@ impl<'js> Request<'js> {
         Class::instance(
             ctx.clone(),
             Request {
-                url,
+                url: parts.uri.to_string(),
                 method,
                 signal: None,
                 headers,
@@ -160,11 +159,9 @@ impl<'js> Request<'js> {
         reggie::http::Request<Body>,
         Option<tokio::sync::oneshot::Receiver<()>>,
     )> {
-        let url = self.url.borrow().url().to_string();
-
         let mut builder = reggie::http::Request::builder()
             .method(self.method.as_str())
-            .uri(url);
+            .uri(&self.url);
 
         for (k, vals) in self.headers.borrow().inner.iter() {
             for v in vals {
@@ -220,10 +217,8 @@ impl<'js> Request<'js> {
             None
         };
 
-        let url = url.to_url(&ctx)?;
-
         Ok(Request {
-            url,
+            url: url.as_str()?,
             signal,
             method: method.unwrap_or(Method::GET),
             headers: match headers {

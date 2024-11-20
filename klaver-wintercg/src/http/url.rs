@@ -12,7 +12,7 @@ pub enum StringOrUrl<'js> {
 }
 
 impl<'js> StringOrUrl<'js> {
-    fn as_str(&self) -> rquickjs::Result<String> {
+    pub fn as_str(&self) -> rquickjs::Result<String> {
         match self {
             Self::String(s) => s.to_string(),
             Self::Url(u) => Ok(u.borrow().i.to_string()),
