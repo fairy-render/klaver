@@ -1,5 +1,7 @@
 use rquickjs::CaughtError;
 
+use crate::stack_trace;
+
 #[derive(Debug)]
 pub enum RuntimeError {
     Quick(rquickjs::Error),
@@ -62,10 +64,16 @@ impl<'js> From<CaughtError<'js>> for RuntimeError {
     fn from(value: CaughtError<'js>) -> Self {
         match value {
             CaughtError::Error(err) => err.into(),
-            CaughtError::Exception(e) => RuntimeError::Exception {
-                message: e.message(),
-                stack: e.stack(),
-            },
+            CaughtError::Exception(e) => {
+                if let Some(stack) = e.stack() {
+                    let traces = stack_trace::parse(&stack).unwrap();
+                    println!("traces {:?}", traces);
+                }
+                RuntimeError::Exception {
+                    message: e.message(),
+                    stack: e.stack(),
+                }
+            }
             CaughtError::Value(e) => {
                 RuntimeError::Message(e.as_string().and_then(|m| m.to_string().ok()))
             }

@@ -17,3 +17,4 @@ console.log(formatter.format(new Date()));
 
 // console.log(formatter.calendar());
 console.log(new Date());
+throw new Error("Helloe");

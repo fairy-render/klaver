@@ -16,6 +16,8 @@ pub mod util;
 #[cfg(feature = "vaerdi")]
 pub mod val;
 
+mod stack_trace;
+
 mod r#static;
 
 pub use self::{buffer::*, date::Date, error::RuntimeError, map::*, proxy::*, r#static::*, set::*};
