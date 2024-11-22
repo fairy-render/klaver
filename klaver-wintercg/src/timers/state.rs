@@ -60,7 +60,7 @@ impl<'js> Timers<'js> {
             .values()
             .min_by_key(|m| m.expires)
             .map(|m| m.expires)
-            .unwrap_or(Instant::now().add(Duration::from_millis(4)))
+            .unwrap_or(Instant::now().add(Duration::from_millis(0)))
     }
 
     pub fn clear(&self) {
