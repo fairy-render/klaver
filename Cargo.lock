@@ -739,6 +739,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0febbeb1118a9ecdee6e4520ead6b54882e843dd0592ad233247dbee84c53db8"
 dependencies = [
  "displaydoc",
+ "ryu",
  "smallvec",
  "writeable",
 ]
@@ -1776,6 +1777,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "encoding_rs",
+ "fixed_decimal",
  "form_urlencoded",
  "futures",
  "icu",

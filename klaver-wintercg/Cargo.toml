@@ -27,6 +27,7 @@ icu = [
   "chrono-tz",
   "sys-locale",
   "rquickjs-util/chrono",
+  "fixed_decimal",
 ]
 icu-compiled = ["icu", "icu/compiled_data"]
 
@@ -74,6 +75,7 @@ localzone = { version = "0.3", optional = true }
 chrono-tz = { version = "0.10", optional = true }
 chrono = { version = "0.4", optional = true }
 sys-locale = { version = "0.3", optional = true }
+fixed_decimal = { version = "0.5", features = ["ryu"], optional = true }
 
 
 [dev-dependencies]
