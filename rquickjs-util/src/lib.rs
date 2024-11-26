@@ -20,7 +20,10 @@ mod stack_trace;
 
 mod r#static;
 
-pub use self::{buffer::*, date::Date, error::RuntimeError, map::*, proxy::*, r#static::*, set::*};
+pub use self::{
+    buffer::*, date::Date, error::RuntimeError, map::*, proxy::*, r#static::*, set::*,
+    string::StringRef,
+};
 
 #[cfg(feature = "vaerdi")]
 pub use self::val::Val;
