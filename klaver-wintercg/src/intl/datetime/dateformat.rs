@@ -6,7 +6,7 @@ use icu::datetime::{
 use icu::locid::Locale;
 
 use rquickjs::{class::Trace, prelude::Opt, Ctx, FromJs};
-use rquickjs_util::{throw, throw_if, Date};
+use rquickjs_util::{throw, throw_if, Date, StringRef};
 
 use crate::intl::locale::current_local;
 use crate::WinterCG;
@@ -14,22 +14,22 @@ use crate::WinterCG;
 use super::options::{Options, ResolvedOptions};
 
 // // Locales Init
-pub enum LocalesInit {
-    Single(String),
-    Fallback(Vec<String>),
+pub enum LocalesInit<'js> {
+    Single(StringRef<'js>),
+    Fallback(Vec<StringRef<'js>>),
 }
 
-impl LocalesInit {
+impl<'js> LocalesInit<'js> {
     pub fn into_locale(self, ctx: &Ctx<'_>) -> rquickjs::Result<Vec<Locale>> {
         match self {
             Self::Single(m) => {
-                let locale: Locale = throw_if!(ctx, m.parse());
+                let locale: Locale = throw_if!(ctx, m.as_str().parse());
                 Ok(vec![locale])
             }
             Self::Fallback(m) => {
                 let mut locales = Vec::default();
                 for l in m {
-                    let locale: Locale = throw_if!(ctx, l.parse());
+                    let locale: Locale = throw_if!(ctx, l.as_str().parse());
                     locales.push(locale);
                 }
                 Ok(locales)
@@ -38,16 +38,18 @@ impl LocalesInit {
     }
 }
 
-impl<'js> FromJs<'js> for LocalesInit {
+impl<'js> FromJs<'js> for LocalesInit<'js> {
     fn from_js(ctx: &rquickjs::Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
         if value.is_undefined() {
             return Ok(LocalesInit::Fallback(vec![]));
         }
 
         if value.is_string() {
-            Ok(LocalesInit::Single(String::from_js(ctx, value)?))
+            Ok(LocalesInit::Single(StringRef::from_js(ctx, value)?))
         } else if value.is_array() {
-            Ok(LocalesInit::Fallback(Vec::<String>::from_js(ctx, value)?))
+            Ok(LocalesInit::Fallback(Vec::<StringRef>::from_js(
+                ctx, value,
+            )?))
         } else {
             Err(rquickjs::Error::new_from_js(
                 value.type_name(),
@@ -73,7 +75,7 @@ impl DateTimeFormat {
     #[qjs(constructor)]
     pub fn new(
         ctx: Ctx<'_>,
-        locals: Opt<LocalesInit>,
+        locals: Opt<LocalesInit<'_>>,
         options: Opt<Options>,
     ) -> rquickjs::Result<DateTimeFormat> {
         let provider = WinterCG::get(&ctx)?.borrow().icu_provider(&ctx).cloned()?;

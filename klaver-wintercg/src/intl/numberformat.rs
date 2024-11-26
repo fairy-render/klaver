@@ -57,7 +57,7 @@ impl<'js> Trace<'js> for NumberFormat {
 #[rquickjs::methods]
 impl NumberFormat {
     #[qjs(constructor)]
-    pub fn new(ctx: Ctx<'_>, init: Opt<LocalesInit>) -> rquickjs::Result<NumberFormat> {
+    pub fn new(ctx: Ctx<'_>, init: Opt<LocalesInit<'_>>) -> rquickjs::Result<NumberFormat> {
         let provider = WinterCG::get(&ctx)?.borrow().icu_provider(&ctx).cloned()?;
 
         let mut err: Option<DecimalError> = None;

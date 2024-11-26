@@ -1,8 +1,8 @@
 use rquickjs::{class::Trace, ArrayBuffer, Class, Ctx, FromJs, JsLifetime};
-use rquickjs_util::{buffer::Buffer, throw_if};
+use rquickjs_util::{buffer::Buffer, throw_if, StringRef};
 
 pub enum BlobInit<'js> {
-    String(String),
+    String(StringRef<'js>),
     Buffer(Buffer<'js>),
     Blob(Class<'js, Blob<'js>>),
 }
@@ -59,7 +59,7 @@ impl<'js> FromJs<'js> for BlobInit<'js> {
             Ok(Self::Blob(blob))
         } else if let Ok(buffer) = Buffer::from_js(ctx, value.clone()) {
             Ok(Self::Buffer(buffer))
-        } else if let Ok(string) = String::from_js(ctx, value) {
+        } else if let Ok(string) = StringRef::from_js(ctx, value) {
             Ok(Self::String(string))
         } else {
             Err(rquickjs::Error::new_from_js("value", "blobpart"))

@@ -1,5 +1,7 @@
 use rquickjs::{class::Trace, function::This, Ctx, FromJs, Function, IntoJs, Object, Value};
 
+use crate::StringRef;
+
 #[derive(Debug, Trace)]
 pub struct Date<'js> {
     object: Object<'js>,
@@ -106,7 +108,7 @@ impl<'js> Date<'js> {
         Date::from_js(ctx, date_obj)
     }
 
-    pub fn to_string(&self) -> rquickjs::Result<String> {
+    pub fn to_string(&self) -> rquickjs::Result<StringRef<'js>> {
         let func = self.object.get::<_, Function>("toString")?;
         func.call((This(self.object.clone()),))
     }

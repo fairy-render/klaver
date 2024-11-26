@@ -3,7 +3,7 @@ use std::io::Cursor;
 use image::{imageops::FilterType, ImageReader};
 use rquickjs::{function::Opt, ArrayBuffer, Ctx, FromJs, Object};
 use rquickjs_util::buffer::Buffer;
-use rquickjs_util::{throw, throw_if};
+use rquickjs_util::{throw, throw_if, StringRef};
 
 pub struct ImageFormat(image::ImageFormat);
 
@@ -60,9 +60,9 @@ pub struct ImageFilter(FilterType);
 
 impl<'js> FromJs<'js> for ImageFilter {
     fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
-        let m: String = String::from_js(ctx, value)?;
+        let m = StringRef::from_js(ctx, value)?;
 
-        let ty = match &*m {
+        let ty = match m.as_str() {
             "nearest" => FilterType::Nearest,
             "triangle" => FilterType::Triangle,
             "catmullrom" => FilterType::CatmullRom,
@@ -104,8 +104,8 @@ pub struct JsImage {
 #[rquickjs::methods]
 impl JsImage {
     #[qjs(static)]
-    pub async fn open(ctx: Ctx<'_>, path: String) -> rquickjs::Result<JsImage> {
-        let content = throw_if!(ctx, tokio::fs::read(path).await);
+    pub async fn open(ctx: Ctx<'_>, path: StringRef<'_>) -> rquickjs::Result<JsImage> {
+        let content = throw_if!(ctx, tokio::fs::read(path.as_str()).await);
 
         let reader = throw_if!(
             ctx,
@@ -136,19 +136,19 @@ impl JsImage {
     pub async fn save(
         &self,
         ctx: Ctx<'_>,
-        path: String,
+        path: StringRef<'_>,
         Opt(fmt): Opt<ImageFormat>,
     ) -> rquickjs::Result<()> {
         let fmt = if let Some(format) = fmt {
             format
         } else {
-            ImageFormat(throw_if!(ctx, image::ImageFormat::from_path(&path)))
+            ImageFormat(throw_if!(ctx, image::ImageFormat::from_path(path.as_str())))
         };
 
         let mut buffer = Vec::default();
         fmt.write_to(&ctx, &self.image, &mut buffer)?;
 
-        throw_if!(ctx, tokio::fs::write(path, buffer).await);
+        throw_if!(ctx, tokio::fs::write(path.as_str(), buffer).await);
 
         Ok(())
     }

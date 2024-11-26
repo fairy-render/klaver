@@ -6,7 +6,7 @@ use rquickjs_modules::module_info;
 use rquickjs_util::{
     async_iterator::{AsyncIter, AsyncIterable},
     buffer::Buffer,
-    throw, throw_if, Static,
+    throw, throw_if, Static, StringRef,
 };
 use tokio::fs::OpenOptions;
 
@@ -91,7 +91,7 @@ impl<'js> FromJs<'js> for OpenFlags {
 #[rquickjs::function(rename = "open")]
 pub async fn open_file<'js>(
     ctx: Ctx<'js>,
-    path: String,
+    path: StringRef<'js>,
     flag: Opt<OpenFlags>,
 ) -> rquickjs::Result<JsFile> {
     let file = throw_if!(
@@ -103,7 +103,7 @@ pub async fn open_file<'js>(
                 opts.read(true);
                 opts
             })
-            .open(path)
+            .open(path.as_str())
             .await
     );
 
@@ -111,28 +111,28 @@ pub async fn open_file<'js>(
 }
 
 #[rquickjs::function]
-pub async fn mkdir<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<()> {
-    throw_if!(ctx, tokio::fs::create_dir_all(path).await);
+pub async fn mkdir<'js>(ctx: Ctx<'js>, path: StringRef<'js>) -> rquickjs::Result<()> {
+    throw_if!(ctx, tokio::fs::create_dir_all(path.as_str()).await);
     Ok(())
 }
 
 #[rquickjs::function]
-pub async fn exists<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<bool> {
-    let ret = throw_if!(ctx, tokio::fs::try_exists(path).await);
+pub async fn exists<'js>(ctx: Ctx<'js>, path: StringRef<'js>) -> rquickjs::Result<bool> {
+    let ret = throw_if!(ctx, tokio::fs::try_exists(path.as_str()).await);
     Ok(ret)
 }
 
 #[rquickjs::function]
-pub async fn read<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<ArrayBuffer<'js>> {
-    let bytes = throw_if!(ctx, tokio::fs::read(path).await);
+pub async fn read<'js>(ctx: Ctx<'js>, path: StringRef<'js>) -> rquickjs::Result<ArrayBuffer<'js>> {
+    let bytes = throw_if!(ctx, tokio::fs::read(path.as_str()).await);
     ArrayBuffer::new(ctx, bytes)
 }
 
 #[rquickjs::function]
-pub async fn resolve(ctx: Ctx<'_>, path: String) -> rquickjs::Result<String> {
+pub async fn resolve(ctx: Ctx<'_>, path: StringRef<'_>) -> rquickjs::Result<String> {
     let path = throw_if!(
         ctx,
-        tokio::fs::canonicalize(path)
+        tokio::fs::canonicalize(path.as_str())
             .await
             .map(|m| m.display().to_string())
     );
@@ -141,18 +141,25 @@ pub async fn resolve(ctx: Ctx<'_>, path: String) -> rquickjs::Result<String> {
 }
 
 #[rquickjs::function]
-pub async fn write<'js>(ctx: Ctx<'js>, path: String, content: Buffer<'js>) -> rquickjs::Result<()> {
+pub async fn write<'js>(
+    ctx: Ctx<'js>,
+    path: StringRef<'js>,
+    content: Buffer<'js>,
+) -> rquickjs::Result<()> {
     let Some(content) = content.as_raw() else {
         throw!(ctx, "Buffer is detached")
     };
-    throw_if!(ctx, tokio::fs::write(path, content.slice()).await);
+    throw_if!(ctx, tokio::fs::write(path.as_str(), content.slice()).await);
 
     Ok(())
 }
 
 #[rquickjs::function(rename = "readDir")]
-pub async fn read_dir<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<rquickjs::Value<'js>> {
-    let read_dir = throw_if!(ctx, tokio::fs::read_dir(path).await);
+pub async fn read_dir<'js>(
+    ctx: Ctx<'js>,
+    path: StringRef<'js>,
+) -> rquickjs::Result<rquickjs::Value<'js>> {
+    let read_dir = throw_if!(ctx, tokio::fs::read_dir(path.as_str()).await);
 
     let stream = tokio_stream::wrappers::ReadDirStream::new(read_dir)
         .and_then(|item| async move {

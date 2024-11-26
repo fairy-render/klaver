@@ -1,7 +1,7 @@
 use rquickjs::{promise::PromiseState, Array, Ctx, FromJs, Function, Object, Type, Value};
 use std::fmt::Write;
 
-use crate::{Buffer, Date};
+use crate::{Buffer, Date, StringRef};
 
 #[derive(Debug, Clone, Default)]
 pub struct FormatOptions {
@@ -51,7 +51,7 @@ pub fn format_value<'js, W: Write>(
         Type::Bool => write!(f, "{}", rest.as_bool().unwrap()),
         Type::Int => write!(f, "{}", rest.as_int().unwrap()),
         Type::Float => write!(f, "{}", rest.as_float().unwrap()),
-        Type::String => write!(f, "{}", rest.as_string().unwrap().to_string().unwrap()),
+        Type::String => write!(f, "{}", StringRef::from_js(ctx, rest)?),
         Type::Symbol => {
             write!(f, r#"Symbol(""#).unwrap();
             format_value(ctx, rest.as_symbol().unwrap().description()?, f, options)?;
@@ -64,11 +64,11 @@ pub fn format_value<'js, W: Write>(
         }
         Type::Constructor => {
             let ctor = rest.into_function().unwrap();
-            write!(f, "[class {}]", ctor.get::<_, String>("name")?)
+            write!(f, "[class {}]", ctor.get::<_, StringRef>("name")?)
         }
         Type::Function => {
             let func = rest.into_object().unwrap();
-            write!(f, "[function {}]", func.get::<_, String>("name")?)
+            write!(f, "[function {}]", func.get::<_, StringRef>("name")?)
         }
         Type::Promise => {
             let rest = rest.into_promise().unwrap();

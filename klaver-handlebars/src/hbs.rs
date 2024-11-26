@@ -1,5 +1,5 @@
 use rquickjs::{class::Trace, Ctx};
-use rquickjs_util::{throw_if, Val};
+use rquickjs_util::{throw_if, StringRef, Val};
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
@@ -20,8 +20,13 @@ impl Handlebars {
         }
     }
 
-    pub fn render(&self, ctx: Ctx<'_>, name: String, context: Val) -> rquickjs::Result<String> {
-        let output = throw_if!(ctx, self.i.render(&name, &context.0));
+    pub fn render(
+        &self,
+        ctx: Ctx<'_>,
+        name: StringRef<'_>,
+        context: Val,
+    ) -> rquickjs::Result<String> {
+        let output = throw_if!(ctx, self.i.render(name.as_str(), &context.0));
         Ok(output)
     }
 

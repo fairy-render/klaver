@@ -1,6 +1,6 @@
 use core::fmt;
 use rquickjs::{class::Trace, function::Opt, Class, Ctx, Exception, Result, Value};
-use rquickjs_util::Buffer;
+use rquickjs_util::{Buffer, StringRef};
 
 pub fn init(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
     let globals = ctx.globals();
@@ -137,9 +137,9 @@ impl TextEncoder {
     pub fn encode<'js>(
         &self,
         ctx: Ctx<'js>,
-        input: String,
+        input: StringRef<'js>,
     ) -> Result<rquickjs::TypedArray<'js, u8>> {
-        let (ret, _, _) = self.decoder.encode(&input);
+        let (ret, _, _) = self.decoder.encode(input.as_str());
         rquickjs::TypedArray::<u8>::new(ctx.clone(), &*ret)
     }
 }

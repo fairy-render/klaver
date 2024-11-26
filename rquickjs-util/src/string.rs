@@ -1,7 +1,8 @@
 use std::{ffi::c_char, fmt::Display, hash::Hash, mem, ptr::NonNull};
 
 use rquickjs::{
-    class::Trace, function::Args, qjs, Ctx, Error, FromJs, Function, IntoJs, Result, String, Value,
+    class::Trace, function::Args, qjs, Coerced, Ctx, Error, FromJs, Function, IntoJs, Result,
+    String, Value,
 };
 
 pub fn concat<'js>(
@@ -53,6 +54,17 @@ impl<'js> StringRef<'js> {
             len,
             value: string,
         })
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        // SAFETY: The pointer points to a JSString content which is ref counted
+        let bytes =
+            unsafe { core::slice::from_raw_parts(self.ptr.as_ptr() as *const u8, self.len) };
+        bytes
     }
 
     pub fn as_str(&self) -> &str {
