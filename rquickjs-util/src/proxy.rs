@@ -4,6 +4,7 @@ use rquickjs::{
     class::Trace, function::Constructor, Array, Ctx, FromJs, IntoJs, JsLifetime, Value,
 };
 
+#[derive(Clone)]
 pub enum Prop<'js> {
     String(rquickjs::String<'js>),
     Symbol(rquickjs::Symbol<'js>),
@@ -29,6 +30,24 @@ impl<'js> FromJs<'js> for Prop<'js> {
                 value.type_name(),
                 "string or symbol",
             ))
+        }
+    }
+}
+
+impl<'js> IntoJs<'js> for Prop<'js> {
+    fn into_js(self, _ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        match self {
+            Self::String(s) => Ok(s.into_value()),
+            Self::Symbol(s) => Ok(s.into_value()),
+        }
+    }
+}
+
+impl<'a, 'js> IntoJs<'js> for &'a Prop<'js> {
+    fn into_js(self, _ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        match self.clone() {
+            Prop::String(s) => Ok(s.into_value()),
+            Prop::Symbol(s) => Ok(s.into_value()),
         }
     }
 }
