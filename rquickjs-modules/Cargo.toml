@@ -12,7 +12,7 @@ transform = ["oxc"]
 rquickjs = { workspace = true, features = ["loader", "futures"] }
 rquickjs-util = { path = "../rquickjs-util" }
 oxc_resolver = { version = "2" }
-oxc = { version = "0.36", features = [
+oxc = { version = "0.38", features = [
   "transformer",
   "codegen",
   "sourcemap",
