@@ -50,4 +50,28 @@ impl Typings {
 
         files.into()
     }
+
+    pub fn iter(&self) -> TypingsIter<'_> {
+        TypingsIter {
+            modules: self.modules.iter(),
+            globals: Some(Cow::Owned(self.globals.join("\n\n"))),
+        }
+    }
+}
+
+pub struct TypingsIter<'a> {
+    modules: std::collections::hash_map::Iter<'a, Cow<'static, str>, Cow<'static, str>>,
+    globals: Option<Cow<'a, str>>,
+}
+
+impl<'a> Iterator for TypingsIter<'a> {
+    type Item = (Cow<'a, str>, Cow<'a, str>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((k, v)) = self.modules.next() {
+            return Some((Cow::Borrowed(k.as_ref()), Cow::Borrowed(v.as_ref())));
+        }
+
+        self.globals.take().map(|m| (Cow::Borrowed("global"), m))
+    }
 }
