@@ -5,7 +5,8 @@ use icu::datetime::{
     options::{
         components::{Bag, Day, Month, Numeric, Text, TimeZoneName, Year},
         length,
-    }, DateTimeFormatterOptions,
+    },
+    DateTimeFormatterOptions,
 };
 use icu_provider::DataLocale;
 use rquickjs::{Ctx, FromJs, IntoJs, Object};
@@ -40,7 +41,7 @@ impl From<JsTimeZoneName> for TimeZoneName {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum TextLength {
+pub enum TextLength {
     Long,
     Short,
     Narrow,
@@ -89,7 +90,7 @@ impl<'js> IntoJs<'js> for TextLength {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum NumericLength {
+pub enum NumericLength {
     Numeric,
     Digit2,
 }
@@ -146,7 +147,7 @@ impl<'js> IntoJs<'js> for NumericLength {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum MonthLength {
+pub enum MonthLength {
     Long,
     Short,
     Narrow,
@@ -417,17 +418,17 @@ pub struct ResolvedOptions {
     pub hour_cycle: Option<String>,
     pub time_zone: TimeZone,
     // Datetime components
-    weekday: Option<TextLength>,
+    pub weekday: Option<TextLength>,
 
-    era: Option<TextLength>,
-    year: Option<NumericLength>,
-    month: Option<MonthLength>,
-    day: Option<NumericLength>,
-    hour: Option<NumericLength>,
-    minute: Option<NumericLength>,
-    second: Option<NumericLength>,
-    day_period: Option<TextLength>,
+    pub era: Option<TextLength>,
+    pub year: Option<NumericLength>,
+    pub month: Option<MonthLength>,
+    pub day: Option<NumericLength>,
+    pub hour: Option<NumericLength>,
+    pub minute: Option<NumericLength>,
+    pub second: Option<NumericLength>,
+    pub day_period: Option<TextLength>,
 
-    date_style: Option<Style>,
-    time_style: Option<Style>,
+    pub date_style: Option<Style>,
+    pub time_style: Option<Style>,
 }

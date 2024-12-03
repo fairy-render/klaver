@@ -70,15 +70,6 @@ impl Worker {
             .map_err(|err| RuntimeError::Custom(Box::new(err)))?
     }
 
-    // pub async fn new(options: VmOptions) -> Result<Worker, RuntimeError> {
-    //     Self::new_with(
-    //         options.modules.build()?,
-    //         options.max_stack_size,
-    //         options.memory_limit,
-    //     )
-    //     .await
-    // }
-
     pub async fn run_gc(&self) {
         self.sx
             .send(Request::RunGc)

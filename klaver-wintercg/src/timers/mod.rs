@@ -27,15 +27,6 @@ fn clear_timeout<'js>(winter: Class<'js, WinterCG<'js>>, timer: TimeId) -> rquic
     Ok(())
 }
 
-pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
-    decl.declare(stringify!(setTimeout))?;
-    decl.declare(stringify!(setInterval))?;
-    decl.declare(stringify!(clearTimeout))?;
-    decl.declare(stringify!(clearInterval))?;
-
-    Ok(())
-}
-
 pub fn register<'js>(
     ctx: &rquickjs::prelude::Ctx<'js>,
     winter: &Class<'js, WinterCG<'js>>,

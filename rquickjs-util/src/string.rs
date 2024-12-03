@@ -1,8 +1,7 @@
 use std::{ffi::c_char, fmt::Display, hash::Hash, mem, ptr::NonNull};
 
 use rquickjs::{
-    class::Trace, function::Args, qjs, Coerced, Ctx, Error, FromJs, Function, IntoJs, Result,
-    String, Value,
+    class::Trace, function::Args, qjs, Ctx, Error, FromJs, Function, IntoJs, Result, String, Value,
 };
 
 pub fn concat<'js>(

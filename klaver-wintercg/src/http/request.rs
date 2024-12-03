@@ -12,7 +12,7 @@ use crate::{abort_controller::AbortSignal, streams::ReadableStream};
 
 use super::{
     body_init::BodyInit, body_state::ResponseBodyKind, headers::HeadersInit, method::Method,
-    url::StringOrUrl, Headers, Url,
+    url::StringOrUrl, Headers,
 };
 
 pub struct RequestInit<'js> {
