@@ -71,7 +71,6 @@ impl<'a> Iterator for TypingsIter<'a> {
         if let Some((k, v)) = self.modules.next() {
             return Some((Cow::Borrowed(k.as_ref()), Cow::Borrowed(v.as_ref())));
         }
-
         self.globals.take().map(|m| (Cow::Borrowed("global"), m))
     }
 }
