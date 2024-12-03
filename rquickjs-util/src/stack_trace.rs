@@ -66,41 +66,72 @@ impl Tokenizer for LineParser {
             reader.parse(Ident)?
         };
 
-        reader.eat((WS, "("))?;
+        reader.eat(WS)?;
 
-        let path_start = reader.parse(any!("./", "/", Char))?.span();
+        let (file, line, column) = if reader.peek('(')? {
+            reader.eat((WS, "("))?;
 
-        let path_end = loop {
-            if reader.eof() {
-                return Err(reader.error("Reached EOS"));
-            }
+            let path_start = reader.parse(any!("./", "/", Char))?.span();
 
-            if reader.peek(':')? {
-                let end = reader.position();
-                reader.eat(':')?;
-                break end;
-            }
+            let path_end = loop {
+                if reader.eof() {
+                    return Err(reader.error("Reached EOS"));
+                }
 
-            reader.eat_ch()?;
+                if reader.peek(':')? {
+                    let end = reader.position();
+                    reader.eat(':')?;
+                    break end;
+                }
+
+                reader.eat_ch()?;
+            };
+
+            let fn_span = Span::new(path_start.start, path_end);
+
+            let line = reader.parse(Int)?;
+            reader.eat(':')?;
+            let column = reader.parse(Int)?;
+
+            reader.eat(")")?;
+
+            (
+                fn_span.slice(reader.input()).unwrap().to_string(),
+                line.value as u32,
+                column.value as u32,
+            )
+        } else {
+            reader.eat(':')?;
+            let (line, col) = reader.parse(LineColumn)?;
+            ("".to_string(), line, col)
         };
 
-        let fn_span = Span::new(path_start.start, path_end);
-
-        let line = reader.parse(Int)?;
-        reader.eat(':')?;
-        let column = reader.parse(Int)?;
-
-        reader.eat(")")?;
-
         Ok(StackTrace {
-            file: fn_span.slice(reader.input()).unwrap().to_string(),
-            line: line.value as u32,
-            column: column.value as u32,
+            file,
+            line,
+            column,
             function: func.as_str().to_string(),
         })
     }
 
     fn peek<'a>(&self, reader: &mut udled::Reader<'_, '_>) -> Result<bool, udled::Error> {
         reader.peek("as")
+    }
+}
+
+pub struct LineColumn;
+
+impl Tokenizer for LineColumn {
+    type Token<'a> = (u32, u32);
+
+    fn to_token<'a>(
+        &self,
+        reader: &mut udled::Reader<'_, 'a>,
+    ) -> Result<Self::Token<'a>, udled::Error> {
+        let line = reader.parse(Int)?;
+        reader.eat(':')?;
+        let column = reader.parse(Int)?;
+
+        Ok((line.value as u32, column.value as u32))
     }
 }

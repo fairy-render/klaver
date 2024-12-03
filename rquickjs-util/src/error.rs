@@ -45,7 +45,10 @@ impl<'js> From<CaughtError<'js>> for RuntimeError {
             CaughtError::Error(err) => err.into(),
             CaughtError::Exception(e) => {
                 let stack = if let Some(stack) = e.stack() {
-                    let traces = stack_trace::parse(&stack).unwrap();
+                    let traces = match stack_trace::parse(&stack) {
+                        Ok(ret) => ret,
+                        Err(_err) => Vec::default(),
+                    };
                     traces
                 } else {
                     Vec::default()
