@@ -2,9 +2,10 @@ use core::fmt;
 
 use udled::{
     any,
-    token::{Char, Ident, Int, Many, Ws},
+    token::{Char, Many, Ws},
     Input, Lex, Span, Tokenizer, WithSpan,
 };
+use udled_helpers::{Ident, Int};
 
 const WS: Many<Ws> = Many(Ws);
 
