@@ -5,7 +5,7 @@ use udled::{
     token::{Char, Many, Ws},
     Input, Lex, Span, Tokenizer, WithSpan,
 };
-use udled_helpers::{Ident, Int};
+use udled_tokenizers::{Ident, Int};
 
 const WS: Many<Ws> = Many(Ws);
 
@@ -62,7 +62,7 @@ impl Tokenizer for LineParser {
 
         let func = if reader.peek('<')? {
             let span = reader.parse("<anonymous>")?;
-            Lex::new(span.slice(reader.input()).unwrap(), span)
+            Lex::new(span.slice(reader.source()).unwrap(), span)
         } else {
             reader.parse(Ident)?
         };
@@ -97,7 +97,7 @@ impl Tokenizer for LineParser {
             reader.eat(")")?;
 
             (
-                fn_span.slice(reader.input()).unwrap().to_string(),
+                fn_span.slice(reader.source()).unwrap().to_string(),
                 line.value as u32,
                 column.value as u32,
             )

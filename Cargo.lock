@@ -3147,8 +3147,8 @@ dependencies = [
  "chrono",
  "futures",
  "rquickjs",
- "udled",
- "udled-helpers",
+ "udled 0.2.0",
+ "udled-tokenizers",
  "vaerdi",
 ]
 
@@ -3938,11 +3938,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "udled"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ef168f2672c7501965d0092a7c1746edb95a30926e5b9a1e416f4667865102f"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "udled-helpers"
 version = "0.1.0"
 source = "git+https://github.com/kildevaeld/udled-rs#252d3b3cd215b8135f11345e1b17b1287800e3c8"
 dependencies = [
- "udled",
+ "udled 0.1.0",
+]
+
+[[package]]
+name = "udled-tokenizers"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "038a741e534c9b61d277d2007d3e6d46b14e7c4823ad54285405a45158efc2e7"
+dependencies = [
+ "udled 0.2.0",
 ]
 
 [[package]]
@@ -4064,7 +4082,7 @@ dependencies = [
  "chrono",
  "hashbrown 0.14.5",
  "serde",
- "udled",
+ "udled 0.1.0",
  "udled-helpers",
  "uuid",
 ]
