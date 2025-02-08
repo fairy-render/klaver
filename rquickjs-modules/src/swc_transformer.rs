@@ -1,10 +1,7 @@
+use anyhow::anyhow;
 use std::{path::Path, sync::Arc};
-use swc::{
-    config::{IsModule, Options},
-    try_with_handler,
-};
 use swc_common::{Globals, Mark, SourceMap, GLOBALS};
-use swc_ecma_ast::EsVersion;
+use swc_ecma_ast::{EsVersion, Pass};
 use swc_ecma_parser::{Syntax, TsSyntax};
 use swc_ecma_transforms::{
     fixer,
@@ -14,87 +11,70 @@ use swc_ecma_transforms::{
         decorator_2022_03::decorator_2022_03,
         decorators::{decorators, Config as DecoratorsConfig},
     },
-    react, resolver, typescript as ts,
+    react, resolver, typescript as ts, Assumptions,
 };
-use swc_ecma_visit::{FoldWith, VisitWith};
+use swc_ecma_visit::{FoldWith, VisitMutWith, VisitWith};
+use swc_node_comments::SwcComments;
 pub struct Compiler {
     cm: Arc<SourceMap>,
-    compiler: swc::Compiler,
+    comments: SwcComments,
     globals: Globals,
 }
 
 impl Compiler {
-    pub fn compile(&self, path: &str) {
-        GLOBALS.set(&self.globals, || {
-            try_with_handler(self.cm.clone(), Default::default(), |handler| {
-                //
-                let fm = self.cm.load_file(Path::new(path))?;
+    pub fn compile(&self, path: &str) -> anyhow::Result<()> {
+        let fm = self.cm.load_file(Path::new(path))?;
 
-                let program = self.compiler.parse_js(
-                    fm,
-                    handler,
-                    EsVersion::latest(),
-                    Syntax::Typescript(TsSyntax {
-                        tsx: true,
-                        decorators: true,
-                        ..Default::default()
-                    }),
-                    IsModule::Bool(true),
-                    Some(self.compiler.comments()),
-                )?;
+        let mut errors = Vec::default();
 
-                let unresolved_mark = Mark::new();
-                let top_level_mark = Mark::new();
+        let mut program = swc_ecma_parser::parse_file_as_program(
+            &fm,
+            Syntax::Typescript(TsSyntax {
+                tsx: true,
+                decorators: true,
+                dts: true,
+                no_early_errors: true,
+                disallow_ambiguous_jsx_like: true,
+            }),
+            EsVersion::Es2022,
+            Some(&self.comments),
+            &mut errors,
+        )
+        .map_err(|err| anyhow!("Could not parse"))?;
 
-                let helpers = Helpers::new(false);
+        self.run(|| {
+            let unresolved_mark = Mark::new();
+            let top_level_mark = Mark::new();
 
-                let program = HELPERS.set(&helpers, || {
-                    program.visit_with(&mut ts::tsx(
-                        self.cm.clone(),
-                        ts::Config::default(),
-                        ts::TsxConfig::default(),
-                        self.compiler.comments(),
-                        unresolved_mark,
-                        top_level_mark,
-                    ));
+            let helpers = Helpers::new(false);
 
-                    program = program.fold_with(&mut react::jsx(
-                        self.cm.clone(),
-                        Some(self.compiler.comments()),
-                        react::Options {
-                            runtime: Some(react::Runtime::Automatic),
-                            import_source: config.jsx_import_source.map(|m| m.to_string()),
-                            ..Default::default()
-                        },
-                        top_level_mark,
-                        unresolved_mark,
-                    ));
+            HELPERS.set(&helpers, || {
+                ts::tsx(
+                    self.cm.clone(),
+                    ts::Config::default(),
+                    ts::TsxConfig::default(),
+                    &self.comments,
+                    unresolved_mark,
+                    top_level_mark,
+                )
+                .process(&mut program);
 
-                    program = program.fold_with(&mut decorator_2022_03());
+                program.visit_mut_with(&mut fixer(Some(&self.comments)));
 
-                    program
-                        .fold_with(&mut fixer(Some(self.compiler.comments())))
-                        .fold_with(&mut hygiene())
-                        .fold_with(&mut inject_helpers(top_level_mark))
-                        .fold_with(&mut resolver(
-                            unresolved_mark,
-                            top_level_mark,
-                            config.typescript,
-                        ))
-                });
+                hygiene().process(&mut program);
 
-                self.compiler
-                    .print(
-                        &program, // ast to print
-                        PrintArgs {
-                            // codegen_config: CodegenConfig::default().with_target(EsVersion::Es2022),
-                            ..Default::default()
-                        },
-                    )
-                    .map(|ret| (ret.code, ret.map));
-
-                Ok(())
-            })
+                program.visit_mut_with(&mut inject_helpers(top_level_mark));
+                program.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, true));
+            });
         });
+
+        Ok(())
+    }
+
+    fn run<T: FnOnce() -> U, U>(&self, func: T) -> U {
+        GLOBALS.set(&self.globals, || {
+            //
+            func()
+        })
     }
 }
