@@ -1,7 +1,8 @@
 use anyhow::anyhow;
 use std::{path::Path, sync::Arc};
-use swc_common::{Globals, Mark, SourceMap, GLOBALS};
+use swc_common::{BytePos, Globals, LineCol, Mark, SourceMap, GLOBALS};
 use swc_ecma_ast::{EsVersion, Pass};
+use swc_ecma_codegen::text_writer::JsWriter;
 use swc_ecma_parser::{Syntax, TsSyntax};
 use swc_ecma_transforms::{
     fixer,
@@ -15,6 +16,12 @@ use swc_ecma_transforms::{
 };
 use swc_ecma_visit::{FoldWith, VisitMutWith, VisitWith};
 use swc_node_comments::SwcComments;
+
+pub struct CodegenResult {
+    pub code: Vec<u8>,
+    pub sourcemap: sourcemap::SourceMap,
+}
+
 pub struct Compiler {
     cm: Arc<SourceMap>,
     comments: SwcComments,
@@ -22,7 +29,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn compile(&self, path: &str) -> anyhow::Result<()> {
+    pub fn compile(&self, path: &str) -> anyhow::Result<CodegenResult> {
         let fm = self.cm.load_file(Path::new(path))?;
 
         let mut errors = Vec::default();
@@ -68,13 +75,27 @@ impl Compiler {
             });
         });
 
-        Ok(())
+        let mut code = Vec::new();
+        let mut srcmap = Vec::new();
+
+        let mut emitter = swc_ecma_codegen::Emitter {
+            cfg: Default::default(),
+            cm: self.cm.clone(),
+            comments: Some(&self.comments),
+            wr: JsWriter::new(self.cm.clone(), "\n", &mut code, Some(&mut srcmap)),
+        };
+
+        emitter.emit_program(&program)?;
+
+        let srcmap = self.cm.build_source_map(&srcmap);
+
+        Ok(CodegenResult {
+            code,
+            sourcemap: srcmap,
+        })
     }
 
     fn run<T: FnOnce() -> U, U>(&self, func: T) -> U {
-        GLOBALS.set(&self.globals, || {
-            //
-            func()
-        })
+        GLOBALS.set(&self.globals, || func())
     }
 }

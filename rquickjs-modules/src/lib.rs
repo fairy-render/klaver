@@ -28,4 +28,4 @@ pub use oxc_resolver as resolver;
 pub use oxc_resolver::ResolveOptions;
 
 #[cfg(feature = "swc-transform")]
-mod swc_transformer;
+mod swc;
