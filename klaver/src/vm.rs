@@ -1,13 +1,19 @@
 use std::{future::Future, pin::Pin, task::Poll};
 
-use futures::pin_mut;
+use futures::{future::BoxFuture, pin_mut};
 use rquickjs::{
-    context::EvalOptions, runtime::MemoryUsage, AsyncContext, AsyncRuntime, Ctx, FromJs,
+    context::{self, EvalOptions},
+    prelude::{Async, Func},
+    runtime::MemoryUsage,
+    AsyncContext, AsyncRuntime, Ctx, FromJs,
 };
 use rquickjs_modules::Environ;
-use rquickjs_util::RuntimeError;
+use rquickjs_util::{throw, RuntimeError};
 
-use crate::Options;
+use crate::{
+    realm::{create_realm, js_create_realm, JsRealm},
+    Options,
+};
 
 pub struct Vm {
     context: AsyncContext,
@@ -39,6 +45,18 @@ impl Vm {
 
         env.init(&context).await?;
 
+        let cloned_env = env.clone();
+        let weak_runtime = runtime.weak();
+
+        context
+            .with(move |ctx| {
+                ctx.store_userdata(JsRealm::new(weak_runtime, cloned_env))?;
+                ctx.globals().set("createRealm", js_create_realm)?;
+
+                Result::<_, rquickjs::Error>::Ok(())
+            })
+            .await?;
+
         Ok(Vm {
             runtime,
             context,
@@ -56,6 +74,16 @@ impl Vm {
 
     pub async fn memory_usage(&self) -> MemoryUsage {
         self.runtime.memory_usage().await
+    }
+
+    pub async fn create_realm(&self) -> Result<Vm, RuntimeError> {
+        let context = AsyncContext::full(&self.runtime).await?;
+        self.env.init(&context).await?;
+        Ok(Vm {
+            context,
+            runtime: self.runtime.clone(),
+            env: self.env.clone(),
+        })
     }
 
     pub async fn with<F, R>(&self, f: F) -> Result<R, RuntimeError>
