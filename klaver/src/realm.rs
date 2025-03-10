@@ -2,9 +2,9 @@ use rquickjs::{
     class::Trace, runtime::AsyncWeakRuntime, AsyncContext, CatchResultExt, Ctx, JsLifetime,
 };
 use rquickjs_modules::Environ;
-use rquickjs_util::{throw, StringRef, Val};
+use rquickjs_util::{throw, Val};
 
-use crate::{async_with, Vm};
+use crate::async_with;
 
 #[derive(JsLifetime)]
 pub struct JsRealm {
@@ -45,11 +45,7 @@ impl<'js> Trace<'js> for JsRealmVm {
 #[rquickjs::methods]
 impl JsRealmVm {
     #[qjs(rename = "evalScript")]
-    pub async fn eval_script<'js>(
-        &self,
-        ctx: Ctx<'js>,
-        script: StringRef<'js>,
-    ) -> rquickjs::Result<Val> {
+    pub async fn eval_script<'js>(&self, ctx: Ctx<'js>, script: String) -> rquickjs::Result<Val> {
         let ret = async_with!(self.vm => |ctx| {
             Ok(ctx.eval_promise(script.as_str()).catch(&ctx)?.into_future::<Val>().await.catch(&ctx)?)
         })
