@@ -2,10 +2,10 @@ use std::marker::PhantomData;
 
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, function::This, Array, Ctx, FromJs, Function, IntoJs,
-    Object, Value,
+    JsLifetime, Object, Value,
 };
 
-#[derive(Debug, Trace, Clone)]
+#[derive(Debug, Trace, Clone, JsLifetime)]
 pub struct Set<'js> {
     object: Object<'js>,
 }

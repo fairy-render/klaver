@@ -2,12 +2,12 @@ use std::marker::PhantomData;
 
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, function::This, Array, Ctx, FromJs, Function, IntoJs,
-    Object, Value,
+    JsLifetime, Object, Value,
 };
 
 use crate::util::{ArrayExt, FunctionExt};
 
-#[derive(Debug, Trace, Clone, PartialEq, Eq)]
+#[derive(Debug, Trace, Clone, PartialEq, Eq, JsLifetime)]
 pub struct Map<'js> {
     object: Object<'js>,
 }

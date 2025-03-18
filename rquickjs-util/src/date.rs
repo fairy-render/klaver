@@ -1,8 +1,10 @@
-use rquickjs::{class::Trace, function::This, Ctx, FromJs, Function, IntoJs, Object, Value};
+use rquickjs::{
+    class::Trace, function::This, Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Value,
+};
 
 use crate::StringRef;
 
-#[derive(Debug, Trace)]
+#[derive(Debug, Trace, JsLifetime)]
 pub struct Date<'js> {
     object: Object<'js>,
 }
