@@ -1,14 +1,18 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use futures::{future::LocalBoxFuture, Stream, TryStream, TryStreamExt};
 use rquickjs::{
     atom::PredefinedAtom,
     class::{JsClass, Trace},
     prelude::{Func, This},
-    Class, Ctx, Exception, IntoJs, JsLifetime, Symbol, Value,
+    Class, Ctx, Exception, FromJs, Function, IntoJs, JsLifetime, Object, Promise, Symbol, Value,
 };
 
-use crate::iterator::IterResult;
+use crate::{
+    iterator::IterResult,
+    util::{is_async_iterator, ObjectExt},
+    Next,
+};
 
 pub struct StreamContainer<T>(pub T);
 
@@ -164,5 +168,56 @@ where
         ctx: Ctx<'js>,
     ) -> rquickjs::Result<Value<'js>> {
         this.borrow_mut().stream(&ctx)?.into_js(&ctx)
+    }
+}
+
+pub struct JsAsyncIterator<'js, T> {
+    iter: Object<'js>,
+    ty: PhantomData<T>,
+}
+
+impl<'js, T> JsAsyncIterator<'js, T>
+where
+    T: FromJs<'js>,
+{
+    pub async fn next(&self) -> rquickjs::Result<Option<T>> {
+        let chunk = self
+            .iter
+            .get::<_, Function>(PredefinedAtom::Next)?
+            .call::<_, Promise>((This(self.iter.clone()),))?
+            .into_future::<Next<T>>()
+            .await?;
+
+        Ok(chunk.value)
+    }
+}
+
+impl<'js, T> FromJs<'js> for JsAsyncIterator<'js, T> {
+    fn from_js(ctx: &rquickjs::Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+        let obj: Object<'_> = if is_async_iterator(ctx, &value) {
+            let obj = value.call_property::<_, _, Object>(
+                ctx.clone(),
+                PredefinedAtom::SymbolAsyncIterator,
+                (),
+            )?;
+            obj
+        } else if let Ok(object) = Object::from_js(ctx, value.clone()) {
+            object
+        } else {
+            return Err(rquickjs::Error::new_from_js(value.type_name(), "iterator"));
+        };
+
+        if obj.get::<_, Function>(PredefinedAtom::Next).is_err() {
+            return Err(rquickjs::Error::new_from_js_message(
+                "object",
+                "iterator",
+                "Missing next function",
+            ));
+        }
+
+        Ok(JsAsyncIterator {
+            iter: obj,
+            ty: PhantomData,
+        })
     }
 }
