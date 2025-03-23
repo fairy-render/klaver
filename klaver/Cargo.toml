@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = []
-transform = ["rquickjs-modules/transform"]
+transform = ["rquickjs-modules/swc-transform"]
 http = ["klaver-wintercg/http"]
 encoding = ["klaver-wintercg/encoding"]
 crypto = ["klaver-wintercg/crypto"]

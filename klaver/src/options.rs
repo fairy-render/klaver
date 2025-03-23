@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use rquickjs_modules::{Environ, GlobalInfo, ModuleInfo, ResolveOptions};
+use rquickjs_modules::{transformer::Transpiler, Environ, GlobalInfo, ModuleInfo, ResolveOptions};
 use rquickjs_util::RuntimeError;
 
 use crate::Vm;
@@ -36,10 +36,9 @@ impl Options {
         }
     }
 
-    #[cfg(feature = "transform")]
-    pub fn compiler(self, compiler: rquickjs_modules::transformer::Compiler) -> Self {
+    pub fn transpiler<T: Transpiler + 'static>(self, compiler: T) -> Self {
         Options {
-            builder: self.builder.compiler(compiler),
+            builder: self.builder.transpiler(compiler),
             ..self
         }
     }

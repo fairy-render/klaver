@@ -13,11 +13,9 @@ use crate::{
     module_info::{ModuleBuilder, ModuleInfo},
     modules::Modules,
     modules_builder::ModulesBuilder,
+    transformer::{Transformer, Transpiler},
     types::Typings,
 };
-
-#[cfg(feature = "transform")]
-use crate::transformer::{Compiler, FileLoader};
 
 #[derive(Default)]
 pub struct Builder {
@@ -25,8 +23,7 @@ pub struct Builder {
     typings: Typings,
     resolve_options: Option<ResolveOptions>,
     search_paths: Vec<PathBuf>,
-    #[cfg(feature = "transform")]
-    compiler: Option<Compiler>,
+    transformer: Option<Transformer>,
     cache: bool,
 }
 
@@ -37,8 +34,7 @@ impl Builder {
             typings: Typings::default(),
             resolve_options: None,
             search_paths: Vec::default(),
-            #[cfg(feature = "transform")]
-            compiler: None,
+            transformer: None,
             cache: false,
         }
     }
@@ -58,9 +54,8 @@ impl Builder {
         self
     }
 
-    #[cfg(feature = "transform")]
-    pub fn compiler(mut self, compiler: Compiler) -> Self {
-        self.compiler = Some(compiler);
+    pub fn transpiler<T: Transpiler + 'static>(mut self, transpiler: T) -> Self {
+        self.transformer = Some(Transformer::new(transpiler));
         self
     }
 
@@ -100,6 +95,7 @@ impl Builder {
             resolvers.push(Box::new(resolver));
         }
 
+        // Builtins resolver
         let mut builtin_resolver = BuiltinResolver::default();
 
         for module in self
@@ -113,6 +109,7 @@ impl Builder {
 
         resolvers.push(Box::new(builtin_resolver));
 
+        // Builtin resolvers
         let mut loaders = Vec::<Box<dyn Loader + Send + Sync>>::default();
 
         let builtin_loader = BuiltinLoader {
@@ -122,29 +119,15 @@ impl Builder {
 
         loaders.push(Box::new(builtin_loader));
 
-        #[cfg(feature = "transform")]
-        let cache = {
-            let cache = crate::transformer::Cache::default();
-            let loader = if let Some(compiler) = self.compiler {
-                FileLoader::new(compiler, cache.clone(), self.cache)
-            } else {
-                FileLoader::new(Compiler::default(), cache.clone(), self.cache)
-            };
-            loaders.push(Box::new(loader));
-
-            cache
-        };
-
-        #[cfg(not(feature = "transform"))]
-        {
+        if let Some(transformer) = self.transformer.as_ref().cloned() {
+            loaders.push(Box::new(transformer));
+        } else {
             let loader = rquickjs::loader::ScriptLoader::default();
             loaders.push(Box::new(crate::loader::QuickWrap::new(loader)))
         }
 
-        #[cfg(feature = "transform")]
-        let modules = Modules::new(cache, resolvers, loaders);
-        #[cfg(not(feature = "transform"))]
-        let modules = Modules::new(resolvers, loaders);
+        let modules = Modules::new(self.transformer, resolvers, loaders);
+
         let globals = Globals::new(self.modules.globals);
 
         Environ::new(modules, globals, self.typings)

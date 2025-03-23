@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin, task::Poll};
+use std::{future::Future, path::Path, pin::Pin, task::Poll};
 
 use futures::{future::BoxFuture, pin_mut};
 use rquickjs::{
@@ -174,28 +174,24 @@ impl<'a> Future for Idle<'a> {
 }
 
 fn update_locations(env: &Environ, mut err: RuntimeError) -> RuntimeError {
-    #[cfg(feature = "transform")]
-    {
+    if let Some(transform) = env.modules().transformer() {
         let RuntimeError::Exception { stack, .. } = &mut err else {
             return err;
         };
 
         for trace in stack {
-            let Some(entry) = env.modules().cache().get(&trace.file) else {
+            let Some((line, col)) = transform.map(
+                Path::new(&trace.file),
+                trace.line as usize,
+                trace.column as usize,
+            ) else {
                 continue;
             };
 
-            let Some(source_map) = entry.source_map() else {
-                continue;
-            };
-
-            let Some(view) = source_map.view(trace.line, trace.column) else {
-                continue;
-            };
-
-            trace.line = view.get_src_line();
-            trace.column = view.get_src_col();
+            trace.line = line as u32;
+            trace.column = col as u32;
         }
     }
+
     err
 }

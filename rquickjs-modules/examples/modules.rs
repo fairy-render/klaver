@@ -1,10 +1,5 @@
-use rquickjs::{
-    prelude::Func, AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Module,
-};
-use rquickjs_modules::{
-    transformer::Compiler,
-    Builder, GlobalInfo,
-};
+use rquickjs::{prelude::Func, AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Module};
+use rquickjs_modules::{transformer::SwcTranspiler, Builder, GlobalInfo};
 
 struct TestGlobal;
 
@@ -20,21 +15,18 @@ impl GlobalInfo for TestGlobal {
 
 fn main() -> rquickjs::Result<()> {
     futures::executor::block_on(async move {
-        let runtime = AsyncRuntime::new().unwrap();
-        let context = AsyncContext::full(&runtime).await.unwrap();
-
-        let compiler = Compiler::default();
-        // compiler.transform_options.
-
         let builder = Builder::default();
 
         let env = builder
             .search_path(std::env::current_dir().unwrap())
             .global::<TestGlobal>()
-            .compiler(compiler)
+            .transpiler(SwcTranspiler::new())
             .build();
 
-        env.init(&context).await.unwrap();
+        let runtime = env.create_runtime().await.unwrap();
+        let context = AsyncContext::full(&runtime).await.unwrap();
+
+        // env.init(&context).await.unwrap();
 
         rquickjs::async_with!(context => |ctx| {
             ctx.globals().set(

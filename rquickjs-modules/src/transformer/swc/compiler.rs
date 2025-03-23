@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use std::{path::Path, sync::Arc};
 use swc_common::{BytePos, Globals, LineCol, Mark, SourceMap, GLOBALS};
-use swc_ecma_ast::{EsVersion, Pass};
+use swc_ecma_ast::{EsVersion, Pass, Program};
 use swc_ecma_codegen::text_writer::JsWriter;
 use swc_ecma_parser::{Syntax, TsSyntax};
 use swc_ecma_transforms::{
@@ -22,10 +22,34 @@ pub struct CodegenResult {
     pub sourcemap: sourcemap::SourceMap,
 }
 
+pub enum Decorators {
+    Stage2022,
+    Legacy,
+}
+
+impl Decorators {
+    fn apply(&self, program: &mut Program) {
+        match self {
+            Self::Stage2022 => {
+                decorator_2022_03().process(program);
+            }
+            Self::Legacy => {
+                decorators(DecoratorsConfig {
+                    legacy: true,
+                    emit_metadata: true,
+                    use_define_for_class_fields: true,
+                })
+                .process(program);
+            }
+        }
+    }
+}
+
 pub struct Compiler {
     cm: Arc<SourceMap>,
     comments: SwcComments,
     globals: Globals,
+    decorators: Option<Decorators>,
 }
 
 impl Compiler {
@@ -34,6 +58,16 @@ impl Compiler {
             cm: Default::default(),
             comments: Default::default(),
             globals: Default::default(),
+            decorators: None,
+        }
+    }
+
+    pub fn new_with(decorator: Decorators) -> Compiler {
+        Compiler {
+            cm: Default::default(),
+            comments: Default::default(),
+            globals: Default::default(),
+            decorators: Some(decorator),
         }
     }
 
@@ -47,7 +81,7 @@ impl Compiler {
             Syntax::Typescript(TsSyntax {
                 tsx: true,
                 decorators: true,
-                dts: true,
+                dts: false,
                 no_early_errors: true,
                 disallow_ambiguous_jsx_like: true,
             }),
@@ -64,6 +98,10 @@ impl Compiler {
             let helpers = Helpers::new(false);
 
             HELPERS.set(&helpers, || {
+                if let Some(decorator) = &self.decorators {
+                    decorator.apply(&mut program);
+                }
+
                 ts::tsx(
                     self.cm.clone(),
                     ts::Config::default(),
@@ -80,6 +118,8 @@ impl Compiler {
 
                 program.visit_mut_with(&mut inject_helpers(top_level_mark));
                 program.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, true));
+
+                inject_helpers(top_level_mark).process(&mut program);
             });
         });
 

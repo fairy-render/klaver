@@ -4,7 +4,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use parking_lot::Mutex;
 
-use crate::transformer2::{Transpiler, TranspilerError};
+use crate::transformer::{Transpiler, TranspilerError};
 
 pub use self::compiler::*;
 
@@ -20,13 +20,17 @@ impl SwcTranspiler {
             cache: Default::default(),
         }
     }
+
+    pub fn new_with(decorator: Decorators) -> SwcTranspiler {
+        SwcTranspiler {
+            compiler: Compiler::new_with(decorator),
+            cache: Default::default(),
+        }
+    }
 }
 
 impl Transpiler for SwcTranspiler {
-    fn compile(
-        &self,
-        path: &std::path::Path,
-    ) -> Result<String, crate::transformer2::TranspilerError> {
+    fn compile(&self, path: &std::path::Path) -> Result<String, TranspilerError> {
         let result = self.compiler.compile(path).map_err(TranspilerError::new)?;
 
         let source = String::from_utf8(result.code.clone()).map_err(TranspilerError::new)?;
@@ -41,7 +45,7 @@ impl Transpiler for SwcTranspiler {
         let entry = lock.get(path)?;
 
         let token = entry.sourcemap.lookup_token(line as u32, col as u32)?;
-        let dst = token.get_dst();
+        let dst = token.get_src();
 
         Some((dst.0 as usize, dst.1 as usize))
     }

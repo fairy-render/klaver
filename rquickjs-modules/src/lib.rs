@@ -4,11 +4,8 @@ pub mod loader;
 mod module_info;
 mod modules;
 mod modules_builder;
-#[cfg(feature = "transform")]
 pub mod transformer;
 mod types;
-
-mod transformer2;
 
 mod builtin_loader;
 mod builtin_resolver;
@@ -28,6 +25,3 @@ pub use self::{
 
 pub use oxc_resolver as resolver;
 pub use oxc_resolver::ResolveOptions;
-
-#[cfg(feature = "swc-transform")]
-mod swc;

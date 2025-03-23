@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = ["swc-transform"]
-transform = ["oxc"]
+oxc-transform = ["oxc"]
 swc-transform = [
   "swc_node_comments",
   "swc_ecma_codegen",

@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use klaver::{modules::transformer::Compiler, Options, Vm, WinterCG};
+use klaver::{
+    modules::transformer::{swc::Decorators, SwcTranspiler, Transpiler},
+    Options, Vm, WinterCG,
+};
 use rquickjs::{CatchResultExt, Module};
 
 #[derive(Parser)]
@@ -62,6 +65,7 @@ async fn main() -> color_eyre::Result<()> {
 fn create_vm() -> Options {
     let vm = Vm::new()
         .search_path(".")
+        .transpiler(SwcTranspiler::new_with(Decorators::Stage2022))
         .module::<klaver_dom::Module>()
         .module::<klaver_handlebars::Module>()
         .module::<klaver_image::Module>()
@@ -98,15 +102,11 @@ async fn run(path: PathBuf) -> color_eyre::Result<()> {
 }
 
 async fn compile(path: PathBuf) -> color_eyre::Result<()> {
-    let compiler = Compiler::default();
+    let compiler = SwcTranspiler::new();
 
-    let content = tokio::fs::read_to_string(&path).await?;
+    let ret = compiler.compile(&path)?;
 
-    let name = path.display().to_string();
-
-    let ret = compiler.compile(&content, &name)?;
-
-    println!("{}", ret.code);
+    println!("{}", ret);
 
     Ok(())
 }

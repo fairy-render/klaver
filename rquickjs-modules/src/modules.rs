@@ -1,43 +1,35 @@
 use rquickjs::{Ctx, Module};
 use std::sync::Arc;
 
-use crate::loader::{Loader, Resolver};
+use crate::{
+    loader::{Loader, Resolver},
+    transformer::Transformer,
+};
 
 struct ModulesInner {
     resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
     loaders: Vec<Box<dyn Loader + Send + Sync>>,
-    #[cfg(feature = "transform")]
-    cache: crate::transformer::Cache,
+    transformer: Option<crate::transformer::Transformer>,
 }
 
 #[derive(Clone)]
 pub struct Modules(Arc<ModulesInner>);
 
 impl Modules {
-    #[cfg(not(feature = "transform"))]
     pub fn new(
-        resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
-        loaders: Vec<Box<dyn Loader + Send + Sync>>,
-    ) -> Modules {
-        Modules(Arc::new(ModulesInner { resolvers, loaders }))
-    }
-
-    #[cfg(feature = "transform")]
-    pub fn new(
-        cache: crate::transformer::Cache,
+        transformer: Option<Transformer>,
         resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
         loaders: Vec<Box<dyn Loader + Send + Sync>>,
     ) -> Modules {
         Modules(Arc::new(ModulesInner {
             resolvers,
             loaders,
-            cache,
+            transformer,
         }))
     }
 
-    #[cfg(feature = "transform")]
-    pub fn cache(&self) -> &crate::transformer::Cache {
-        &self.0.cache
+    pub fn transformer(&self) -> Option<&Transformer> {
+        self.0.transformer.as_ref()
     }
 }
 
