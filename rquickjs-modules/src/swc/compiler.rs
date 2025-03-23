@@ -29,8 +29,16 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn compile(&self, path: &str) -> anyhow::Result<CodegenResult> {
-        let fm = self.cm.load_file(Path::new(path))?;
+    pub fn new() -> Compiler {
+        Compiler {
+            cm: Default::default(),
+            comments: Default::default(),
+            globals: Default::default(),
+        }
+    }
+
+    pub fn compile(&self, path: &Path) -> anyhow::Result<CodegenResult> {
+        let fm = self.cm.load_file(path)?;
 
         let mut errors = Vec::default();
 

@@ -8,6 +8,8 @@ mod modules_builder;
 pub mod transformer;
 mod types;
 
+mod transformer2;
+
 mod builtin_loader;
 mod builtin_resolver;
 
