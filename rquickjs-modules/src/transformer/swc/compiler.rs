@@ -9,8 +9,8 @@ use swc_ecma_transforms::{
     helpers::{inject_helpers, Helpers, HELPERS},
     hygiene,
     proposals::{
-        decorator_2022_03::decorator_2022_03,
         decorators::{decorators, Config as DecoratorsConfig},
+        explicit_resource_management::explicit_resource_management,
     },
     react, resolver, typescript as ts, Assumptions,
 };
@@ -32,7 +32,13 @@ impl Decorators {
     fn apply(&self, program: &mut Program) {
         match self {
             Self::Stage2022 => {
-                decorator_2022_03().process(program);
+                // decorator_2022_03().process(program);
+                decorators(DecoratorsConfig {
+                    legacy: false,
+                    emit_metadata: false,
+                    use_define_for_class_fields: true,
+                })
+                .process(program);
             }
             Self::Legacy => {
                 decorators(DecoratorsConfig {
@@ -112,6 +118,8 @@ impl Compiler {
                     top_level_mark,
                 )
                 .process(&mut program);
+
+                explicit_resource_management().process(&mut program);
 
                 program.visit_mut_with(&mut fixer(Some(&self.comments)));
 

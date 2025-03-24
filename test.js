@@ -29,3 +29,7 @@ try {
 } catch (e) {
 	console.log(e);
 }
+
+{
+	using file = new File();
+}
