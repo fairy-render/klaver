@@ -35,9 +35,8 @@ parking_lot = { version = "0.12" }
 tracing = { version = "0.1" }
 geenie = { git = "https://github.com/fairy-render/geenie.git" }
 
-# swc = { version = "13.0", optional = true }
-swc_ecma_codegen = { version = "6.0", optional = true }
-swc_ecma_transforms = { version = "11.0", features = [
+swc_ecma_codegen = { version = "8.0", optional = true }
+swc_ecma_transforms = { version = "14.0", features = [
   "proposal",
   "compat",
   "module",
@@ -45,11 +44,11 @@ swc_ecma_transforms = { version = "11.0", features = [
   "react",
   "concurrent",
 ], optional = true }
-swc_common = { version = "6.0", features = ["sourcemap"], optional = true }
-swc_ecma_parser = { version = "8.0", optional = true }
-swc_ecma_ast = { version = "6.1", optional = true }
-swc_ecma_visit = { version = "6.0", optional = true }
-swc_node_comments = { version = "6.0", optional = true }
+swc_common = { version = "8.0", features = ["sourcemap"], optional = true }
+swc_ecma_parser = { version = "10.0", optional = true }
+swc_ecma_ast = { version = "8.1", optional = true }
+swc_ecma_visit = { version = "8.0", optional = true }
+swc_node_comments = { version = "8.0", optional = true }
 sourcemap = { version = "9", optional = true }
 anyhow = { version = "1", optional = true }
 

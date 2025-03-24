@@ -1,4 +1,4 @@
-const formatter = new Intl.DateTimeFormat("en_gb", {
+const formatter = new Intl.DateTimeFormat("en-gb", {
 	//   timeZone: "Atlantic/Reykjavik",
 	//   dateStyle: "full",
 	//   timeStyle: "full",
@@ -21,4 +21,11 @@ const number = new Intl.NumberFormat("da");
 
 console.log(number.format(20202));
 
-throw new Error();
+function inject() {}
+
+try {
+	@inject
+	class Test {}
+} catch (e) {
+	console.log(e);
+}

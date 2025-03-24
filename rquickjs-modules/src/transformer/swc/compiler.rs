@@ -22,6 +22,7 @@ pub struct CodegenResult {
     pub sourcemap: sourcemap::SourceMap,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum Decorators {
     Stage2022,
     Legacy,
@@ -119,7 +120,7 @@ impl Compiler {
                 program.visit_mut_with(&mut inject_helpers(top_level_mark));
                 program.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, true));
 
-                inject_helpers(top_level_mark).process(&mut program);
+                // inject_helpers(top_level_mark).process(&mut program);
             });
         });
 

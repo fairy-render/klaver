@@ -1,16 +1,40 @@
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::{builder::PossibleValue, Parser, Subcommand, ValueEnum};
 use klaver::{
     modules::transformer::{swc::Decorators, SwcTranspiler, Transpiler},
     Options, Vm, WinterCG,
 };
 use rquickjs::{CatchResultExt, Module};
 
+#[derive(Debug, Clone)]
+struct Deco(Decorators);
+
+impl Default for Deco {
+    fn default() -> Self {
+        Deco(Decorators::Stage2022)
+    }
+}
+
+impl ValueEnum for Deco {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Deco(Decorators::Legacy), Deco(Decorators::Stage2022)]
+    }
+
+    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
+        match self.0 {
+            Decorators::Legacy => Some(PossibleValue::new("legacy")),
+            Decorators::Stage2022 => Some(PossibleValue::new("staging")),
+        }
+    }
+}
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
     path: Option<PathBuf>,
+    #[arg(short, long, default_value = "staging")]
+    decorators: Deco,
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -31,12 +55,12 @@ async fn main() -> color_eyre::Result<()> {
 
     match cli.command {
         Some(Commands::Compile { path }) => {
-            compile(path).await?;
+            compile(path, cli.decorators.0).await?;
         }
         Some(Commands::Typings { path }) => {
             let root = path.unwrap_or_else(|| PathBuf::from("@types"));
 
-            let env = create_vm().build_environ();
+            let env = create_vm(cli.decorators.0).build_environ();
             let files = env.typings().files();
             for file in files {
                 let path = file.path.to_logical_path(&root);
@@ -48,24 +72,25 @@ async fn main() -> color_eyre::Result<()> {
             }
         }
         None => {
-            let args = std::env::args().skip(1).collect::<Vec<_>>();
+            let Some(path) = cli.path else { return Ok(()) };
+            // let args = std::env::args().skip(1).collect::<Vec<_>>();
 
-            if args.is_empty() {
-                eprintln!("Usage: {} <file>", std::env::args().next().unwrap());
-                return Ok(());
-            }
+            // if args.is_empty() {
+            //     eprintln!("Usage: {} <file>", std::env::args().next().unwrap());
+            //     return Ok(());
+            // }
 
-            run((&args[0]).into()).await?;
+            run(path, cli.decorators.0).await?;
         }
     }
 
     Ok(())
 }
 
-fn create_vm() -> Options {
+fn create_vm(decorators: Decorators) -> Options {
     let vm = Vm::new()
         .search_path(".")
-        .transpiler(SwcTranspiler::new_with(Decorators::Stage2022))
+        .transpiler(SwcTranspiler::new_with(decorators))
         .module::<klaver_dom::Module>()
         .module::<klaver_handlebars::Module>()
         .module::<klaver_image::Module>()
@@ -73,8 +98,8 @@ fn create_vm() -> Options {
     vm
 }
 
-async fn run(path: PathBuf) -> color_eyre::Result<()> {
-    let vm = create_vm().build().await?;
+async fn run(path: PathBuf, decorators: Decorators) -> color_eyre::Result<()> {
+    let vm = create_vm(decorators).build().await?;
 
     let mut filename = path.display().to_string();
 
@@ -101,8 +126,8 @@ async fn run(path: PathBuf) -> color_eyre::Result<()> {
     Ok(())
 }
 
-async fn compile(path: PathBuf) -> color_eyre::Result<()> {
-    let compiler = SwcTranspiler::new();
+async fn compile(path: PathBuf, decorators: Decorators) -> color_eyre::Result<()> {
+    let compiler = SwcTranspiler::new_with(decorators);
 
     let ret = compiler.compile(&path)?;
 
