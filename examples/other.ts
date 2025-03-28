@@ -1,5 +1,7 @@
+import output from "ost";
+
 // Test
 export function hello() {
-	console.log("hello, world");
-	throw new Error("Error");
+  console.log("hello, world", output.ost);
+  // throw new Error("Error");
 }

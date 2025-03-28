@@ -31,3 +31,5 @@ klaver-handlebars = { path = "../klaver-handlebars" }
 
 
 openssl = { version = "0.10", features = ["vendored"], optional = true }
+
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

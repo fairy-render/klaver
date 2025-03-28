@@ -21,9 +21,9 @@ impl SwcTranspiler {
         }
     }
 
-    pub fn new_with(decorator: Decorators) -> SwcTranspiler {
+    pub fn new_with(opts: CompilerOptions) -> SwcTranspiler {
         SwcTranspiler {
-            compiler: Compiler::new_with(decorator),
+            compiler: Compiler::new_with(opts),
             cache: Default::default(),
         }
     }
