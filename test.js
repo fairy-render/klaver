@@ -38,3 +38,7 @@ export async function test() {
 
 function* test2() {}
 
+Symbol.dispose = Symbol("dispose")
+
+
+console.log(Symbol.dispose)

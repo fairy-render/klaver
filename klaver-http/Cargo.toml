@@ -1,0 +1,26 @@
+[package]
+name = "klaver-http"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+server = []
+
+[dependencies]
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1" }
+http-body-util = { version = "0.1" }
+tokio = { version = "1", features = ["net"] }
+rquickjs-modules = { path = "../rquickjs-modules" }
+rquickjs.workspace = true
+rquickjs-util = { path = "../rquickjs-util" }
+
+reggie = { git = "https://github.com/fairy-render/reggie", features = [
+    "json",
+    "reqwest",
+] }
+klaver-wintercg = { path = "../klaver-wintercg", features = ["http"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+klaver = { path = "../klaver" }
