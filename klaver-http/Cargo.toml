@@ -21,6 +21,13 @@ reggie = { git = "https://github.com/fairy-render/reggie", features = [
 ] }
 klaver-wintercg = { path = "../klaver-wintercg", features = ["http"] }
 
+routing = { git = "https://github.com/kildevaeld/router-rs", features = [
+    "router",
+    "std",
+] }
+router = { git = "https://github.com/kildevaeld/router-rs" }
+
+
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
 klaver = { path = "../klaver" }

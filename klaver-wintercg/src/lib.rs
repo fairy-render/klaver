@@ -48,21 +48,21 @@ where
         + Send,
     R: Send + 'static,
 {
-    let timers = wait_timers(context);
+    // let timers = wait_timers(context);
     let future = context.async_with(f);
     tokio::pin!(future);
 
-    tokio::select! {
-        biased;
-        ret = future.as_mut() => {
-            return ret
-        }
-        ret = timers => {
-            if let Err(err) = ret {
-                return Err(err.into())
-            }
-        }
-    }
+    // tokio::select! {
+    //     biased;
+    //     ret = future.as_mut() => {
+    //         return ret
+    //     }
+    //     ret = timers => {
+    //         if let Err(err) = ret {
+    //             return Err(err.into())
+    //         }
+    //     }
+    // }
 
     future.await
 }

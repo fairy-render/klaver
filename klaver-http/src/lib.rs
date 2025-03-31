@@ -1,6 +1,7 @@
 use rquickjs_modules::ModuleInfo;
 
 mod module;
+mod router;
 mod serve;
 
 pub struct Module;

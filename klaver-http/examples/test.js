@@ -1,5 +1,13 @@
-import { serve } from "@klaver/http";
+import { Router, serve } from "@klaver/http";
 
-console.log("HER!");
+const router = new Router();
 
-await serve((req) => new Response("Hello, World"));
+router.get("/", () => {
+  return new Response("Hello, World!");
+});
+
+router.get("/*rest", () => {
+  return new Response("Rest");
+});
+
+await serve(router);
