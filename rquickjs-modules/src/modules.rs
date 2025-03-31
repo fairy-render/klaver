@@ -46,13 +46,17 @@ impl rquickjs::loader::Loader for Modules {
         ctx: &Ctx<'js>,
         name: &str,
     ) -> rquickjs::Result<Module<'js, rquickjs::module::Declared>> {
+        let mut error = None;
         for loader in self.0.loaders.iter() {
-            if let Ok(ret) = loader.load(ctx, name) {
-                return Ok(ret);
+            match loader.load(ctx, name) {
+                Ok(ret) => return Ok(ret),
+                Err(err) => {
+                    error = Some(err);
+                }
             }
         }
 
-        Err(rquickjs::Error::new_loading(name))
+        Err(error.unwrap_or_else(|| rquickjs::Error::new_loading(name)))
     }
 }
 
