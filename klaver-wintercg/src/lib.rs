@@ -53,16 +53,19 @@ where
     tokio::pin!(future);
 
     tokio::select! {
-        biased;
+        // biased;
         ret = future.as_mut() => {
             return ret
         }
         ret = timers => {
-            if let Err(err) = ret {
-                return Err(err.into())
-            }
+            let ret  = match ret {
+                Err(err) => Err(err),
+                Ok(()) =>  Err(RuntimeError::Message(Some("Runtime cancled".to_string()))),
+
+            };
+
+            return ret
+
         }
     }
-
-    future.await
 }

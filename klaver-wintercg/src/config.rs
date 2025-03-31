@@ -13,7 +13,7 @@ pub struct WinterCG<'js> {
     http_client: reggie::Client,
     #[cfg(feature = "http")]
     base_url: url::Url,
-    timers: Timers<'js>,
+    timers: Timers,
     env: Environ<'js>,
     #[cfg(feature = "icu")]
     provider: Option<crate::intl::provider::DynProvider>,
@@ -78,7 +78,7 @@ impl<'js> WinterCG<'js> {
         ctx.globals().get::<_, Object>("process")?.set("args", args)
     }
 
-    pub fn timers(&self) -> &Timers<'js> {
+    pub fn timers(&self) -> &Timers {
         &self.timers
     }
 

@@ -1398,6 +1398,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 
 [[package]]
+name = "heather"
+version = "0.1.0"
+source = "git+https://github.com/kildevaeld/heather#52403f74a3a229bca4148f5048ffca7e70e2f4d6"
+
+[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1484,6 +1489,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
 
 [[package]]
+name = "httpdate"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
+
+[[package]]
 name = "hyper"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1496,6 +1507,7 @@ dependencies = [
  "http",
  "http-body",
  "httparse",
+ "httpdate",
  "itoa 1.0.15",
  "pin-project-lite",
  "smallvec",
@@ -1973,6 +1985,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c588878c508a3e2ace333b3c50296053e6483c6a7541251b546cc59dcd6ced8e"
 
 [[package]]
+name = "id-arena"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2195,6 +2213,24 @@ dependencies = [
  "rquickjs-modules",
  "rquickjs-util",
  "vaerdi",
+]
+
+[[package]]
+name = "klaver-http"
+version = "0.1.0"
+dependencies = [
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "klaver",
+ "klaver-wintercg",
+ "reggie",
+ "router",
+ "routing",
+ "rquickjs",
+ "rquickjs-modules",
+ "rquickjs-util",
+ "tokio",
 ]
 
 [[package]]
@@ -3662,6 +3698,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "router"
+version = "0.1.0"
+source = "git+https://github.com/kildevaeld/router-rs#72b27aa9d49f11a1adf35f59faced60f08b12dc2"
+dependencies = [
+ "bitflags 2.9.0",
+ "futures",
+ "heather",
+ "http",
+ "pin-project-lite",
+ "reggie",
+ "routing",
+]
+
+[[package]]
+name = "routing"
+version = "0.3.0"
+source = "git+https://github.com/kildevaeld/router-rs#72b27aa9d49f11a1adf35f59faced60f08b12dc2"
+dependencies = [
+ "bitflags 2.9.0",
+ "http",
+ "id-arena",
+ "udled",
+ "udled-tokenizers 0.2.0",
+]
+
+[[package]]
 name = "rquickjs"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3741,7 +3803,7 @@ dependencies = [
  "futures",
  "rquickjs",
  "udled",
- "udled-tokenizers",
+ "udled-tokenizers 0.1.0",
  "vaerdi",
 ]
 
@@ -5419,6 +5481,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "836b191d8346fe2a84af66ce2024bf0317ee634a71607cc5a36ae89a7e2ce828"
 dependencies = [
+ "serde",
  "unicode-segmentation",
 ]
 
@@ -5429,6 +5492,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da8f61945861d20245844f18f05fd66e473ae107bfa2b487a61e13d1c0f4ff29"
 dependencies = [
  "udled",
+]
+
+[[package]]
+name = "udled-tokenizers"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8fc7c235fd02fdd465ff40a421907d70c8c512babe87bf1fc390d50de3cb8a2"
+dependencies = [
+ "udled",
+ "unicode-segmentation",
 ]
 
 [[package]]
@@ -5542,7 +5615,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "serde",
  "udled",
- "udled-tokenizers",
+ "udled-tokenizers 0.1.0",
  "uuid",
 ]
 
