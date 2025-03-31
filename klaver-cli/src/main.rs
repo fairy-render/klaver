@@ -115,7 +115,8 @@ fn create_vm(opts: CompilerOptions) -> Options {
         .module::<klaver_dom::Module>()
         .module::<klaver_handlebars::Module>()
         .module::<klaver_image::Module>()
-        .module::<klaver_fs::Module>();
+        .module::<klaver_fs::Module>()
+        .module::<klaver_http::Module>();
     vm
 }
 

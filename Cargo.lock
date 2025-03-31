@@ -2174,6 +2174,7 @@ dependencies = [
  "klaver-dom",
  "klaver-fs",
  "klaver-handlebars",
+ "klaver-http",
  "klaver-image",
  "openssl",
  "rquickjs",

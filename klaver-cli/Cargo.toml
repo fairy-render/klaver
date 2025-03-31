@@ -28,6 +28,7 @@ klaver-dom = { path = "../klaver-dom" }
 klaver-fs = { path = "../klaver-fs" }
 klaver-image = { path = "../klaver-image" }
 klaver-handlebars = { path = "../klaver-handlebars" }
+klaver-http = { path = "../klaver-http" }
 
 
 openssl = { version = "0.10", features = ["vendored"], optional = true }
