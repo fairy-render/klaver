@@ -1,21 +1,25 @@
 use hyper::{Request, Response};
-use router::BoxHandler;
+use router::{BoxHandler, Handler as _};
 use routing::{
     Params,
     router::{MethodFilter, Router as RouteTree},
 };
 use rquickjs::{Class, Ctx, FromJs, Function, JsLifetime, Value, class::Trace};
-use rquickjs_util::{StringRef, throw, throw_if};
+use rquickjs_util::{StringRef, throw_if};
+
+pub struct JsRouteContext {}
 
 #[derive(Clone)]
 pub enum Handler<'js> {
     Script(Function<'js>),
+    Handler(BoxHandler<reggie::Body, JsRouteContext>),
 }
 
 impl<'js> Trace<'js> for Handler<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         match self {
             Self::Script(script) => script.trace(tracer),
+            _ => {}
         }
     }
 }
@@ -25,6 +29,7 @@ impl<'js> Handler<'js> {
         &self,
         ctx: Ctx<'js>,
         req: Request<reggie::Body>,
+        context: JsRouteContext,
     ) -> rquickjs::Result<Response<reggie::Body>> {
         match self {
             Self::Script(script) => {
@@ -37,6 +42,10 @@ impl<'js> Handler<'js> {
                 let ret = Class::<klaver_wintercg::http::Response>::from_js(&ctx, ret)?;
 
                 ret.borrow_mut().to_reggie(ctx).await
+            }
+            Self::Handler(handler) => {
+                let ret = throw_if!(ctx, handler.call(&context, req).await);
+                Ok(ret)
             }
         }
     }

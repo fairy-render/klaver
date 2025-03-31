@@ -16,4 +16,6 @@ async fn main() {
 
         Ok(())
     }).await.unwrap();
+
+    vm.idle().await.unwrap();
 }
