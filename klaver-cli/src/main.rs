@@ -144,6 +144,8 @@ async fn run(path: PathBuf, options: CompilerOptions) -> color_eyre::Result<()> 
     })
     .await?;
 
+    vm.idle().await?;
+
     Ok(())
 }
 

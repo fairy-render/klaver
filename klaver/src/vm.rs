@@ -146,13 +146,11 @@ impl Vm {
                       _ = driver.as_mut() => {
                         continue;
                       }
-                      _ = timers.as_mut() => {
-                        break;
+                      ret = timers.as_mut() => {
+                       return ret
                       }
                     }
                 }
-
-                Ok(())
             }),
         }
     }

@@ -1,11 +1,12 @@
 mod state;
+mod timer;
 
 use crate::config::WinterCG;
 use rquickjs::{
     prelude::{Func, Opt},
     AsyncContext, Class, Function, IntoJs,
 };
-use rquickjs_util::util::FunctionExt;
+use rquickjs_util::{util::FunctionExt, RuntimeError};
 pub use state::*;
 
 #[rquickjs::function]
@@ -15,10 +16,12 @@ fn set_timeout<'js>(
     func: Function<'js>,
     timeout: Opt<u64>,
 ) -> rquickjs::Result<TimeId> {
-    winter
-        .borrow()
-        .timers()
-        .create_timer(func, timeout.unwrap_or_default(), repeat)
+    winter.borrow().timers().create_timer(
+        func.ctx().clone(),
+        func,
+        timeout.unwrap_or_default(),
+        repeat,
+    )
 }
 
 #[rquickjs::function]
@@ -56,17 +59,19 @@ pub fn register<'js>(
     Ok(())
 }
 
-pub async fn wait_timers<'a>(context: &'a AsyncContext) -> rquickjs::Result<()> {
-    loop {
-        let has_timers = context.with(|ctx| process_timers(&ctx)).await?;
+pub async fn wait_timers<'a>(context: &'a AsyncContext) -> Result<(), rquickjs_util::RuntimeError> {
+    let chan = match context
+        .with(|ctx| {
+            Result::<_, RuntimeError>::Ok(WinterCG::get(&ctx)?.borrow().timers().create_err_chan())
+        })
+        .await
+    {
+        Ok(ret) => ret,
+        Err(err) => return Err(err),
+    };
 
-        if !has_timers && !context.runtime().is_job_pending().await {
-            break;
-        }
-
-        let sleep = context.with(|ctx| poll_timers(&ctx)).await?;
-
-        sleep.await;
+    if let Some(err) = chan.wait().await {
+        return Err(err);
     }
 
     Ok(())
