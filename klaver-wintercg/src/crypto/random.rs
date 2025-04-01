@@ -12,7 +12,7 @@ pub fn random_values<'js>(ctx: Ctx<'js>, buffer: TypedArray<'js>) -> rquickjs::R
         throw!(ctx, "TypedArray is detached")
     };
 
-    rand::thread_rng().fill_bytes(raw.slice_mut());
+    rand::thread_rng().fill_bytes(unsafe { raw.slice_mut() });
 
     Ok(())
 }

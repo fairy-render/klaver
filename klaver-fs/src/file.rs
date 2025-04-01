@@ -55,7 +55,10 @@ impl JsFile {
             throw!(ctx, "Buffer detached")
         };
 
-        let len = throw_if!(ctx, self.file(&ctx)?.read(buffer.slice_mut()).await);
+        let len = throw_if!(
+            ctx,
+            self.file(&ctx)?.read(unsafe { buffer.slice_mut() }).await
+        );
 
         Ok(len)
     }

@@ -95,8 +95,8 @@ pub struct RawBuffer<'a> {
 }
 
 impl<'a> RawBuffer<'a> {
-    pub fn slice_mut(&mut self) -> &mut [u8] {
-        unsafe { core::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
+    pub unsafe fn slice_mut(&mut self) -> &mut [u8] {
+        core::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len)
     }
 
     pub fn slice(&self) -> &[u8] {
