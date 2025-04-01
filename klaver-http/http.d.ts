@@ -6,6 +6,8 @@ export class Router {
 	patch(path: string, handler: Handler): void;
 	put(path: string, handler: Handler): void;
 	delete(path: string, handler: Handler): void;
+	head(path: string, handler: Handler): void;
+	any(path: string, handler: Handler): void;
 }
 
 export interface ServeOptions {

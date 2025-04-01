@@ -122,7 +122,7 @@ pub async fn serve_router<'js>(
                         let ctx = cloned_ctx.clone();
                         let router = cloned_router.clone();
                         async move {
-                            let mut params = HashMap::default();
+                            let mut params: HashMap<String, String> = HashMap::default();
                             let Some(route) = router
                                 .borrow()
                                 .match_route(
@@ -137,7 +137,6 @@ pub async fn serve_router<'js>(
 
                             let resp = route
                                 .call(
-                                    ctx.clone(),
                                     req.map_body(|body| {
                                         reggie::Body::from_streaming(
                                             body.map_err(reggie::Error::conn),
@@ -145,8 +144,7 @@ pub async fn serve_router<'js>(
                                     }),
                                     JsRouteContext {},
                                 )
-                                .await
-                                .catch(&ctx)?;
+                                .await?;
 
                             Result::<_, rquickjs_util::RuntimeError>::Ok(resp)
                         }
