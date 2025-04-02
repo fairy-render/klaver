@@ -1,7 +1,7 @@
 use std::pin::Pin;
 
 use hyper::{Request, Response};
-use router::{BoxHandler, Handler as _};
+use router::{BoxHandler, BoxMiddleware, Handler as _, Middleware as _};
 use routing::{
     Params,
     router::{MethodFilter, Router as RouteTree},
@@ -10,6 +10,7 @@ use rquickjs::{CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Value, 
 use rquickjs_util::RuntimeError;
 use rquickjs_util::{StringRef, throw_if};
 
+#[derive(Debug, Clone)]
 pub struct JsRouteContext {}
 
 #[derive(Clone)]
@@ -58,70 +59,74 @@ impl<'js> Handler<'js> {
     }
 }
 
-// impl<'js> router::Handler<reggie::Body, JsRouteContext> for Handler<'js> {
-//     type Response = Response<reggie::Body>;
+impl<'js> router::Handler<reggie::Body, JsRouteContext> for Handler<'js> {
+    type Response = Response<reggie::Body>;
 
-//     type Future<'a>
-//         = Pin<Box<dyn Future<Output = Result<Self::Response, router::Error>>>>
-//     where
-//         Self: 'a,
-//         JsRouteContext: 'a;
+    type Future<'a>
+        = Pin<Box<dyn Future<Output = Result<Self::Response, router::Error>> + 'a>>
+    where
+        Self: 'a,
+        JsRouteContext: 'a;
 
-//     fn call<'a>(
-//         &'a self,
-//         context: &'a JsRouteContext,
-//         req: Request<reggie::Body>,
-//     ) -> Self::Future<'a> {
-//         Box::pin(async move {
-//             //
-//             self.call(ctx, req, context.clone()).await
-//         })
-//     }
-// }
+    fn call<'a>(
+        &'a self,
+        context: &'a JsRouteContext,
+        req: Request<reggie::Body>,
+    ) -> Self::Future<'a> {
+        Box::pin(async move {
+            self.call(req, context.clone())
+                .await
+                .map_err(router::Error::new)
+        })
+    }
+}
 
 //
-// #[derive(Clone)]
-// pub enum Middleware<'js> {
-//     Script(Function<'js>),
-//     Middleware(BoxMiddleware<reggie::Body, JsRouteContext, Handler<'js>>),
-// }
+#[derive(Clone)]
+pub enum Middleware<'js> {
+    Script(Function<'js>),
+    Middleware(BoxMiddleware<reggie::Body, JsRouteContext, Handler<'js>>),
+}
 
-// impl<'js> Trace<'js> for Middleware<'js> {
-//     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-//         match self {
-//             Self::Script(script) => script.trace(tracer),
-//             _ => {}
-//         }
-//     }
-// }
+impl<'js> Trace<'js> for Middleware<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        match self {
+            Self::Script(script) => script.trace(tracer),
+            _ => {}
+        }
+    }
+}
 
-// impl<'js> Middleware<'js> {
-//     pub async fn call(
-//         &self,
-//         ctx: Ctx<'js>,
-//         req: Request<reggie::Body>,
-//         context: JsRouteContext,
-//         handler: Handler<'js>,
-//     ) -> rquickjs::Result<Response<reggie::Body>> {
-//         match self {
-//             Self::Script(script) => {
-//                 let req = klaver_wintercg::http::Request::from_request(&ctx, req)?;
-//                 let mut ret = script.call::<_, Value>((req,))?;
-//                 if let Some(promise) = ret.as_promise() {
-//                     ret = promise.clone().into_future::<Value>().await?;
-//                 }
+impl<'js> Middleware<'js> {
+    pub async fn call(
+        &self,
+        ctx: Ctx<'js>,
+        req: Request<reggie::Body>,
+        context: JsRouteContext,
+        handler: Handler<'js>,
+    ) -> rquickjs::Result<Response<reggie::Body>> {
+        match self {
+            Self::Script(script) => {
+                let req = klaver_wintercg::http::Request::from_request(&ctx, req)?;
 
-//                 let ret = Class::<klaver_wintercg::http::Response>::from_js(&ctx, ret)?;
+                let mut ret = script.call::<_, Value>((req,))?;
+                if let Some(promise) = ret.as_promise() {
+                    ret = promise.clone().into_future::<Value>().await?;
+                }
 
-//                 ret.borrow_mut().to_reggie(ctx).await
-//             }
-//             Self::Middleware(handler) => {
-//                 let ret = throw_if!(ctx, handler.wrap(&context, req).await);
-//                 Ok(ret)
-//             }
-//         }
-//     }
-// }
+                let ret = Class::<klaver_wintercg::http::Response>::from_js(&ctx, ret)?;
+
+                ret.borrow_mut().to_reggie(ctx).await
+            }
+            Self::Middleware(middleware) => {
+                let wrapped = middleware.clone().wrap(handler);
+
+                let ret = throw_if!(ctx, wrapped.call(&context, req).await);
+                Ok(ret)
+            }
+        }
+    }
+}
 
 struct RouteEntry<'js> {
     method: MethodFilter,
@@ -256,3 +261,15 @@ impl<'js> Router<'js> {
 //         todo!()
 //     }
 // }
+
+#[derive(Trace)]
+#[rquickjs::class]
+pub struct NextFunc<'js> {
+    handler: Handler<'js>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for NextFunc<'js> {
+    type Changed<'to> = NextFunc<'to>;
+}
+
+impl<'js> NextFunc<'js> {}
