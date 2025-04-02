@@ -44,13 +44,21 @@ impl<'js> Handler<'js> {
                     .catch(script.ctx())?;
                 let mut ret = script.call::<_, Value>((req,)).catch(script.ctx())?;
                 if let Some(promise) = ret.as_promise() {
-                    ret = promise.clone().into_future::<Value>().await?;
+                    ret = promise
+                        .clone()
+                        .into_future::<Value>()
+                        .await
+                        .catch(script.ctx())?;
                 }
 
                 let ret = Class::<klaver_wintercg::http::Response>::from_js(script.ctx(), ret)
                     .catch(script.ctx())?;
 
-                Ok(ret.borrow_mut().to_reggie(script.ctx().clone()).await?)
+                Ok(ret
+                    .borrow_mut()
+                    .to_reggie(script.ctx().clone())
+                    .await
+                    .catch(script.ctx())?)
             }
             Self::Handler(handler) => {
                 let ret = handler
@@ -72,13 +80,21 @@ impl<'js> Handler<'js> {
                     ))
                     .catch(func.ctx())?;
                 if let Some(promise) = ret.as_promise() {
-                    ret = promise.clone().into_future::<Value>().await?;
+                    ret = promise
+                        .clone()
+                        .into_future::<Value>()
+                        .await
+                        .catch(func.ctx())?;
                 }
 
                 let ret = Class::<klaver_wintercg::http::Response>::from_js(func.ctx(), ret)
                     .catch(func.ctx())?;
 
-                Ok(ret.borrow_mut().to_reggie(func.ctx().clone()).await?)
+                Ok(ret
+                    .borrow_mut()
+                    .to_reggie(func.ctx().clone())
+                    .await
+                    .catch(func.ctx())?)
             }
         }
     }
