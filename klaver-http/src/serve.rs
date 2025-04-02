@@ -69,13 +69,18 @@ pub async fn serve<'js>(ctx: Ctx<'js>, callback: Function<'js>) -> rquickjs::Res
     Ok(())
 }
 
+#[derive(Debug, Clone)]
 pub struct ServerOptions {
     port: u16,
+    debug: bool,
 }
 
 impl Default for ServerOptions {
     fn default() -> Self {
-        ServerOptions { port: 3000 }
+        ServerOptions {
+            port: 3000,
+            debug: false,
+        }
     }
 }
 
@@ -84,6 +89,7 @@ impl<'js> FromJs<'js> for ServerOptions {
         let obj = Object::from_js(ctx, value)?;
         Ok(ServerOptions {
             port: obj.get("port").unwrap_or(3000),
+            debug: obj.get("debug").unwrap_or(false),
         })
     }
 }
@@ -112,6 +118,7 @@ pub async fn serve_router<'js>(
 
         let cloned_ctx = ctx.clone();
         let cloned_router = router.clone();
+        let opts = opts.clone();
         // Spawn a tokio task to serve multiple connections concurrently
         ctx.spawn(async move {
             // Finally, we bind the incoming connection to our `hello` service
@@ -132,7 +139,9 @@ pub async fn serve_router<'js>(
                                 )
                                 .cloned()
                             else {
-                                return Ok(Response::new(reggie::Body::empty()));
+                                let mut resp = Response::new(reggie::Body::empty());
+                                *resp.status_mut() = reggie::http::StatusCode::NOT_FOUND;
+                                return Ok(resp);
                             };
 
                             let resp = route
@@ -144,9 +153,23 @@ pub async fn serve_router<'js>(
                                     }),
                                     JsRouteContext {},
                                 )
-                                .await?;
+                                .await;
 
-                            Result::<_, rquickjs_util::RuntimeError>::Ok(resp)
+                            match resp {
+                                Ok(ret) => Result::<_, rquickjs_util::RuntimeError>::Ok(ret),
+                                Err(err) => {
+                                    let body = if opts.debug {
+                                        reggie::Body::from(err.to_string())
+                                    } else {
+                                        reggie::Body::empty()
+                                    };
+
+                                    let mut resp = Response::new(body);
+                                    *resp.status_mut() =
+                                        reggie::http::StatusCode::INTERNAL_SERVER_ERROR;
+                                    Ok(resp)
+                                }
+                            }
                         }
                     }),
                 )
