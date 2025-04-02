@@ -269,7 +269,7 @@ impl<'js> Trace<'js> for Router<'js> {
 }
 
 impl<'js> Router<'js> {
-    fn route(
+    fn route_inner(
         &mut self,
         ctx: Ctx<'js>,
         method: MethodFilter,
@@ -325,13 +325,25 @@ impl<'js> Router<'js> {
         }
     }
 
+    fn route(
+        &mut self,
+        ctx: Ctx<'js>,
+        method: StringRef<'js>,
+        path: StringRef<'js>,
+        handler: Function<'js>,
+    ) -> rquickjs::Result<()> {
+        let method: MethodFilter = throw_if!(ctx, method.as_str().parse());
+        self.route_inner(ctx, method, path, handler)?;
+        Ok(())
+    }
+
     fn get(
         &mut self,
         ctx: Ctx<'js>,
         path: StringRef<'js>,
         handler: Function<'js>,
     ) -> rquickjs::Result<()> {
-        self.route(ctx, MethodFilter::GET, path, handler)
+        self.route_inner(ctx, MethodFilter::GET, path, handler)
     }
 
     fn post(
@@ -340,7 +352,7 @@ impl<'js> Router<'js> {
         path: StringRef<'js>,
         handler: Function<'js>,
     ) -> rquickjs::Result<()> {
-        self.route(ctx, MethodFilter::POST, path, handler)
+        self.route_inner(ctx, MethodFilter::POST, path, handler)
     }
 
     fn patch(
@@ -349,7 +361,7 @@ impl<'js> Router<'js> {
         path: StringRef<'js>,
         handler: Function<'js>,
     ) -> rquickjs::Result<()> {
-        self.route(ctx, MethodFilter::PATCH, path, handler)
+        self.route_inner(ctx, MethodFilter::PATCH, path, handler)
     }
 
     fn put(
@@ -358,7 +370,7 @@ impl<'js> Router<'js> {
         path: StringRef<'js>,
         handler: Function<'js>,
     ) -> rquickjs::Result<()> {
-        self.route(ctx, MethodFilter::PUT, path, handler)
+        self.route_inner(ctx, MethodFilter::PUT, path, handler)
     }
 
     fn delete(
@@ -367,7 +379,7 @@ impl<'js> Router<'js> {
         path: StringRef<'js>,
         handler: Function<'js>,
     ) -> rquickjs::Result<()> {
-        self.route(ctx, MethodFilter::DELETE, path, handler)
+        self.route_inner(ctx, MethodFilter::DELETE, path, handler)
     }
 
     fn any(
@@ -376,7 +388,7 @@ impl<'js> Router<'js> {
         path: StringRef<'js>,
         handler: Function<'js>,
     ) -> rquickjs::Result<()> {
-        self.route(ctx, MethodFilter::all(), path, handler)
+        self.route_inner(ctx, MethodFilter::all(), path, handler)
     }
 
     #[qjs(rename = "use")]

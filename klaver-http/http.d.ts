@@ -2,6 +2,15 @@ export type Next = { call: (req: Request) => Promise<Response> };
 
 export type Handler = (req: Request) => Promise<Response> | Response;
 
+export type Method =
+	| "GET"
+	| "POST"
+	| "PUT"
+	| "PATCH"
+	| "DELETE"
+	| "HEAD"
+	| "OPTIONS";
+
 export class Router {
 	get(path: string, handler: Handler): void;
 	post(path: string, handler: Handler): void;
@@ -10,10 +19,12 @@ export class Router {
 	delete(path: string, handler: Handler): void;
 	head(path: string, handler: Handler): void;
 	any(path: string, handler: Handler): void;
+	route(method: Method, path: string, handler: Handler): void;
 }
 
 export interface ServeOptions {
 	port?: number;
+	debug?: boolean;
 }
 
 export function serve(router: Router, opts: ServeOptions): Promise<void>;
