@@ -1,3 +1,5 @@
+export type Next = { call: (req: Request) => Promise<Response> };
+
 export type Handler = (req: Request) => Promise<Response> | Response;
 
 export class Router {

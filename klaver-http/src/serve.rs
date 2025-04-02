@@ -101,6 +101,8 @@ pub async fn serve_router<'js>(
     // We create a TcpListener and bind it to 127.0.0.1:3000
     let listener = TcpListener::bind(addr).await?;
 
+    let router = router.borrow().build();
+
     loop {
         let (stream, _) = listener.accept().await?;
 
@@ -119,12 +121,10 @@ pub async fn serve_router<'js>(
                 .serve_connection(
                     io,
                     service_fn(move |req: Request<hyper::body::Incoming>| {
-                        let ctx = cloned_ctx.clone();
                         let router = cloned_router.clone();
                         async move {
                             let mut params: HashMap<String, String> = HashMap::default();
                             let Some(route) = router
-                                .borrow()
                                 .match_route(
                                     req.uri().path(),
                                     req.method().clone().into(),
