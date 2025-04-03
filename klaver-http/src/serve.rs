@@ -116,7 +116,6 @@ pub async fn serve_router<'js>(
         // `hyper::rt` IO traits.
         let io = TokioIo::new(stream);
 
-        let cloned_ctx = ctx.clone();
         let cloned_router = router.clone();
         let opts = opts.clone();
         // Spawn a tokio task to serve multiple connections concurrently
@@ -179,4 +178,9 @@ pub async fn serve_router<'js>(
             }
         });
     }
+}
+
+pub struct ServeService<'js> {
+    router: Class<'js, Router<'js>>,
+    options: ServerOptions,
 }

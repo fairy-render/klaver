@@ -182,37 +182,37 @@ impl<'js> Trace<'js> for Middleware<'js> {
     }
 }
 
-impl<'js> Middleware<'js> {
-    pub async fn call(
-        &self,
-        ctx: Ctx<'js>,
-        req: Request<reggie::Body>,
-        context: JsRouteContext,
-        handler: Handler<'js>,
-    ) -> rquickjs::Result<Response<reggie::Body>> {
-        match self {
-            Self::Script(script) => {
-                let req = klaver_wintercg::http::Request::from_request(&ctx, req)?;
+// impl<'js> Middleware<'js> {
+//     pub async fn call(
+//         &self,
+//         ctx: Ctx<'js>,
+//         req: Request<reggie::Body>,
+//         context: JsRouteContext,
+//         handler: Handler<'js>,
+//     ) -> rquickjs::Result<Response<reggie::Body>> {
+//         match self {
+//             Self::Script(script) => {
+//                 let req = klaver_wintercg::http::Request::from_request(&ctx, req)?;
 
-                let next = NextFunc { handler };
-                let mut ret = script.call::<_, Value>((req, next))?;
-                if let Some(promise) = ret.as_promise() {
-                    ret = promise.clone().into_future::<Value>().await?;
-                }
+//                 let next = NextFunc { handler };
+//                 let mut ret = script.call::<_, Value>((req, next))?;
+//                 if let Some(promise) = ret.as_promise() {
+//                     ret = promise.clone().into_future::<Value>().await?;
+//                 }
 
-                let ret = Class::<klaver_wintercg::http::Response>::from_js(&ctx, ret)?;
+//                 let ret = Class::<klaver_wintercg::http::Response>::from_js(&ctx, ret)?;
 
-                ret.borrow_mut().to_reggie(ctx).await
-            }
-            Self::Middleware(middleware) => {
-                let wrapped = middleware.clone().wrap(handler);
+//                 ret.borrow_mut().to_reggie(ctx).await
+//             }
+//             Self::Middleware(middleware) => {
+//                 let wrapped = middleware.clone().wrap(handler);
 
-                let ret = throw_if!(ctx, wrapped.call(&context, req).await);
-                Ok(ret)
-            }
-        }
-    }
-}
+//                 let ret = throw_if!(ctx, wrapped.call(&context, req).await);
+//                 Ok(ret)
+//             }
+//         }
+//     }
+// }
 
 impl<'js> router::Middleware<reggie::Body, JsRouteContext, Handler<'js>> for Middleware<'js> {
     type Handle = Handler<'js>;
