@@ -118,6 +118,7 @@ pub async fn serve_router<'js>(
 
         let cloned_router = router.clone();
         let opts = opts.clone();
+        let cloned_ctx = ctx.clone();
         // Spawn a tokio task to serve multiple connections concurrently
         ctx.spawn(async move {
             // Finally, we bind the incoming connection to our `hello` service
@@ -128,23 +129,11 @@ pub async fn serve_router<'js>(
                     io,
                     service_fn(move |req: Request<hyper::body::Incoming>| {
                         let router = cloned_router.clone();
+                        let ctx = cloned_ctx.clone();
                         async move {
-                            let mut params: HashMap<String, String> = HashMap::default();
-                            let Some(route) = router
-                                .match_route(
-                                    req.uri().path(),
-                                    req.method().clone().into(),
-                                    &mut params,
-                                )
-                                .cloned()
-                            else {
-                                let mut resp = Response::new(reggie::Body::empty());
-                                *resp.status_mut() = reggie::http::StatusCode::NOT_FOUND;
-                                return Ok(resp);
-                            };
-
-                            let resp = route
-                                .call(
+                            let resp = router
+                                .handle(
+                                    ctx,
                                     req.map_body(|body| {
                                         reggie::Body::from_streaming(
                                             body.map_err(reggie::Error::conn),
