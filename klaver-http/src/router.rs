@@ -1,19 +1,31 @@
-use std::{pin::Pin, rc::Rc};
+use std::{collections::HashMap, pin::Pin, rc::Rc};
 
+use http_body_util::BodyExt;
 use hyper::{Request, Response};
-use router::{BoxHandler, BoxMiddleware, Handler as _, Middleware as _};
+use reggie::RequestExt;
+use router::{
+    BoxHandler, BoxMiddleware, BoxModifier, Handler as _, Middleware as _, Modifier, ModifierList,
+    Modify,
+};
 use routing::{
     Params,
     router::{MethodFilter, Router as RouteTree},
 };
 use rquickjs::{
-    CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Value, class::Trace, prelude::Func,
+    CatchResultExt, Class, Ctx, FromJs, Function, IntoJs, JsLifetime, Value, class::Trace,
+    prelude::Func,
 };
 use rquickjs_util::RuntimeError;
 use rquickjs_util::{StringRef, throw_if};
 
 #[derive(Debug, Clone)]
 pub struct JsRouteContext {}
+
+impl<'js> IntoJs<'js> for JsRouteContext {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        todo!()
+    }
+}
 
 #[derive(Clone)]
 pub enum Handler<'js> {
@@ -252,6 +264,7 @@ impl<'js> Trace<'js> for RouteHandler<'js> {
 pub struct Router<'js> {
     tree: RouteTree<Handler<'js>>,
     middlewares: Vec<Middleware<'js>>,
+    modifiers: Vec<BoxModifier<reggie::Body, JsRouteContext>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for Router<'js> {
@@ -285,17 +298,19 @@ impl<'js> Router<'js> {
         Ok(())
     }
 
-    // pub fn from_router(router: router::Builder<JsRouteContext, reggie::Body>) -> Router<'js> {
-    //     let (tree, middlewares) = router.into_parts();
+    pub fn from_router(
+        router: impl Into<router::Router<JsRouteContext, reggie::Body>>,
+    ) -> Router<'js> {
+        let (tree, modifiers) = router.into().into_parts();
 
-    //     let tree = tree.map(Handler::Handler);
-    //     let middlewares = middlewares
-    //         .into_iter()
-    //         .map(Middleware::Middleware)
-    //         .collect();
+        let tree = tree.map(Handler::Handler);
 
-    //     Router { tree, middlewares }
-    // }
+        Router {
+            tree,
+            middlewares: Default::default(),
+            modifiers: modifiers.into(),
+        }
+    }
 
     pub fn match_route<P: Params>(
         &self,
@@ -311,7 +326,12 @@ impl<'js> Router<'js> {
             .tree
             .clone()
             .map(|handler| compose(&self.middlewares, handler));
-        ResolvedRouter { tree: tree.into() }
+
+        ResolvedRouter {
+            tree: tree.into(),
+            debug: false,
+            modifiers: self.modifiers.clone().into(),
+        }
     }
 }
 
@@ -322,6 +342,7 @@ impl<'js> Router<'js> {
         Router {
             tree: RouteTree::new(),
             middlewares: Vec::default(),
+            modifiers: Default::default(),
         }
     }
 
@@ -422,6 +443,8 @@ impl<'js> NextFunc<'js> {
 #[derive(Clone)]
 pub struct ResolvedRouter<'js> {
     tree: Rc<RouteTree<Handler<'js>>>,
+    modifiers: ModifierList<reggie::Body, JsRouteContext>,
+    debug: bool,
 }
 
 impl<'js> Trace<'js> for ResolvedRouter<'js> {
@@ -442,6 +465,53 @@ impl<'js> ResolvedRouter<'js> {
         params: &mut P,
     ) -> Option<&Handler<'js>> {
         self.tree.match_route(path, method, params)
+    }
+
+    pub async fn handle(
+        &self,
+        ctx: Ctx<'_>,
+        mut req: Request<reggie::Body>,
+        context: JsRouteContext,
+    ) -> rquickjs::Result<Response<reggie::Body>> {
+        let mut params: HashMap<String, String> = HashMap::default();
+        let Some(route) = self
+            .match_route(req.uri().path(), req.method().clone().into(), &mut params)
+            .cloned()
+        else {
+            let mut resp = Response::new(reggie::Body::empty());
+            *resp.status_mut() = reggie::http::StatusCode::NOT_FOUND;
+            return Ok(resp);
+        };
+
+        let modify = self.modifiers.before(&mut req, &context).await;
+
+        let resp = route
+            .call(
+                req.map_body(|body| {
+                    reggie::Body::from_streaming(body.map_err(reggie::Error::conn))
+                }),
+                JsRouteContext {},
+            )
+            .await;
+
+        match resp {
+            Ok(mut ret) => {
+                modify.modify(&mut ret, &context).await;
+
+                Ok(ret)
+            }
+            Err(err) => {
+                let body = if self.debug {
+                    reggie::Body::from(err.to_string())
+                } else {
+                    reggie::Body::empty()
+                };
+
+                let mut resp = Response::new(body);
+                *resp.status_mut() = reggie::http::StatusCode::INTERNAL_SERVER_ERROR;
+                Ok(resp)
+            }
+        }
     }
 }
 
