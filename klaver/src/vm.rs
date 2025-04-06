@@ -132,8 +132,8 @@ impl Vm {
             .map_err(|err| update_locations(&self.env, err))
     }
 
-    pub fn idle(&self) -> Idle<'_> {
-        Idle {
+    pub fn drive(&self) -> Drive<'_> {
+        Drive {
             inner: Box::pin(async move {
                 let driver = self.runtime.drive();
                 pin_mut!(driver);
@@ -154,16 +154,43 @@ impl Vm {
             }),
         }
     }
+
+    pub async fn idle(&self) -> Result<(), RuntimeError> {
+        if !self.runtime.is_job_pending().await {
+            println!("No jobs");
+            return Ok(());
+        }
+
+        let timers = klaver_wintercg::wait_timers(&self.context);
+        pin_mut!(timers);
+
+        loop {
+            tokio::select! {
+                biased;
+                ret = &mut timers => {
+                    return ret
+                }
+                _ = self.runtime.idle() => {
+
+                    if !klaver_wintercg::has_timers(&self.context).await?{
+                        return Ok(())
+                    }
+
+                }
+
+            }
+        }
+    }
 }
 
-pub struct Idle<'a> {
+pub struct Drive<'a> {
     #[cfg(feature = "parallel")]
     inner: Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + Send + 'a>>,
     #[cfg(not(feature = "parallel"))]
     inner: Pin<Box<dyn Future<Output = Result<(), RuntimeError>> + 'a>>,
 }
 
-impl<'a> Future for Idle<'a> {
+impl<'a> Future for Drive<'a> {
     type Output = Result<(), RuntimeError>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {

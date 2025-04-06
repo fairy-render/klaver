@@ -76,3 +76,13 @@ pub async fn wait_timers<'a>(context: &'a AsyncContext) -> Result<(), rquickjs_u
 
     Ok(())
 }
+
+pub async fn has_timers<'a>(
+    context: &'a AsyncContext,
+) -> Result<bool, rquickjs_util::RuntimeError> {
+    context
+        .with(|ctx| {
+            Result::<_, RuntimeError>::Ok(WinterCG::get(&ctx)?.borrow().timers().has_timers())
+        })
+        .await
+}

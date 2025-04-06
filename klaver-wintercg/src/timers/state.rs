@@ -140,6 +140,8 @@ impl Timers {
         ctx.clone().spawn(async move {
             if let Err(err) = timer.run(rx).await.catch(&ctx) {
                 err_sx.send(err.into()).ok();
+                //
+                tokio::task::yield_now().await;
             }
 
             timers.borrow_mut().remove(id);
@@ -159,6 +161,10 @@ impl Timers {
         TimeErrorChan {
             chan: self.err_rx.clone(),
         }
+    }
+
+    pub fn has_timers(&self) -> bool {
+        !self.time_ref.borrow().is_empty()
     }
 }
 

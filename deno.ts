@@ -3,7 +3,8 @@
 // });
 
 setTimeout(() => {
-  throw new Error("dsdsds");
+  // throw new Error("dsdsds");
+  console.log("on time");
 }, 1000);
 
 console.log("heja");
