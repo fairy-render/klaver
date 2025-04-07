@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ops::Add, rc::Rc, sync::Arc, time::Duration};
+use std::{cell::RefCell, ops::Add, sync::Arc, time::Duration};
 
 use futures::channel::oneshot;
 use rquickjs::{class::Trace, CatchResultExt, Ctx, FromJs, Function, IntoJs, Value};
@@ -185,7 +185,7 @@ impl Timers {
 // }
 
 pub struct TimeErrorChan {
-    chan: Rc<RefCell<tokio::sync::mpsc::UnboundedReceiver<RuntimeError>>>,
+    chan: Arc<RefCell<tokio::sync::mpsc::UnboundedReceiver<RuntimeError>>>,
 }
 
 impl TimeErrorChan {
