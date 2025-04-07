@@ -5,7 +5,7 @@ mod vm;
 
 #[cfg(feature = "pool")]
 pub mod pool;
-#[cfg(feature = "pool")]
+#[cfg(feature = "worker")]
 pub mod worker;
 
 pub use self::{options::Options, vm::Vm};

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ops::Add, sync::Arc, time::Duration};
+use std::{cell::RefCell, ops::Add, rc::Rc, sync::Arc, time::Duration};
 
 use futures::channel::oneshot;
 use rquickjs::{class::Trace, CatchResultExt, Ctx, FromJs, Function, IntoJs, Value};
@@ -46,8 +46,8 @@ impl<'js> Trace<'js> for TimeRef<'js> {
 
 #[derive(Clone)]
 pub struct Timers {
-    time_ref: Arc<RefCell<SlotMap<TimeId, oneshot::Sender<()>>>>,
-    err_rx: Arc<RefCell<tokio::sync::mpsc::UnboundedReceiver<RuntimeError>>>,
+    time_ref: Rc<RefCell<SlotMap<TimeId, oneshot::Sender<()>>>>,
+    err_rx: Rc<RefCell<tokio::sync::mpsc::UnboundedReceiver<RuntimeError>>>,
     err_sx: tokio::sync::mpsc::UnboundedSender<RuntimeError>,
 }
 
@@ -56,7 +56,7 @@ impl Default for Timers {
         let (err_sx, err_rx) = tokio::sync::mpsc::unbounded_channel();
         Timers {
             time_ref: Default::default(),
-            err_rx: Arc::new(RefCell::new(err_rx)),
+            err_rx: Rc::new(RefCell::new(err_rx)),
             err_sx,
         }
     }
@@ -185,7 +185,7 @@ impl Timers {
 // }
 
 pub struct TimeErrorChan {
-    chan: Arc<RefCell<tokio::sync::mpsc::UnboundedReceiver<RuntimeError>>>,
+    chan: Rc<RefCell<tokio::sync::mpsc::UnboundedReceiver<RuntimeError>>>,
 }
 
 impl TimeErrorChan {
