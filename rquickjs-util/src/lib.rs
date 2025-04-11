@@ -22,7 +22,7 @@ mod r#static;
 
 pub use self::{
     buffer::*, date::Date, error::RuntimeError, map::*, proxy::*, r#static::*, set::*,
-    string::StringRef,
+    stack_trace::StackTrace, string::StringRef,
 };
 
 #[cfg(feature = "vaerdi")]

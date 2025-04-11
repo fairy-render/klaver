@@ -1,12 +1,14 @@
 use std::{cell::RefCell, ops::Add, rc::Rc, time::Duration};
 
 use futures::channel::oneshot;
-use rquickjs::{class::Trace, CatchResultExt, Ctx, FromJs, Function, IntoJs, Value};
-use rquickjs_util::RuntimeError;
+use rquickjs::{class::Trace, CatchResultExt, CaughtError, Ctx, FromJs, Function, IntoJs, Value};
+use rquickjs_util::{RuntimeError, StackTrace};
 use slotmap::{new_key_type, KeyData, SlotMap};
 use tokio::time::{Instant, Sleep};
 
 use crate::config::WinterCG;
+
+use tokio::sync::broadcast;
 
 use super::timer::Timer;
 
@@ -47,17 +49,14 @@ impl<'js> Trace<'js> for TimeRef<'js> {
 #[derive(Clone)]
 pub struct Timers {
     time_ref: Rc<RefCell<SlotMap<TimeId, oneshot::Sender<()>>>>,
-    err_rx: Rc<RefCell<tokio::sync::mpsc::UnboundedReceiver<RuntimeError>>>,
-    err_sx: tokio::sync::mpsc::UnboundedSender<RuntimeError>,
+    err_chann: broadcast::Sender<RuntimeError>,
 }
-
 impl Default for Timers {
     fn default() -> Self {
-        let (err_sx, err_rx) = tokio::sync::mpsc::unbounded_channel();
+        let (err_sx, _) = broadcast::channel(1);
         Timers {
             time_ref: Default::default(),
-            err_rx: Rc::new(RefCell::new(err_rx)),
-            err_sx,
+            err_chann: err_sx,
         }
     }
 }
@@ -134,7 +133,7 @@ impl Timers {
             duration: Duration::from_millis(timeout),
         };
 
-        let err_sx = self.err_sx.clone();
+        let err_sx = self.err_chann.clone();
         let timers = self.time_ref.clone();
 
         ctx.clone().spawn(async move {
@@ -185,11 +184,22 @@ impl Timers {
 // }
 
 pub struct TimeErrorChan {
-    chan: Rc<RefCell<tokio::sync::mpsc::UnboundedReceiver<RuntimeError>>>,
+    chan: broadcast::Receiver<RuntimeError>,
 }
 
 impl TimeErrorChan {
     pub async fn wait(&self) -> Option<RuntimeError> {
         self.chan.borrow_mut().recv().await
+    }
+}
+
+pub struct UncaugthException {
+    message: String,
+    stack_trace: Vec<StackTrace>,
+}
+
+impl<'js> From<CaughtError<'js>> for UncaugthException {
+    fn from(value: CaughtError<'js>) -> Self {
+        todo!()
     }
 }

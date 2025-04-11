@@ -9,7 +9,7 @@ use udled_tokenizers::{Ident, Int};
 
 const WS: Many<Ws> = Many(Ws);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StackTrace {
     pub file: String,
     pub line: u32,
