@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ops::Add, rc::Rc, time::Duration};
+use std::{cell::RefCell, ops::Add, rc::Rc, sync::Arc, time::Duration};
 
 use futures::channel::oneshot;
 use rquickjs::{class::Trace, CatchResultExt, CaughtError, Ctx, FromJs, Function, IntoJs, Value};

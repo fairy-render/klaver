@@ -12,8 +12,9 @@ crypto = ["klaver-wintercg/crypto"]
 icu = ["klaver-wintercg/icu"]
 icu-compiled = ["klaver-wintercg/icu-compiled"]
 
-pool = ["deadpool", "tokio/rt", "parallel"]
+pool = ["deadpool", "tokio/rt", "parallel", "worker"]
 parallel = ["rquickjs/parallel"]
+worker = []
 
 
 [[example]]

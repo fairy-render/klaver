@@ -1,5 +1,6 @@
 use std::{any::Any, future::Future, pin::Pin, sync::Arc};
 
+use futures::pin_mut;
 use rquickjs::{runtime::MemoryUsage, Ctx};
 use rquickjs_modules::Environ;
 use rquickjs_util::RuntimeError;
@@ -219,7 +220,8 @@ async fn create_worker(
             set_ready.send(Ok(sx)).expect("send");
 
             if drive {
-                let mut idle = vm.idle();
+                let idle = vm.idle();
+                pin_mut!(idle);
                 loop {
                     tokio::select! {
                         biased;
