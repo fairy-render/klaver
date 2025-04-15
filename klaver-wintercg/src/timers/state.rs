@@ -1,12 +1,10 @@
-use std::{cell::RefCell, ops::Add, rc::Rc, sync::Arc, time::Duration};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use futures::channel::oneshot;
 use rquickjs::{class::Trace, CatchResultExt, CaughtError, Ctx, FromJs, Function, IntoJs, Value};
 use rquickjs_util::{RuntimeError, StackTrace};
 use slotmap::{new_key_type, KeyData, SlotMap};
-use tokio::time::{Instant, Sleep};
-
-use crate::config::WinterCG;
+use tokio::time::Instant;
 
 use tokio::sync::broadcast;
 
@@ -32,20 +30,6 @@ impl<'js> IntoJs<'js> for TimeId {
     }
 }
 
-#[derive(Debug)]
-struct TimeRef<'js> {
-    func: Function<'js>,
-    expires: Instant,
-    repeat: bool,
-    duration: Duration,
-}
-
-impl<'js> Trace<'js> for TimeRef<'js> {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.func.trace(tracer)
-    }
-}
-
 #[derive(Clone)]
 pub struct Timers {
     time_ref: Rc<RefCell<SlotMap<TimeId, oneshot::Sender<()>>>>,
@@ -62,57 +46,8 @@ impl Default for Timers {
 }
 
 impl<'js> Trace<'js> for Timers {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        // for (_, time) in &*self.time_ref.borrow() {
-        //     time.trace(tracer)
-        // }
-    }
+    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
-
-// impl Timers {
-//     pub fn next_time(&self) -> Instant {
-//         self.time_ref
-//             .borrow()
-//             .values()
-//             .min_by_key(|m| m.expires)
-//             .map(|m| m.expires)
-//             .unwrap_or(Instant::now().add(Duration::from_millis(0)))
-//     }
-
-//     pub fn clear(&self) {
-//         self.time_ref.borrow_mut().clear();
-//     }
-
-//     pub fn sleep(&self) -> Sleep {
-//         tokio::time::sleep_until(self.next_time())
-//     }
-
-//     /// Advance timers
-//     /// Return false if no times is defined
-//     pub fn process(&self, _ctx: &Ctx<'_>) -> rquickjs::Result<bool> {
-//         let current = Instant::now();
-
-//         let ids = self
-//             .time_ref
-//             .borrow()
-//             .iter()
-//             .filter(|(_, v)| v.expires <= current)
-//             .map(|m| (m.0, m.1.func.clone(), m.1.repeat))
-//             .collect::<Vec<_>>();
-
-//         for (id, func, repeat) in ids {
-//             func.call::<_, ()>(())?;
-//             if !repeat {
-//                 self.time_ref.borrow_mut().remove(id);
-//             } else {
-//                 let mut time_ref = self.time_ref.borrow_mut();
-//                 time_ref[id].expires = current.add(time_ref[id].duration);
-//             }
-//         }
-
-//         Ok(!self.time_ref.borrow().is_empty())
-//     }
-// }
 
 impl Timers {
     pub fn create_timer<'js>(
