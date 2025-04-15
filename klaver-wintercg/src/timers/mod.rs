@@ -60,7 +60,7 @@ pub fn register<'js>(
 }
 
 pub async fn wait_timers<'a>(context: &'a AsyncContext) -> Result<(), rquickjs_util::RuntimeError> {
-    let chan = match context
+    let mut chan = match context
         .with(|ctx| {
             Result::<_, RuntimeError>::Ok(WinterCG::get(&ctx)?.borrow().timers().create_err_chan())
         })
@@ -71,7 +71,7 @@ pub async fn wait_timers<'a>(context: &'a AsyncContext) -> Result<(), rquickjs_u
     };
 
     if let Some(err) = chan.wait().await {
-        return Err(err);
+        return Err(err.into());
     }
 
     Ok(())

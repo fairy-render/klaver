@@ -16,7 +16,7 @@ pub mod util;
 #[cfg(feature = "vaerdi")]
 pub mod val;
 
-mod stack_trace;
+pub mod stack_trace;
 
 mod r#static;
 
