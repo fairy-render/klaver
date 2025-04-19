@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2021"
 
 [features]
-default = ["swc-transform"]
+default = []
 oxc-transform = ["oxc"]
 swc-transform = [
   "swc_node_comments",
