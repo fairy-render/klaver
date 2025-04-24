@@ -3612,7 +3612,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "reggie"
 version = "0.1.0"
-source = "git+https://github.com/fairy-render/reggie#6e14ecdbc73ee21cecc34ffe5a28386cfba7796c"
+source = "git+https://github.com/fairy-render/reggie#8d1f522b7960faf5f300cf1daf7583fc22be95af"
 dependencies = [
  "bytes",
  "futures-core",

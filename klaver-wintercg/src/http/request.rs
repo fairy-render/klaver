@@ -81,7 +81,7 @@ impl<'js> Trace<'js> for Request<'js> {
 }
 
 impl<'js> Request<'js> {
-    pub fn from_request<B: reggie::http_body::Body + Send + 'static>(
+    pub fn from_request<B: reggie::http_body::Body + Sync + Send + 'static>(
         ctx: &Ctx<'js>,
         request: reggie::http::Request<B>,
     ) -> rquickjs::Result<Class<'js, Request<'js>>>
