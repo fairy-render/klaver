@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use reggie::Body;
+use reggie::{http::Extensions, Body};
 use rquickjs_util::{throw, throw_if};
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
@@ -64,6 +64,7 @@ pub struct Request<'js> {
     headers: Class<'js, Headers<'js>>,
     body: Option<ResponseBodyKind<'js>>,
     signal: Option<Class<'js, AbortSignal<'js>>>,
+    extensions: Option<Extensions>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for Request<'js> {
@@ -114,6 +115,7 @@ impl<'js> Request<'js> {
                 signal: None,
                 headers,
                 body: Some(ResponseBodyKind::Body(Some(body))),
+                extensions: Some(parts.extensions),
             },
         )
     }
@@ -183,7 +185,10 @@ impl<'js> Request<'js> {
             Body::empty()
         };
 
-        let body = throw_if!(ctx, builder.body(body));
+        let mut body = throw_if!(ctx, builder.body(body));
+        if let Some(ext) = self.extensions.take() {
+            *body.extensions_mut() = ext;
+        }
         Ok((body, cancel))
     }
 
@@ -226,6 +231,7 @@ impl<'js> Request<'js> {
                 None => Class::instance(ctx.clone(), Headers::default())?,
             },
             body,
+            extensions: None,
         })
     }
 
