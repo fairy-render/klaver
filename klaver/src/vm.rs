@@ -1,6 +1,6 @@
 use std::{future::Future, path::Path, pin::Pin, task::Poll};
 
-use futures::{future::BoxFuture, pin_mut};
+use futures::{future::BoxFuture, pin_mut, FutureExt};
 use rquickjs::{
     context::{self, EvalOptions},
     prelude::{Async, Func},
@@ -135,14 +135,14 @@ impl Vm {
     pub fn drive(&self) -> Drive<'_> {
         Drive {
             inner: Box::pin(async move {
-                let driver = self.runtime.drive();
+                let driver = self.runtime.drive().fuse();
                 pin_mut!(driver);
 
-                let timers = klaver_wintercg::wait_timers(&self.context);
+                let timers = klaver_wintercg::wait_timers(&self.context).fuse();
                 pin_mut!(timers);
 
                 loop {
-                    tokio::select! {
+                    futures::select! {
                       _ = driver.as_mut() => {
                         continue;
                       }
@@ -161,16 +161,18 @@ impl Vm {
             return Ok(());
         }
 
-        let timers = klaver_wintercg::wait_timers(&self.context);
+        let timers = klaver_wintercg::wait_timers(&self.context).fuse();
         pin_mut!(timers);
 
+        let idle = self.runtime.idle().fuse();
+        pin_mut!(idle);
+
         loop {
-            tokio::select! {
-                biased;
+            futures::select_biased! {
                 ret = &mut timers => {
                     return ret
                 }
-                _ = self.runtime.idle() => {
+                _ = &mut idle => {
 
                     if !klaver_wintercg::has_timers(&self.context).await?{
                         return Ok(())

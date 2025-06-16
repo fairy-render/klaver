@@ -21,22 +21,22 @@ const number = new Intl.NumberFormat("da");
 
 console.log(number.format(20202));
 
-function inject() {}
+function inject() { }
 
 try {
   @inject
-  class Test {}
+  class Test { }
 } catch (e) {
   console.log(e);
 }
 
 export async function test() {
-	using file = new File()
-  	console.log("Asyn function");
-  	return await inject();
+  using file = new File();
+  console.log("Asyn function");
+  return await inject();
 }
 
-function* test2() {}
+function* test2() { }
 
 Symbol.dispose = Symbol("dispose")
 

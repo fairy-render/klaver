@@ -14,7 +14,7 @@ icu-compiled = ["klaver-wintercg/icu-compiled"]
 
 pool = ["deadpool", "tokio/rt", "parallel", "worker"]
 parallel = ["rquickjs/parallel"]
-worker = []
+worker = ["tokio"]
 
 
 [[example]]
@@ -28,12 +28,12 @@ path = "examples/worker.rs"
 required-features = ["pool"]
 
 [dependencies]
+tokio = { version = "1", features = ["sync"], optional = true }
 futures.workspace = true
 rquickjs.workspace = true
 rquickjs-modules = { path = "../rquickjs-modules" }
 rquickjs-util = { path = "../rquickjs-util" }
 klaver-wintercg = { path = "../klaver-wintercg" }
-tokio = { version = "1", features = ["sync"] }
 deadpool = { version = "0.12", optional = true }
 
 

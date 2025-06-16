@@ -6,7 +6,7 @@ edition = "2021"
 build = "build.rs"
 
 [features]
-default = ["encoding", "http", "crypto"]
+# default = ["encoding", "http", "crypto"]
 encoding = ["encoding_rs", "base64"]
 http = [
   "tokio/sync",
@@ -37,7 +37,7 @@ rquickjs-modules = { path = "../rquickjs-modules" }
 rquickjs-util = { path = "../rquickjs-util" }
 
 futures = { version = "0.3" }
-tokio = { version = "1", features = ["sync", "time"] }
+tokio = { version = "1", features = ["sync", "time", "macros", "rt"] }
 async-stream = { version = "0.3" }
 async-trait = { version = "0.1" }
 slotmap = { version = "1" }

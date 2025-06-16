@@ -3804,7 +3804,7 @@ dependencies = [
  "futures",
  "rquickjs",
  "udled",
- "udled-tokenizers 0.1.0",
+ "udled-tokenizers 0.2.0",
  "vaerdi",
 ]
 
