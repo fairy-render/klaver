@@ -29,7 +29,7 @@ oxc = { version = "0.38", features = [
   "sourcemap",
   "semantic",
 ], optional = true }
-relative-path = { version = "1" }
+relative-path = { version = "2" }
 parking_lot = { version = "0.12" }
 
 tracing = { version = "0.1" }
