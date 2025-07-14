@@ -8,6 +8,7 @@ mod config;
 pub mod console;
 pub mod dom_exception;
 pub mod event_target;
+mod file;
 mod global;
 mod multimap;
 pub mod streams;

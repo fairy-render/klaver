@@ -1250,11 +1250,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 
 [[package]]
-name = "heather"
-version = "0.1.0"
-source = "git+https://github.com/kildevaeld/heather#52403f74a3a229bca4148f5048ffca7e70e2f4d6"
-
-[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1335,12 +1330,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
 
 [[package]]
-name = "httpdate"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
-
-[[package]]
 name = "hyper"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1353,7 +1342,6 @@ dependencies = [
  "http",
  "http-body",
  "httparse",
- "httpdate",
  "itoa 1.0.15",
  "pin-project-lite",
  "smallvec",
@@ -1831,12 +1819,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c588878c508a3e2ace333b3c50296053e6483c6a7541251b546cc59dcd6ced8e"
 
 [[package]]
-name = "id-arena"
-version = "2.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
-
-[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2007,7 +1989,6 @@ dependencies = [
  "klaver-dom",
  "klaver-fs",
  "klaver-handlebars",
- "klaver-http",
  "klaver-image",
  "openssl",
  "rquickjs",
@@ -2047,24 +2028,6 @@ dependencies = [
  "rquickjs-modules",
  "rquickjs-util",
  "vaerdi",
-]
-
-[[package]]
-name = "klaver-http"
-version = "0.1.0"
-dependencies = [
- "http-body-util",
- "hyper",
- "hyper-util",
- "klaver",
- "klaver-wintercg",
- "reggie",
- "router",
- "routing",
- "rquickjs",
- "rquickjs-modules",
- "rquickjs-util",
- "tokio",
 ]
 
 [[package]]
@@ -3494,32 +3457,6 @@ checksum = "93411e420bcd1a75ddd1dc3caf18c23155eda2c090631a85af21ba19e97093b5"
 dependencies = [
  "smallvec",
  "str_indices",
-]
-
-[[package]]
-name = "router"
-version = "0.1.0"
-source = "git+https://github.com/kildevaeld/router-rs#015eb61316295acf7041f2dd79150feb1ddd30e9"
-dependencies = [
- "bitflags 2.9.0",
- "futures",
- "heather",
- "http",
- "pin-project-lite",
- "reggie",
- "routing",
-]
-
-[[package]]
-name = "routing"
-version = "0.3.0"
-source = "git+https://github.com/kildevaeld/router-rs#015eb61316295acf7041f2dd79150feb1ddd30e9"
-dependencies = [
- "bitflags 2.9.0",
- "http",
- "id-arena",
- "udled",
- "udled-tokenizers 0.2.0",
 ]
 
 [[package]]
@@ -5280,7 +5217,6 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "836b191d8346fe2a84af66ce2024bf0317ee634a71607cc5a36ae89a7e2ce828"
 dependencies = [
- "serde",
  "unicode-segmentation",
 ]
 

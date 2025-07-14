@@ -14,7 +14,8 @@ members = [
   "rquickjs-modules",
   "klaver-cli",
   "klaver",
-  "klaver-handlebars", "klaver-http",
+  "klaver-handlebars",
+  # "klaver-http",
 ]
 
 
