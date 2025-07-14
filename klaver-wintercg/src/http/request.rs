@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use reggie::{http::Extensions, Body};
-use rquickjs_util::{throw, throw_if};
+use rquickjs_util::{async_iterator::AsyncIterable, throw, throw_if, StringRef};
 // use reqwest::{Client, Response};
 use reggie::http_body_util::BodyExt;
 use rquickjs::{
@@ -276,6 +276,43 @@ impl<'js> Request<'js> {
                 &err.to_string(),
             )?))),
         }
+    }
+
+    pub async fn form_data(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
+        let Some(content_type) = self
+            .headers
+            .borrow()
+            .inner
+            .get("Content-Type")
+            .and_then(|m| m.last())
+            .cloned()
+        else {
+            throw!(ctx, "Not multipart")
+        };
+
+        let Ok(boundary) = multer::parse_boundary(StringRef::from_string(content_type)?.as_str())
+        else {
+            throw!(ctx, "Not multipart")
+        };
+
+        let body = if let Some(body) = self.body.as_mut() {
+            body.bytes(ctx.clone()).await?
+        } else {
+            throw!(ctx, "Response has no body")
+        };
+
+        let mut multipart = multer::Multipart::new(
+            futures::stream::once(async move { rquickjs::Result::Ok(body) }),
+            boundary,
+        );
+
+        loop {
+            let Some(next) = throw_if!(ctx, multipart.next_field().await) else {
+                break;
+            };
+        }
+
+        todo!()
     }
 
     #[qjs(get, rename = "bodyUsed")]

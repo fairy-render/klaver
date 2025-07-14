@@ -17,6 +17,7 @@ http = [
   "url",
   "bytes",
   "form_urlencoded",
+  "multer",
 ]
 crypto = ["rand", "uuid", "sha1", "sha2"]
 icu = [
@@ -58,6 +59,7 @@ reqwest = { version = "0.12", optional = true }
 url = { version = "2", optional = true }
 form_urlencoded = { version = "1", optional = true }
 urlencoding = { version = "2" }
+multer = { version = "3", optional = true }
 
 ## Crypto
 rand = { version = "0.8", optional = true }

@@ -56,7 +56,7 @@ impl<'js> Headers<'js> {
             let Some(k) = k else { continue };
             let Ok(v) = v.to_str() else { continue };
             inner
-                .entry(k.to_string())
+                .entry(k.to_string().to_lowercase())
                 .or_default()
                 .push(rquickjs::String::from_str(ctx.clone(), v)?);
         }
