@@ -1,4 +1,4 @@
-use std::{ffi::c_char, fmt::Display, hash::Hash, mem, ptr::NonNull};
+use std::{borrow::Borrow, ffi::c_char, fmt::Display, hash::Hash, mem, ptr::NonNull};
 
 use rquickjs::{
     class::Trace, function::Args, qjs, Ctx, Error, FromJs, Function, IntoJs, Result, String, Value,
@@ -132,6 +132,12 @@ impl<'js> Drop for StringRef<'js> {
 impl<'js> AsRef<str> for StringRef<'js> {
     fn as_ref(&self) -> &str {
         self.as_str()
+    }
+}
+
+impl<'js> Borrow<str> for StringRef<'js> {
+    fn borrow(&self) -> &str {
+        self.as_ref()
     }
 }
 
