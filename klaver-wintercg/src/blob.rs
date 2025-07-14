@@ -48,6 +48,7 @@ impl<'js> Trace<'js> for BlobInit<'js> {
         match self {
             Self::Blob(b) => b.trace(tracer),
             Self::Buffer(b) => b.trace(tracer),
+            Self::String(b) => b.trace(tracer),
             _ => {}
         }
     }

@@ -2,6 +2,7 @@ mod body_init;
 mod body_state;
 mod convert;
 mod fetch;
+mod form_data;
 mod headers;
 mod method;
 mod request;
@@ -18,7 +19,10 @@ use url_search_params::URLSearchParams;
 
 use crate::config::WinterCG;
 
-pub use self::{fetch::fetch, headers::Headers, request::Request, response::Response, url::Url};
+pub use self::{
+    fetch::fetch, form_data::FormData, headers::Headers, request::Request, response::Response,
+    url::Url,
+};
 
 pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
     decl.declare(stringify!(Response))?;
@@ -34,7 +38,7 @@ pub fn register<'js>(
     ctx: &rquickjs::prelude::Ctx<'js>,
     winter: &Class<'js, WinterCG<'js>>,
 ) -> rquickjs::Result<()> {
-    define!(ctx, Response, Request, Headers, URLSearchParams);
+    define!(ctx, Response, Request, Headers, URLSearchParams, FormData);
     URLSearchParams::add_iterable_prototype(ctx)?;
 
     ctx.globals()

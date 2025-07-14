@@ -1,13 +1,10 @@
 use futures::TryStreamExt;
 use reggie::Body;
-use rquickjs::{
-    class::Trace, Class, Ctx,
-};
+use rquickjs::{class::Trace, Class, Ctx};
 use rquickjs_util::{throw, throw_if};
 use rquickjs_util::{Bytes, Static};
 
 use crate::streams::ReadableStream;
-
 
 pub enum ResponseBodyKind<'js> {
     Stream(Class<'js, ReadableStream<'js>>),

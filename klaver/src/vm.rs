@@ -157,7 +157,7 @@ impl Vm {
 
     pub async fn idle(&self) -> Result<(), RuntimeError> {
         if !self.runtime.is_job_pending().await {
-            println!("No jobs");
+            // println!("No jobs");
             return Ok(());
         }
 

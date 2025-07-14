@@ -2,6 +2,7 @@ use crate::{
     abort_controller::{AbortController, AbortSignal},
     blob::Blob,
     event_target::{Emitter, Event, EventTarget},
+    file::File,
     DOMException,
 };
 
@@ -16,12 +17,14 @@ pub fn register<'js>(ctx: &rquickjs::prelude::Ctx<'js>) -> rquickjs::Result<()> 
         Event,
         AbortController,
         AbortSignal,
-        Blob
+        Blob,
+        File
     );
 
     DOMException::init(ctx)?;
     EventTarget::add_event_target_prototype(ctx)?;
     AbortSignal::add_event_target_prototype(ctx)?;
+    File::init(ctx)?;
 
     Ok(())
 }
