@@ -8,4 +8,5 @@ rquickjs.workspace = true
 rquickjs-util = { path = "../rquickjs-util" }
 async-channel = { version = "2" }
 
-async-notify = { version = "0.3" }
+event-listener = { version = "5" }
+pin-project-lite = { version = "0.2" }

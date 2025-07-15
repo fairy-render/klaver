@@ -1,4 +1,5 @@
-use rquickjs::{ArrayBuffer, Class, Ctx, FromJs, Function, Object, class::Trace};
+use rquickjs::{ArrayBuffer, Class, Ctx, FromJs, Function, Object, String, Value, class::Trace};
+use rquickjs_util::{Buffer, StringRef};
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
@@ -21,7 +22,7 @@ impl CountQueuingStrategy {
         Ok(CountQueuingStrategy { high_water_mark })
     }
 
-    pub fn size(&self, _chunk: ArrayBuffer<'_>) -> usize {
+    pub fn size(&self, _chunk: Value<'_>) -> u64 {
         1
     }
 }
@@ -50,8 +51,14 @@ impl ByteLengthQueuingStrategy {
         Ok(ByteLengthQueuingStrategy { high_water_mark })
     }
 
-    pub fn size(&self, chunk: ArrayBuffer<'_>) -> usize {
-        chunk.len()
+    pub fn size<'js>(&self, ctx: Ctx<'js>, chunk: Value<'js>) -> u64 {
+        if let Ok(buffer) = Buffer::from_js(&ctx, chunk.clone()) {
+            buffer.len() as u64
+        } else if let Ok(str) = StringRef::from_js(&ctx, chunk) {
+            str.as_str().len() as u64
+        } else {
+            1
+        }
     }
 }
 
@@ -61,7 +68,7 @@ pub enum QueuingStrategy<'js> {
     BytesLength(Class<'js, ByteLengthQueuingStrategy>),
     Custom {
         high_water_mark: u64,
-        size: Option<Function<'js>>,
+        size: Function<'js>,
     },
 }
 
@@ -82,6 +89,14 @@ impl<'js> QueuingStrategy<'js> {
             } => *high_water_mark,
         }
     }
+
+    pub fn size(&self, ctx: Ctx<'js>, chunk: &Value<'js>) -> rquickjs::Result<u64> {
+        match self {
+            QueuingStrategy::Count(class) => Ok(class.borrow().size(chunk.clone())),
+            QueuingStrategy::BytesLength(class) => Ok(class.borrow().size(ctx, chunk.clone())),
+            QueuingStrategy::Custom { size, .. } => size.call((chunk,)),
+        }
+    }
 }
 
 impl<'js> FromJs<'js> for QueuingStrategy<'js> {
@@ -92,11 +107,11 @@ impl<'js> FromJs<'js> for QueuingStrategy<'js> {
             Ok(Self::BytesLength(count))
         } else if let Ok(obj) = Object::from_value(value.clone()) {
             let high: u64 = obj.get("highWaterMark")?;
-            let size: Option<Function> = obj.get("size")?;
+            let size: Function<'js> = obj.get("size")?;
 
             Ok(Self::Custom {
                 high_water_mark: high,
-                size: size,
+                size,
             })
         } else {
             Err(rquickjs::Error::new_from_js(

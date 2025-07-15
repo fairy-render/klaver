@@ -1,15 +1,15 @@
 use std::rc::Rc;
 
-use async_notify::Notify;
-use rquickjs::{ArrayBuffer, Class, Ctx, JsLifetime, String, class::Trace};
+use rquickjs::{ArrayBuffer, Class, Ctx, JsLifetime, String, class::Trace, prelude::Opt};
+
+use crate::streams::writable::state::StreamData;
 
 use super::{controller::WritableStreamDefaultController, underlying_sink::UnderlyingSink};
 
 #[derive(Trace)]
 #[rquickjs::class]
 pub struct WritableStreamDefaultWriter<'js> {
-    pub ctrl: Option<Class<'js, WritableStreamDefaultController<'js>>>,
-    pub sink: UnderlyingSink<'js>,
+    pub ctrl: Option<Rc<StreamData<'js>>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for WritableStreamDefaultWriter<'js> {
@@ -18,38 +18,56 @@ unsafe impl<'js> JsLifetime<'js> for WritableStreamDefaultWriter<'js> {
 
 #[rquickjs::methods]
 impl<'js> WritableStreamDefaultWriter<'js> {
-    async fn ready(&self) -> rquickjs::Result<()> {
+    #[qjs(get)]
+    pub async fn ready(&self) -> rquickjs::Result<()> {
         let Some(ctrl) = self.ctrl.as_ref() else {
             return Ok(());
         };
 
-        ctrl.borrow().ready().await?;
+        ctrl.ready().await?;
 
         Ok(())
     }
 
-    async fn write(&self, ctx: Ctx<'js>, buffer: ArrayBuffer<'js>) -> rquickjs::Result<()> {
+    pub async fn write(&self, ctx: Ctx<'js>, buffer: ArrayBuffer<'js>) -> rquickjs::Result<()> {
         let Some(ctrl) = self.ctrl.as_ref() else {
             todo!()
         };
 
-        ctrl.borrow().write(buffer.into_value()).await?;
+        ctrl.push(ctx, buffer.into_value()).await?;
 
         Ok(())
     }
 
-    fn release_lock(&mut self) -> rquickjs::Result<()> {
-        if let Some(mut ctrl) = self.ctrl.take() {
-            ctrl.borrow_mut().unlock();
+    pub fn release_lock(&mut self) -> rquickjs::Result<()> {
+        if let Some(ctrl) = self.ctrl.take() {
+            ctrl.unlock();
         }
         Ok(())
     }
 
-    fn close(&self) -> rquickjs::Result<()> {
+    pub async fn close(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+        let Some(ctrl) = self.ctrl.as_ref() else {
+            todo!()
+        };
+
+        ctrl.close(ctx.clone())?;
+        ctrl.wait_done(ctx).await?;
+
         Ok(())
     }
 
-    fn abort(&self, reason: Option<String<'js>>) -> rquickjs::Result<Option<String<'js>>> {
-        todo!()
+    pub fn abort(
+        &self,
+        ctx: Ctx<'js>,
+        reason: Opt<String<'js>>,
+    ) -> rquickjs::Result<Option<String<'js>>> {
+        let Some(ctrl) = self.ctrl.as_ref() else {
+            todo!()
+        };
+
+        ctrl.abort(ctx, reason.0.clone())?;
+
+        Ok(reason.0)
     }
 }

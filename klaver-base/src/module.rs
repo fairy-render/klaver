@@ -1,4 +1,4 @@
-use rquickjs::module::ModuleDef;
+use rquickjs::{Class, module::ModuleDef};
 
 pub struct BaseModule;
 
@@ -8,6 +8,9 @@ impl ModuleDef for BaseModule {
         decl.declare(stringify!(AbortSignal))?;
         decl.declare(stringify!(EventTarget))?;
         decl.declare(stringify!(DOMExpection))?;
+
+        crate::streams::declare(decl)?;
+
         Ok(())
     }
 

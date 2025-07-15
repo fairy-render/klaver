@@ -1,3 +1,6 @@
+#[macro_use]
+mod macros;
+
 mod abort_controller;
 mod abort_signal;
 mod dom_exception;
