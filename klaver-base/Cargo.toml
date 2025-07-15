@@ -10,3 +10,7 @@ async-channel = { version = "2" }
 
 event-listener = { version = "5" }
 pin-project-lite = { version = "0.2" }
+
+
+[dev-dependencies]
+futures = { version = "0.3" }

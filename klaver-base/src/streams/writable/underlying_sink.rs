@@ -82,7 +82,7 @@ impl<'js> FromJs<'js> for JsUnderlyingSink<'js> {
 
         Ok(JsUnderlyingSink {
             start: obj.get("start")?,
-            write: obj.get("pull")?,
+            write: obj.get("write")?,
             close: obj.get("close")?,
             abort: obj.get("abort")?,
         })

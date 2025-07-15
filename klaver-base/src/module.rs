@@ -1,13 +1,25 @@
-use rquickjs::{Class, module::ModuleDef};
+use rquickjs::{Class, class::JsClass, module::ModuleDef};
 
 pub struct BaseModule;
 
+use crate::{
+    Emitter,
+    abort_controller::AbortController,
+    abort_signal::AbortSignal,
+    dom_exception::DOMException,
+    event_target::{Event, EventTarget},
+};
+
 impl ModuleDef for BaseModule {
     fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
-        decl.declare(stringify!(AbortController))?;
-        decl.declare(stringify!(AbortSignal))?;
-        decl.declare(stringify!(EventTarget))?;
-        decl.declare(stringify!(DOMExpection))?;
+        declare!(
+            decl,
+            AbortController,
+            AbortSignal,
+            EventTarget,
+            Event,
+            DOMException
+        );
 
         crate::streams::declare(decl)?;
 
@@ -18,7 +30,21 @@ impl ModuleDef for BaseModule {
         ctx: &rquickjs::Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
-        let _ = (exports, ctx);
+        define!(
+            exports,
+            ctx,
+            AbortController,
+            AbortSignal,
+            EventTarget,
+            DOMException
+        );
+
+        AbortSignal::add_event_target_prototype(ctx)?;
+        EventTarget::add_event_target_prototype(ctx)?;
+        DOMException::init(ctx)?;
+
+        crate::streams::evaluate(ctx, exports)?;
+
         Ok(())
     }
 }

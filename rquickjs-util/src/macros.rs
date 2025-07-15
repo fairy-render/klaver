@@ -5,6 +5,18 @@ macro_rules! throw {
             $crate::quick::Exception::from_message($ctx.clone(), &*$err.to_string())?,
         )))
     };
+    (@type $ctx: expr, $err: expr) => {
+        return Err($crate::quick::Exception::throw_type(
+            $ctx.clone(),
+            &*$err.to_string(),
+        ))
+    };
+    (@internal $ctx: expr, $err: expr) => {
+        return Err($crate::quick::Exception::throw_internal(
+            $ctx.clone(),
+            &*$err.to_string(),
+        ))
+    };
 }
 
 #[macro_export]

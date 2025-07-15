@@ -1,21 +1,31 @@
 use std::collections::VecDeque;
 
-use rquickjs::{Ctx, Value, class::Trace};
+use event_listener::Event;
+use rquickjs::{Ctx, Function, Promise, Value, class::Trace};
 use rquickjs_util::throw;
 
 use crate::streams::queue_strategy::QueuingStrategy;
 
 #[derive(Trace)]
-struct Entry<'js> {
-    chunk: Value<'js>,
-    size: u64,
+pub struct Entry<'js> {
+    pub chunk: Value<'js>,
+    pub resolve: Function<'js>,
+    pub reject: Function<'js>,
+    pub size: u64,
 }
 
-#[derive(Trace)]
 pub struct Queue<'js> {
     chunks: VecDeque<Entry<'js>>,
     strategy: QueuingStrategy<'js>,
     current_size: u64,
+    ready: Event,
+}
+
+impl<'js> Trace<'js> for Queue<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.chunks.trace(tracer);
+        self.strategy.trace(tracer);
+    }
 }
 
 impl<'js> Queue<'js> {
@@ -24,6 +34,7 @@ impl<'js> Queue<'js> {
             chunks: Default::default(),
             strategy,
             current_size: 0,
+            ready: Event::new(),
         }
     }
 
@@ -36,19 +47,32 @@ impl<'js> Queue<'js> {
         self.current_size >= max
     }
 
-    pub fn push(&mut self, ctx: Ctx<'js>, chunk: Value<'js>) -> rquickjs::Result<()> {
-        if self.is_full() {
-            throw!(ctx, "Queue is full")
-        }
-        let size = self.strategy.size(ctx, &chunk)?;
-
-        self.chunks.push_back(Entry { chunk, size });
-        self.current_size += size;
-
-        Ok(())
+    pub fn clear(&mut self) {
+        self.current_size = 0;
+        self.chunks.clear();
     }
 
-    pub fn pop(&mut self) -> Option<Value<'js>> {
+    pub fn push(
+        &mut self,
+        ctx: Ctx<'js>,
+        chunk: Value<'js>,
+    ) -> rquickjs::Result<(Promise<'js>, Function<'js>, Function<'js>)> {
+        let size = self.strategy.size(ctx.clone(), &chunk)?;
+
+        let (promise, resolve, reject) = Promise::new(&ctx)?;
+
+        self.chunks.push_back(Entry {
+            chunk,
+            size,
+            reject: reject.clone(),
+            resolve: resolve.clone(),
+        });
+        self.current_size += size;
+
+        Ok((promise, resolve, reject))
+    }
+
+    pub fn pop(&mut self) -> Option<Entry<'js>> {
         let entry = self.chunks.pop_back()?;
         if entry.size > self.current_size {
             self.current_size = 0;
@@ -56,6 +80,6 @@ impl<'js> Queue<'js> {
             self.current_size -= entry.size;
         }
 
-        Some(entry.chunk)
+        Some(entry)
     }
 }

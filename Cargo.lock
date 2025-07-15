@@ -1997,6 +1997,7 @@ version = "0.1.0"
 dependencies = [
  "async-channel",
  "event-listener",
+ "futures",
  "pin-project-lite",
  "rquickjs",
  "rquickjs-util",

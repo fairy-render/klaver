@@ -1,5 +1,9 @@
+use event_listener::EventListener;
 use event_listener::{Event, listener};
-use rquickjs::{Ctx, String, Value, class::Trace};
+use pin_project_lite::pin_project;
+use rquickjs::{Ctx, JsLifetime, String, Value, class::Class, class::Trace};
+use rquickjs::{Function, Promise};
+use std::task::{Poll, ready};
 use std::{
     cell::{Cell, RefCell},
     collections::VecDeque,
@@ -7,9 +11,10 @@ use std::{
     usize,
 };
 
+use crate::streams::queue::Entry;
 use crate::streams::{queue::Queue, queue_strategy::QueuingStrategy};
 
-#[derive(Trace)]
+#[derive(Trace, Debug)]
 pub enum ControllerState<'js> {
     Aborted(Option<String<'js>>),
     Failed(Value<'js>),
@@ -18,164 +23,251 @@ pub enum ControllerState<'js> {
     Done,
 }
 
+#[rquickjs::class]
 pub struct StreamData<'js> {
-    pub queue: RefCell<Queue<'js>>,
+    pub queue: Queue<'js>,
     pub wait: Rc<Event>,
-    pub state: RefCell<ControllerState<'js>>,
-    pub locked: Cell<bool>,
+    pub state: ControllerState<'js>,
+    pub locked: bool,
 }
 
 impl<'js> Trace<'js> for StreamData<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.queue.borrow().trace(tracer);
-        self.state.borrow().trace(tracer);
+        self.queue.trace(tracer);
+        self.state.trace(tracer);
     }
+}
+
+unsafe impl<'js> JsLifetime<'js> for StreamData<'js> {
+    type Changed<'to> = StreamData<'to>;
 }
 
 impl<'js> StreamData<'js> {
     pub fn new(strategy: QueuingStrategy<'js>) -> StreamData<'js> {
         StreamData {
-            queue: RefCell::new(Queue::new(strategy)),
+            queue: Queue::new(strategy),
             wait: Default::default(),
-            state: RefCell::new(ControllerState::Running),
-            locked: Cell::new(false),
+            state: ControllerState::Running,
+            locked: false,
         }
-    }
-
-    pub async fn ready(&self) -> rquickjs::Result<()> {
-        loop {
-            if !self.queue.borrow().is_full() {
-                break;
-            }
-
-            listener!(self.wait => listener);
-            listener.await;
-        }
-
-        if !self.is_running() {
-            todo!()
-        }
-
-        Ok(())
     }
 
     pub fn is_ready(&self) -> bool {
-        !self.queue.borrow().is_full()
+        !self.queue.is_full()
     }
 
-    pub fn close(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    pub fn close(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
-            todo!()
+            todo!("close {:?}", self.state);
         }
 
-        self.state.replace(ControllerState::Closed);
+        self.state = ControllerState::Closed;
         self.wait.notify(usize::MAX);
 
         Ok(())
     }
 
-    pub fn abort(&self, ctx: Ctx<'js>, reason: Option<String<'js>>) -> rquickjs::Result<()> {
+    pub fn abort(&mut self, ctx: Ctx<'js>, reason: Option<String<'js>>) -> rquickjs::Result<()> {
         if !self.is_running() {
             todo!()
         }
 
-        self.state.replace(ControllerState::Aborted(reason));
+        self.state = ControllerState::Aborted(reason);
+        self.queue.clear();
         self.wait.notify(usize::MAX);
 
         Ok(())
     }
 
-    pub fn fail(&self, ctx: Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
+    pub fn fail(&mut self, ctx: Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
             todo!()
         }
 
-        self.state.replace(ControllerState::Failed(error));
+        self.state = ControllerState::Failed(error);
+        self.queue.clear();
+
         self.wait.notify(usize::MAX);
 
         Ok(())
     }
 
-    pub async fn wait_done(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
-        loop {
-            if self.is_aborted() {
-                todo!()
-            } else if self.is_failed() {
-                todo!()
-            } else if self.is_finished() {
-                return Ok(());
-            }
-
-            listener!(self.wait => listener);
-
-            listener.await;
-        }
-    }
-
-    pub fn finished(&self) -> rquickjs::Result<()> {
+    pub fn finished(&mut self) -> rquickjs::Result<()> {
         assert!(self.is_closed());
-        self.state.replace(ControllerState::Done);
+        self.state = ControllerState::Done;
         self.wait.notify(usize::MAX);
         Ok(())
     }
 
     pub fn is_locked(&self) -> bool {
-        self.locked.get()
+        self.locked
     }
 
-    pub fn lock(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    pub fn lock(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
             todo!()
         }
-        self.locked.set(true);
+        self.locked = true;
         self.wait.notify(usize::MAX);
 
         Ok(())
     }
 
-    pub fn unlock(&self) {
-        self.locked.set(false);
+    pub fn unlock(&mut self) {
+        self.locked = false;
         self.wait.notify(usize::MAX);
     }
 
     pub fn is_closed(&self) -> bool {
-        matches!(*self.state.borrow(), ControllerState::Closed)
+        matches!(self.state, ControllerState::Closed)
     }
 
     pub fn is_failed(&self) -> bool {
-        matches!(*self.state.borrow(), ControllerState::Failed(_))
+        matches!(self.state, ControllerState::Failed(_))
     }
 
     pub fn is_running(&self) -> bool {
-        matches!(*self.state.borrow(), ControllerState::Running)
+        matches!(self.state, ControllerState::Running)
     }
 
     pub fn is_aborted(&self) -> bool {
-        matches!(*self.state.borrow(), ControllerState::Aborted(_))
+        matches!(self.state, ControllerState::Aborted(_))
     }
 
     pub fn is_finished(&self) -> bool {
-        matches!(*self.state.borrow(), ControllerState::Done)
+        matches!(self.state, ControllerState::Done)
     }
 
     pub fn abort_reason(&self) -> Option<String<'js>> {
-        match &*self.state.borrow() {
+        match &self.state {
             ControllerState::Aborted(reason) => reason.clone(),
             _ => None,
         }
     }
 
-    pub async fn push(&self, ctx: Ctx<'js>, data: Value<'js>) -> rquickjs::Result<()> {
-        self.ready().await?;
-        self.queue.borrow_mut().push(ctx, data)?;
+    pub fn push(
+        &mut self,
+        ctx: Ctx<'js>,
+        data: Value<'js>,
+    ) -> rquickjs::Result<(Promise<'js>, Function<'js>, Function<'js>)> {
+        let ret = self.queue.push(ctx, data)?;
         self.wait.notify(usize::MAX);
-        Ok(())
+        Ok(ret)
     }
 
-    pub async fn pop(&self) -> Option<Value<'js>> {
-        let ret = self.queue.borrow_mut().pop()?;
+    pub fn pop(&mut self) -> Option<Entry<'js>> {
+        let ret = self.queue.pop()?;
         self.wait.notify(usize::MAX);
 
         Some(ret)
+    }
+}
+
+pin_project! {
+    #[project = WaiteStateProj]
+    enum WaitState {
+        Wating {
+            #[pin]
+            listener: EventListener
+        },
+        Idle
+    }
+}
+
+pin_project! {
+
+    pub struct WaitDone<'js> {
+        state: Class<'js, StreamData<'js>>,
+        #[pin]
+        listener: WaitState,
+    }
+}
+
+impl<'js> WaitDone<'js> {
+    pub fn new(state: Class<'js, StreamData<'js>>) -> WaitDone<'js> {
+        WaitDone {
+            state,
+            listener: WaitState::Idle,
+        }
+    }
+}
+
+impl<'js> Future for WaitDone<'js> {
+    type Output = rquickjs::Result<()>;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        loop {
+            let mut this = self.as_mut().project();
+
+            match this.listener.as_mut().project() {
+                WaiteStateProj::Wating { listener } => {
+                    ready!(listener.poll(cx));
+                    this.listener.set(WaitState::Idle);
+                }
+                WaiteStateProj::Idle => {
+                    if this.state.borrow().is_failed() {
+                    } else if this.state.borrow().is_aborted() {
+                    } else if this.state.borrow().is_finished() {
+                        return Poll::Ready(Ok(()));
+                    } else {
+                        this.listener.set(WaitState::Wating {
+                            listener: this.state.borrow().wait.listen(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+}
+
+pin_project! {
+
+    pub struct WaitReady<'js> {
+        state: Class<'js, StreamData<'js>>,
+        #[pin]
+        listener: WaitState,
+    }
+}
+
+impl<'js> WaitReady<'js> {
+    pub fn new(state: Class<'js, StreamData<'js>>) -> WaitReady<'js> {
+        WaitReady {
+            state,
+            listener: WaitState::Idle,
+        }
+    }
+}
+
+impl<'js> Future for WaitReady<'js> {
+    type Output = rquickjs::Result<()>;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        loop {
+            let mut this = self.as_mut().project();
+
+            match this.listener.as_mut().project() {
+                WaiteStateProj::Wating { listener } => {
+                    ready!(listener.poll(cx));
+                    this.listener.set(WaitState::Idle);
+                }
+                WaiteStateProj::Idle => {
+                    if this.state.borrow().is_failed() {
+                    } else if this.state.borrow().is_aborted() {
+                    } else if this.state.borrow().is_ready() {
+                        return Poll::Ready(Ok(()));
+                    } else {
+                        this.listener.set(WaitState::Wating {
+                            listener: this.state.borrow().wait.listen(),
+                        });
+                    }
+                }
+            }
+        }
     }
 }

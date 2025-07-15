@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use event_listener::listener;
 use rquickjs::{Class, Ctx, JsLifetime, String, class::Trace, prelude::Opt};
 
@@ -14,7 +12,7 @@ use super::{
 #[derive(Trace)]
 #[rquickjs::class]
 pub struct WritableStream<'js> {
-    state: Rc<StreamData<'js>>,
+    state: Class<'js, StreamData<'js>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for WritableStream<'js> {
@@ -24,14 +22,11 @@ unsafe impl<'js> JsLifetime<'js> for WritableStream<'js> {
 #[rquickjs::methods]
 impl<'js> WritableStream<'js> {
     #[qjs(constructor)]
-    fn new(
-        &self,
-        ctx: Ctx<'js>,
-        sink: JsUnderlyingSink<'js>,
-    ) -> rquickjs::Result<WritableStream<'js>> {
-        let state = Rc::new(StreamData::new(QueuingStrategy::create_default(
-            ctx.clone(),
-        )?));
+    fn new(ctx: Ctx<'js>, sink: JsUnderlyingSink<'js>) -> rquickjs::Result<WritableStream<'js>> {
+        let state = StreamData::new(QueuingStrategy::create_default(ctx.clone())?);
+
+        let state = Class::instance(ctx.clone(), state)?;
+
         let ctrl = Class::instance(
             ctx.clone(),
             WritableStreamDefaultController {
@@ -39,7 +34,12 @@ impl<'js> WritableStream<'js> {
             },
         )?;
 
-        write(ctx, UnderlyingSink::Quick(sink), ctrl, state.clone())?;
+        write(
+            ctx.clone(),
+            UnderlyingSink::Quick(sink),
+            ctrl,
+            state.clone(),
+        )?;
 
         Ok(WritableStream { state })
     }
@@ -58,11 +58,11 @@ impl<'js> WritableStream<'js> {
 
     #[qjs(rename = "getWriter")]
     fn get_writer(&self, ctx: Ctx<'js>) -> rquickjs::Result<WritableStreamDefaultWriter<'js>> {
-        if self.state.is_locked() {
+        if self.state.borrow().is_locked() {
             todo!()
         }
 
-        self.state.lock(ctx)?;
+        self.state.borrow_mut().lock(ctx)?;
 
         Ok(WritableStreamDefaultWriter {
             ctrl: Some(self.state.clone()),
@@ -79,7 +79,7 @@ impl<'js> WritableStream<'js> {
 
     #[qjs(get)]
     fn locked(&self) -> rquickjs::Result<bool> {
-        Ok(self.state.is_locked())
+        Ok(self.state.borrow().is_locked())
     }
 }
 
@@ -109,46 +109,50 @@ fn write<'js>(
     ctx: Ctx<'js>,
     sink: UnderlyingSink<'js>,
     ctrl: Class<'js, WritableStreamDefaultController<'js>>,
-    data: Rc<StreamData<'js>>,
+    data: Class<'js, StreamData<'js>>,
 ) -> rquickjs::Result<()> {
     ctx.clone().spawn(async move {
         if let Err(err) = sink.start(ctrl.clone()).await {
             if err.is_exception() {
                 let failure = ctx.catch();
-                data.fail(ctx.clone(), failure).ok();
+                data.borrow_mut().fail(ctx.clone(), failure).ok();
             }
             return;
         }
 
         loop {
-            if data.is_aborted() {
-                sink.abort(data.abort_reason()).await.ok();
+            if data.borrow().is_aborted() {
+                sink.abort(data.borrow().abort_reason()).await.ok();
                 break;
             }
 
-            if data.is_closed() && data.queue.borrow().is_empty() {
+            if data.borrow().is_closed() && data.borrow().queue.is_empty() {
                 sink.close(ctrl.clone()).await.ok();
+                data.borrow_mut().finished().ok();
                 break;
             }
 
-            if data.is_failed() {
+            if data.borrow().is_failed() {
                 break;
             }
 
-            let Some(chunk) = data.queue.borrow_mut().pop() else {
-                let notify = data.wait.clone();
+            let Some(chunk) = data.borrow_mut().pop() else {
+                let notify = data.borrow().wait.clone();
                 listener!(notify => listener);
                 listener.await;
                 continue;
             };
 
-            if let Err(err) = sink.write(chunk, ctrl.clone()).await {
+            if let Err(err) = sink.write(chunk.chunk, ctrl.clone()).await {
                 if err.is_exception() {
                     let failure = ctx.catch();
-                    data.fail(ctx.clone(), failure).ok();
+                    chunk.reject.call::<_, ()>((failure.clone(),)).ok();
+                    data.borrow_mut().fail(ctx.clone(), failure).ok();
                 }
                 break;
             }
+
+            chunk.resolve.call::<_, ()>(()).ok();
         }
     });
     Ok(())

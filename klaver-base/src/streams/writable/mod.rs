@@ -7,7 +7,7 @@ mod writer;
 use rquickjs::class::JsClass;
 
 pub use self::{
-    controller::WritableStreamDefaultController, stream::WritableStream, underlying_sink::*,
+    controller::WritableStreamDefaultController, stream::WritableStream,
     writer::WritableStreamDefaultWriter,
 };
 

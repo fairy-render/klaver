@@ -1,9 +1,8 @@
 use rquickjs::{
-    Class, Ctx, Function, JsLifetime,
+    Class, Ctx, JsLifetime,
     class::Trace,
     function::{Args, Opt, This},
 };
-use rquickjs_util::throw;
 
 use crate::{
     AbortSignal,
