@@ -1,4 +1,4 @@
-import { CountQueuingStrategy, WritableStream, WritableStreamDefaultController} from 'quick:base'
+import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController } from 'quick:base'
 
 const output = []
 
@@ -9,8 +9,8 @@ const output = []
 
 print("rapra")
 
-const stream = new WritableStream({
-  start:()  => {
+const writeStream = new WritableStream({
+  start: () => {
     print("Started")
   },
   async write(chunk) {
@@ -26,21 +26,25 @@ const stream = new WritableStream({
   }
 });
 
-const writer = stream.getWriter();
+
+var idx = 0;
+
+const readStream = new ReadableStream({
+  pull(ctrl) {
+    switch (idx) {
+      case 0:
+        ctrl.enqueue("Hello");
+        break;
+      case 1:
+        ctrl.enqueue("World")
+      default:
+        ctrl.close();
+    }
+    idx++;
+  }
+})
 
 
-await writer.ready;
+await readStream.pipeTo(writeStream);
 
-
- writer.write("Hello");
- writer.write(",")
- writer.write(" World!")
-
- writer.abort("Just because");
-
-// await writer.close()
-
-print("He 2r");
-
-
-print('output ' + output.join(""))
+print('output ' + output.join(" "))

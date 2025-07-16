@@ -34,7 +34,7 @@ fn main() -> Result<(), RuntimeError> {
         })
         .await?;
 
-        runtime.idle().await;
+        // runtime.idle().await;
 
         Ok(())
     })

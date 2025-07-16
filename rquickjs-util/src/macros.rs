@@ -7,7 +7,7 @@ macro_rules! throw {
     };
     (@type $ctx: expr, $err: expr) => {
         return Err($crate::quick::Exception::throw_type(
-            $ctx.clone(),
+            &$ctx,
             &*$err.to_string(),
         ))
     };

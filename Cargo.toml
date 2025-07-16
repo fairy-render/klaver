@@ -15,7 +15,7 @@ members = [
   "klaver-cli",
   "klaver",
   "klaver-handlebars",
-  "klaver-base",
+  "klaver-base", "klaver-timers", "klaver-worker",
   # "klaver-http",
 ]
 

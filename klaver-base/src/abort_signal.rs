@@ -1,9 +1,4 @@
-use rquickjs::{
-    Class, Ctx, Function, JsLifetime,
-    class::Trace,
-    function::{Args, Opt, This},
-};
-use rquickjs_util::throw;
+use rquickjs::{Class, Ctx, Function, JsLifetime, class::Trace};
 
 use crate::{Emitter, Event, EventList};
 

@@ -1,11 +1,11 @@
-use rquickjs::{ArrayBuffer, Class, Ctx, FromJs, Function, Object, String, Value, class::Trace};
+use rquickjs::{Class, Ctx, FromJs, Function, Object, Value, class::Trace};
 use rquickjs_util::{Buffer, StringRef};
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 #[derive(Debug, Trace)]
 pub struct CountQueuingStrategy {
-    #[qjs(get, rename = "highWaterHighway")]
+    #[qjs(get, rename = "highWaterMark")]
     pub high_water_mark: u64,
 }
 

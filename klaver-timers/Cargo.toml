@@ -1,0 +1,15 @@
+[package]
+name = "klaver-timers"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+klaver-worker = { path = "../klaver-worker" }
+rquickjs.workspace = true
+rquickjs-util = { path = "../rquickjs-util" }
+futures = { version = "0.3" }
+
+event-listener = { version = "5" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }

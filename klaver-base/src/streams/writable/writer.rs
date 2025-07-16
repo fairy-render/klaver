@@ -1,11 +1,7 @@
-use std::rc::Rc;
-
-use rquickjs::{
-    ArrayBuffer, Class, Ctx, JsLifetime, Promise, String, Value, class::Trace, prelude::Opt, qjs,
-};
+use rquickjs::{Class, Ctx, JsLifetime, Promise, String, Value, class::Trace, prelude::Opt};
 use rquickjs_util::throw;
 
-use crate::streams::writable::state::{StreamData, WaitDone, WaitReady};
+use crate::streams::data::{StreamData, WaitDone, WaitWriteReady};
 
 #[derive(Trace)]
 #[rquickjs::class]
@@ -33,14 +29,14 @@ impl<'js> WritableStreamDefaultWriter<'js> {
             return Ok(());
         };
 
-        WaitReady::new(ctrl.clone()).await?;
+        WaitWriteReady::new(ctrl.clone()).await?;
 
         Ok(())
     }
 
     pub fn write(&self, ctx: Ctx<'js>, buffer: Value<'js>) -> rquickjs::Result<Promise<'js>> {
         let Some(ctrl) = self.ctrl.as_ref() else {
-            todo!()
+            throw!(@type ctx, "The stream youare trying to write to is not owned by the writer")
         };
 
         let (promise, _, _) = ctrl.borrow_mut().push(ctx.clone(), buffer)?;
@@ -58,7 +54,7 @@ impl<'js> WritableStreamDefaultWriter<'js> {
 
     pub async fn close(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
         let Some(ctrl) = self.ctrl.as_ref() else {
-            todo!()
+            throw!(@type ctx, "The stream youare trying to close is not owned by the writer")
         };
 
         ctrl.borrow_mut().close(ctx.clone())?;
@@ -74,7 +70,7 @@ impl<'js> WritableStreamDefaultWriter<'js> {
         reason: Opt<String<'js>>,
     ) -> rquickjs::Result<Option<String<'js>>> {
         let Some(ctrl) = self.ctrl.as_ref() else {
-            todo!()
+            throw!(@type ctx, "The stream youare trying to abort is not owned by the writer")
         };
 
         ctrl.borrow_mut().abort(ctx, reason.0.clone())?;

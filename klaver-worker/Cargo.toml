@@ -1,0 +1,12 @@
+[package]
+name = "klaver-worker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rquickjs.workspace = true
+rquickjs-util = { path = "../rquickjs-util" }
+futures = { version = "0.3" }
+event-listener = { version = "5" }
+
+pin-project-lite = { version = "0.2" }

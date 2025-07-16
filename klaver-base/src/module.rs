@@ -1,4 +1,4 @@
-use rquickjs::{Class, class::JsClass, module::ModuleDef};
+use rquickjs::{class::JsClass, module::ModuleDef};
 
 pub struct BaseModule;
 
@@ -6,8 +6,10 @@ use crate::{
     Emitter,
     abort_controller::AbortController,
     abort_signal::AbortSignal,
+    blob::Blob,
     dom_exception::DOMException,
     event_target::{Event, EventTarget},
+    file::File,
 };
 
 impl ModuleDef for BaseModule {
@@ -18,10 +20,13 @@ impl ModuleDef for BaseModule {
             AbortSignal,
             EventTarget,
             Event,
-            DOMException
+            DOMException,
+            Blob,
+            File
         );
 
         crate::streams::declare(decl)?;
+        crate::encoding::declare(decl)?;
 
         Ok(())
     }
@@ -36,7 +41,9 @@ impl ModuleDef for BaseModule {
             AbortController,
             AbortSignal,
             EventTarget,
-            DOMException
+            DOMException,
+            Blob,
+            File
         );
 
         AbortSignal::add_event_target_prototype(ctx)?;
@@ -44,6 +51,7 @@ impl ModuleDef for BaseModule {
         DOMException::init(ctx)?;
 
         crate::streams::evaluate(ctx, exports)?;
+        crate::encoding::evaluate(ctx, exports)?;
 
         Ok(())
     }

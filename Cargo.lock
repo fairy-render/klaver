@@ -1996,8 +1996,12 @@ name = "klaver-base"
 version = "0.1.0"
 dependencies = [
  "async-channel",
+ "async-trait",
+ "base64",
+ "encoding_rs",
  "event-listener",
  "futures",
+ "futures-core",
  "pin-project-lite",
  "rquickjs",
  "rquickjs-util",
@@ -2067,6 +2071,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-timers"
+version = "0.1.0"
+dependencies = [
+ "event-listener",
+ "futures",
+ "klaver-worker",
+ "rquickjs",
+ "rquickjs-util",
+ "tokio",
+]
+
+[[package]]
 name = "klaver-wintercg"
 version = "0.1.0"
 dependencies = [
@@ -2099,6 +2115,17 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
+]
+
+[[package]]
+name = "klaver-worker"
+version = "0.1.0"
+dependencies = [
+ "event-listener",
+ "futures",
+ "pin-project-lite",
+ "rquickjs",
+ "rquickjs-util",
 ]
 
 [[package]]
@@ -3885,6 +3912,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
+name = "signal-hook-registry"
+version = "1.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9203b8055f63a2a00e2f593bb0510367fe707d7ff1e5c872de2f537b339e5410"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "simd-abstraction"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5043,7 +5079,9 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
+ "parking_lot",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys 0.52.0",

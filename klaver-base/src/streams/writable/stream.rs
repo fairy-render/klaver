@@ -1,7 +1,8 @@
 use event_listener::listener;
 use rquickjs::{Class, Ctx, JsLifetime, String, class::Trace, prelude::Opt};
+use rquickjs_util::throw;
 
-use crate::streams::{queue_strategy::QueuingStrategy, writable::state::StreamData};
+use crate::streams::{data::StreamData, queue_strategy::QueuingStrategy};
 
 use super::{
     controller::WritableStreamDefaultController,
@@ -49,6 +50,9 @@ impl<'js> WritableStream<'js> {
         ctx: Ctx<'js>,
         reason: Opt<String<'js>>,
     ) -> rquickjs::Result<Option<String<'js>>> {
+        if self.state.borrow().is_locked() {
+            throw!(@type ctx, "The stream you are trying to abort is locked.")
+        }
         let writer = self.get_writer(ctx.clone())?;
 
         let ret = writer.abort(ctx, reason);
@@ -57,9 +61,9 @@ impl<'js> WritableStream<'js> {
     }
 
     #[qjs(rename = "getWriter")]
-    fn get_writer(&self, ctx: Ctx<'js>) -> rquickjs::Result<WritableStreamDefaultWriter<'js>> {
+    pub fn get_writer(&self, ctx: Ctx<'js>) -> rquickjs::Result<WritableStreamDefaultWriter<'js>> {
         if self.state.borrow().is_locked() {
-            todo!()
+            throw!(@type ctx, "The stream you are trying to create a writer for is already locked to another writer")
         }
 
         self.state.borrow_mut().lock(ctx)?;
@@ -71,7 +75,6 @@ impl<'js> WritableStream<'js> {
 
     async fn close(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
         let writer = self.get_writer(ctx.clone())?;
-
         writer.close(ctx).await?;
 
         Ok(())
@@ -81,28 +84,6 @@ impl<'js> WritableStream<'js> {
     fn locked(&self) -> rquickjs::Result<bool> {
         Ok(self.state.borrow().is_locked())
     }
-}
-
-macro_rules! throw_exception {
-    ($ctx: expr, $data:expr, $expr: expr) => {
-        if let Err(err) = $expr {
-            if err.is_exception() {
-                let failure = $ctx.catch();
-                $data.fail($ctx, failure);
-            }
-            break;
-        }
-    };
-
-    (@ret $ctx: expr, $data:expr, $expr: expr) => {
-        if let Err(err) = $expr {
-            if err.is_exception() {
-                let failure = $ctx.catch();
-                $data.fail($ctx, failure).ok();
-            }
-            return;
-        }
-    };
 }
 
 fn write<'js>(

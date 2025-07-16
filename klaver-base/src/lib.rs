@@ -5,9 +5,11 @@ mod abort_controller;
 mod abort_signal;
 mod blob;
 mod dom_exception;
+mod encoding;
 mod event_target;
 mod file;
 pub mod streams;
+mod workers;
 
 mod module;
 

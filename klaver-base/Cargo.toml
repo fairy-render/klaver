@@ -11,6 +11,13 @@ async-channel = { version = "2" }
 event-listener = { version = "5" }
 pin-project-lite = { version = "0.2" }
 
+async-trait = { version = "0.1" }
+
+encoding_rs = { version = "0.8" }
+base64 = { version = "0.22" }
+
+futures-core = { version = "0.3" }
+
 
 [dev-dependencies]
 futures = { version = "0.3" }

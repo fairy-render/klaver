@@ -1,9 +1,6 @@
-use event_listener::Event;
-use rquickjs::{Class, Ctx, JsLifetime, String, Value, class::Trace, prelude::Opt};
+use crate::streams::data::StreamData;
+use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace};
 use rquickjs_util::throw;
-use std::{cell::RefCell, collections::VecDeque, rc::Rc};
-
-use crate::streams::{queue_strategy::QueuingStrategy, writable::state::StreamData};
 
 #[rquickjs::class]
 #[derive(Trace)]
@@ -25,7 +22,9 @@ impl<'js> WritableStreamDefaultController<'js> {
         )
     }
 
-    fn error(&self, error: Value<'js>) -> rquickjs::Result<()> {
+    fn error(&self, ctx: Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
+        self.data.borrow_mut().fail(ctx, error)?;
+
         Ok(())
     }
 }

@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 
 use event_listener::Event;
 use rquickjs::{Ctx, Function, Promise, Value, class::Trace};
-use rquickjs_util::throw;
 
 use crate::streams::queue_strategy::QueuingStrategy;
 
