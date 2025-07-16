@@ -3,7 +3,7 @@ use rquickjs::{class::JsClass, module::ModuleDef};
 pub struct BaseModule;
 
 use crate::{
-    Emitter,
+    Console, Emitter,
     abort_controller::AbortController,
     abort_signal::AbortSignal,
     blob::Blob,
@@ -22,7 +22,8 @@ impl ModuleDef for BaseModule {
             Event,
             DOMException,
             Blob,
-            File
+            File,
+            Console
         );
 
         crate::streams::declare(decl)?;
@@ -43,7 +44,8 @@ impl ModuleDef for BaseModule {
             EventTarget,
             DOMException,
             Blob,
-            File
+            File,
+            Console
         );
 
         AbortSignal::add_event_target_prototype(ctx)?;

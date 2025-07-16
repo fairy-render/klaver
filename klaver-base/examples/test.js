@@ -1,13 +1,17 @@
-import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController } from 'quick:base'
+import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController, Console } from 'quick:base'
 
 const output = []
 
+
+const console = new Console((level, msg) => {
+  print(`[${level}] ${msg}`)
+})
 
 // const test = new WritableStreamDefaultController({
 
 // })
 
-print("rapra")
+console.debug("rapra")
 
 const writeStream = new WritableStream({
   start: () => {
@@ -44,7 +48,7 @@ const readStream = new ReadableStream({
   }
 })
 
-
+console.time('pipe')
 await readStream.pipeTo(writeStream);
-
+console.timeEnd("pipe")
 print('output ' + output.join(" "))
