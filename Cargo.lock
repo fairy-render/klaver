@@ -2001,7 +2001,7 @@ dependencies = [
  "encoding_rs",
  "event-listener",
  "futures",
- "futures-core",
+ "klaver-runner",
  "pin-project-lite",
  "rquickjs",
  "rquickjs-util",
@@ -2071,12 +2071,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-runner"
+version = "0.1.0"
+dependencies = [
+ "event-listener",
+ "futures",
+ "pin-project-lite",
+ "rquickjs",
+ "rquickjs-util",
+]
+
+[[package]]
 name = "klaver-timers"
 version = "0.1.0"
 dependencies = [
  "event-listener",
  "futures",
- "klaver-worker",
+ "klaver-runner",
  "rquickjs",
  "rquickjs-util",
  "tokio",
@@ -2121,9 +2132,8 @@ dependencies = [
 name = "klaver-worker"
 version = "0.1.0"
 dependencies = [
- "event-listener",
  "futures",
- "pin-project-lite",
+ "klaver-runner",
  "rquickjs",
  "rquickjs-util",
 ]

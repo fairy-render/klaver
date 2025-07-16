@@ -1,6 +1,6 @@
 use futures::future::LocalBoxFuture;
+use klaver_runner::{Func as WorkerFunc, Runner, Workers};
 use klaver_timers::{TimeId, Timers, TimingBackend};
-use klaver_worker::{Func as WorkerFunc, Runner, Workers};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, Function, IntoJs, Module,
     prelude::{Func, Opt},

@@ -1,5 +1,7 @@
 use event_listener::listener;
-use rquickjs::{Class, Ctx, JsLifetime, String, class::Trace, prelude::Opt};
+use futures::FutureExt;
+use klaver_runner::{Shutdown, Workers};
+use rquickjs::{CatchResultExt, Class, Ctx, JsLifetime, String, class::Trace, prelude::Opt};
 use rquickjs_util::throw;
 
 use crate::streams::{data::StreamData, queue_strategy::QueuingStrategy};
@@ -35,12 +37,27 @@ impl<'js> WritableStream<'js> {
             },
         )?;
 
-        write(
-            ctx.clone(),
-            UnderlyingSink::Quick(sink),
-            ctrl,
-            state.clone(),
-        )?;
+        let state_clone = state.clone();
+        let worker = Workers::from_ctx(&ctx)?;
+        worker.push(ctx.clone(), |ctx, shutdown| async move {
+            write(
+                ctx.clone(),
+                UnderlyingSink::Quick(sink),
+                ctrl,
+                state_clone,
+                shutdown,
+            )
+            .await
+            .catch(&ctx)?;
+            Ok(())
+        });
+
+        // write(
+        //     ctx.clone(),
+        //     UnderlyingSink::Quick(sink),
+        //     ctrl,
+        //     state.clone(),
+        // )?;
 
         Ok(WritableStream { state })
     }
@@ -86,55 +103,68 @@ impl<'js> WritableStream<'js> {
     }
 }
 
-fn write<'js>(
+async fn write<'js>(
     ctx: Ctx<'js>,
     sink: UnderlyingSink<'js>,
     ctrl: Class<'js, WritableStreamDefaultController<'js>>,
     data: Class<'js, StreamData<'js>>,
+    mut shutdown: Shutdown,
 ) -> rquickjs::Result<()> {
-    ctx.clone().spawn(async move {
-        if let Err(err) = sink.start(ctrl.clone()).await {
+    if shutdown.is_killed() {
+        return Ok(());
+    }
+    if let Err(err) = sink.start(ctrl.clone()).await {
+        if err.is_exception() {
+            let failure = ctx.catch();
+            data.borrow_mut().fail(ctx.clone(), failure).ok();
+        }
+        return Ok(());
+    }
+
+    loop {
+        if data.borrow().is_aborted() {
+            sink.abort(data.borrow().abort_reason()).await.ok();
+            break;
+        }
+
+        if data.borrow().is_closed() && data.borrow().queue.is_empty() {
+            sink.close(ctrl.clone()).await.ok();
+            data.borrow_mut().finished().ok();
+            break;
+        }
+
+        if data.borrow().is_failed() {
+            break;
+        }
+
+        let Some(chunk) = data.borrow_mut().pop() else {
+            let notify = data.borrow().wait.clone();
+            listener!(notify => listener);
+            futures::select! {
+                _ = listener.fuse() => {
+                    continue
+                }
+                _ = shutdown => {
+
+                }
+            };
+            continue;
+        };
+
+        if shutdown.is_killed() {
+            return Ok(());
+        }
+
+        if let Err(err) = sink.write(chunk.chunk, ctrl.clone()).await {
             if err.is_exception() {
                 let failure = ctx.catch();
+                chunk.reject.call::<_, ()>((failure.clone(),)).ok();
                 data.borrow_mut().fail(ctx.clone(), failure).ok();
             }
-            return;
+            break;
         }
 
-        loop {
-            if data.borrow().is_aborted() {
-                sink.abort(data.borrow().abort_reason()).await.ok();
-                break;
-            }
-
-            if data.borrow().is_closed() && data.borrow().queue.is_empty() {
-                sink.close(ctrl.clone()).await.ok();
-                data.borrow_mut().finished().ok();
-                break;
-            }
-
-            if data.borrow().is_failed() {
-                break;
-            }
-
-            let Some(chunk) = data.borrow_mut().pop() else {
-                let notify = data.borrow().wait.clone();
-                listener!(notify => listener);
-                listener.await;
-                continue;
-            };
-
-            if let Err(err) = sink.write(chunk.chunk, ctrl.clone()).await {
-                if err.is_exception() {
-                    let failure = ctx.catch();
-                    chunk.reject.call::<_, ()>((failure.clone(),)).ok();
-                    data.borrow_mut().fail(ctx.clone(), failure).ok();
-                }
-                break;
-            }
-
-            chunk.resolve.call::<_, ()>(()).ok();
-        }
-    });
+        chunk.resolve.call::<_, ()>(()).ok();
+    }
     Ok(())
 }

@@ -1,5 +1,5 @@
 use futures::future::LocalBoxFuture;
-use klaver_worker::{Func, FuncFn, Runner, Workers};
+use klaver_runner::{Func, FuncFn, Runner, Workers};
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx};
 use rquickjs_util::RuntimeError;
 

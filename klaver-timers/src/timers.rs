@@ -5,7 +5,7 @@ use std::{
 
 use event_listener::Event;
 use futures::FutureExt;
-use klaver_worker::{Shutdown, Workers};
+use klaver_runner::{Shutdown, Workers};
 use rquickjs::{CatchResultExt, Class, Ctx, Function, JsLifetime, class::Trace, prelude::Opt};
 use rquickjs_util::throw;
 

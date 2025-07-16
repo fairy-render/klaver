@@ -4,9 +4,7 @@ resolver = "2"
 
 members = [
 
-  # "klaver-gerning",
   "klaver-image",
-  # "klaver-os",
   "rquickjs-util",
   "klaver-fs",
   "klaver-dom",
@@ -15,7 +13,10 @@ members = [
   "klaver-cli",
   "klaver",
   "klaver-handlebars",
-  "klaver-base", "klaver-timers", "klaver-worker",
+  "klaver-base",
+  "klaver-timers",
+  "klaver-runner",
+  "klaver-webworker",
   # "klaver-http",
 ]
 

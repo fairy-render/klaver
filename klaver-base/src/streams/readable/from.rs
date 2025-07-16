@@ -1,4 +1,4 @@
-use futures_core::future::LocalBoxFuture;
+use futures::future::LocalBoxFuture;
 use rquickjs::{
     Class, Ctx, FromJs, Function, Object, Promise, Symbol, Value, atom::PredefinedAtom,
     class::Trace,
