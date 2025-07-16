@@ -22,6 +22,10 @@ impl Shutdown {
             killed,
         }
     }
+
+    pub fn is_killed(&self) -> bool {
+        self.killed.get()
+    }
 }
 
 impl Future for Shutdown {

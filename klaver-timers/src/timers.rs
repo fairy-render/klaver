@@ -187,20 +187,32 @@ pub async fn work<'js>(
 
         drop(backend);
 
-        futures::select! {
-            _ = timer.fuse() => {
-                timers.borrow_mut().get_callbacks(next_instant, &mut callbacks)?;
-                for callback in callbacks.drain(..) {
-                    callback.call::<_,()>(())?;
+        if should_shutdown {
+            futures::select! {
+                _ = timer.fuse() => {
+                    timers.borrow_mut().get_callbacks(next_instant, &mut callbacks)?;
+                    for callback in callbacks.drain(..) {
+                        callback.call::<_,()>(())?;
+                    }
                 }
-            }
-            _ = kill => {
-                if should_shutdown {
+                _ =  kill => {
                     return Ok(())
                 }
+                _ = notifier.fuse() => {
+                    continue
+                }
             }
-            _ = notifier.fuse() => {
-                continue
+        } else {
+            futures::select! {
+                _ = timer.fuse() => {
+                    timers.borrow_mut().get_callbacks(next_instant, &mut callbacks)?;
+                    for callback in callbacks.drain(..) {
+                        callback.call::<_,()>(())?;
+                    }
+                }
+                _ = notifier.fuse() => {
+                    continue
+                }
             }
         }
     }

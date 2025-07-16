@@ -15,10 +15,9 @@ timer.createTimeout(() => {
     timer.clearTimeout(id)
 }, 400)
 
-
-
 print("Hello")
 
 setTimeout(() => {
+    throw new Error("Ger")
     print("Timeout!")
-})
+}, 2000)
