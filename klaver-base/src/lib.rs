@@ -7,13 +7,14 @@ mod blob;
 mod console;
 mod dom_exception;
 mod encoding;
-mod event_target;
+// mod event_target;
+mod events;
 mod file;
 pub mod streams;
 mod workers;
 
 mod module;
 
-pub use self::{abort_controller::*, abort_signal::*, console::*, event_target::*};
+pub use self::{abort_controller::*, abort_signal::*, console::*, events::*};
 
 pub use self::module::BaseModule;

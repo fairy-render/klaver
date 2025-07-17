@@ -7,7 +7,7 @@ use rquickjs::{
 use crate::{
     AbortSignal,
     dom_exception::DOMException,
-    event_target::{Emitter, Event},
+    events::{Emitter, Event},
 };
 
 #[derive(Trace)]
@@ -45,7 +45,7 @@ impl<'js> AbortController<'js> {
             .into_value()
         });
 
-        let event = Class::instance(ctx.clone(), Event::new("abort".to_string())?)?;
+        let event = Class::instance(ctx.clone(), Event::new_native(&ctx, "abort")?)?;
 
         if let Some(onabort) = self.signal.borrow().onabort.as_ref().cloned() {
             let mut args = Args::new(ctx.clone(), 1);
@@ -57,7 +57,7 @@ impl<'js> AbortController<'js> {
         Emitter::dispatch_event(
             This(self.signal.clone()),
             ctx.clone(),
-            Class::instance(ctx, Event::new("abort".to_string())?)?,
+            Class::instance(ctx.clone(), Event::new_native(&ctx, "abort")?)?,
         )?;
         Ok(())
     }

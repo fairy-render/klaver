@@ -1,15 +1,11 @@
 use rquickjs::{class::JsClass, module::ModuleDef};
+use rquickjs_util::Inheritable2;
 
 pub struct BaseModule;
 
 use crate::{
-    Console, Emitter,
-    abort_controller::AbortController,
-    abort_signal::AbortSignal,
-    blob::Blob,
-    dom_exception::DOMException,
-    event_target::{Event, EventTarget},
-    file::File,
+    Console, Emitter, EventTarget, abort_controller::AbortController, abort_signal::AbortSignal,
+    blob::Blob, dom_exception::DOMException, events::Event, file::File,
 };
 
 impl ModuleDef for BaseModule {
@@ -48,8 +44,11 @@ impl ModuleDef for BaseModule {
             Console
         );
 
-        AbortSignal::add_event_target_prototype(ctx)?;
         EventTarget::add_event_target_prototype(ctx)?;
+
+        AbortSignal::add_event_target_prototype(ctx)?;
+        <EventTarget as Inheritable2<'js, AbortSignal>>::inherit(ctx)?;
+
         DOMException::init(ctx)?;
 
         crate::streams::evaluate(ctx, exports)?;

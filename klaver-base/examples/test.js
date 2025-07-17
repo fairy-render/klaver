@@ -1,6 +1,9 @@
-import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController, Console } from 'quick:base'
+import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController, Console, EventTarget, AbortSignal } from 'quick:base'
 
 const output = []
+
+
+
 
 
 
@@ -9,7 +12,7 @@ const console = new Console((level, msg) => {
   print(`[${level}] ${msg}`)
 })
 
-console.log(typeof structuredClone);
+console.log(new AbortSignal() instanceof EventTarget);
 
 // const test = new WritableStreamDefaultController({
 

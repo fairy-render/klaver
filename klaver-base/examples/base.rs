@@ -1,7 +1,7 @@
-use klaver_base::streams::WritableStream;
+use klaver_base::{AbortSignal, Emitter, EventTarget, streams::WritableStream};
 use klaver_runner::{FuncFn, Runner};
 use rquickjs::{
-    AsyncContext, AsyncRuntime, CatchResultExt, Class, Module, class::JsClass, prelude::Func,
+    AsyncContext, AsyncRuntime, CatchResultExt, Class, Module, Value, class::JsClass, prelude::Func,
 };
 use rquickjs_util::{RuntimeError, StringRef};
 
@@ -15,6 +15,18 @@ fn main() -> Result<(), RuntimeError> {
             &context,
             FuncFn::new(|ctx, worker| {
                 Box::pin(async move {
+                    AbortSignal::add_event_target_prototype(&ctx)?;
+                    EventTarget::inherit::<AbortSignal>(&ctx)?;
+
+                    let signal = Class::instance(ctx.clone(), AbortSignal::new()?)?
+                        .into_value()
+                        .into_object()
+                        .unwrap();
+
+                    println!("IS ISTANCEOF {}", EventTarget::instance_of(&ctx, &signal)?);
+
+                    println!("FUNC {:?}", signal.get::<_, Value>("addEventListener")?);
+
                     ctx.globals()
                         .set(
                             "print",

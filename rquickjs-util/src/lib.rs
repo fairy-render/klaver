@@ -5,6 +5,7 @@ pub mod buffer;
 pub mod date;
 mod error;
 pub mod format;
+mod inherit;
 pub mod iterator;
 pub mod map;
 mod proxy;
@@ -21,7 +22,7 @@ pub mod stack_trace;
 mod r#static;
 
 pub use self::{
-    buffer::*, date::Date, error::RuntimeError, map::*, proxy::*, r#static::*, set::*,
+    buffer::*, date::Date, error::RuntimeError, inherit::*, map::*, proxy::*, r#static::*, set::*,
     stack_trace::StackTrace, string::StringRef,
 };
 
