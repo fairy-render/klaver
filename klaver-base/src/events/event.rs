@@ -1,9 +1,10 @@
 use rquickjs::{
-    Class, Ctx, FromJs, JsLifetime, String, Symbol, Value,
+    Class, Ctx, FromJs, IntoJs, JsLifetime, String, Symbol, Value,
     class::{JsClass, Trace},
     object::{Accessor, Property},
     prelude::{Func, This},
 };
+use rquickjs_util::{Inheritable, StringRef, SuperClass, throw};
 
 #[derive(Clone, Debug, Hash)]
 pub enum EventKey<'js> {
@@ -65,6 +66,19 @@ pub struct Event<'js> {
     pub ty: EventKey<'js>,
 }
 
+impl<'js> SuperClass<'js> for Event<'js> {}
+
+impl<'js, T> Inheritable<'js, T> for Event<'js>
+where
+    T: JsClass<'js> + NativeEvent<'js>,
+{
+    fn additional_override(ctx: &Ctx<'js>, proto: &rquickjs::Object<'js>) -> rquickjs::Result<()> {
+        proto.prop("type", Accessor::new_get(T::ty).enumerable())?;
+
+        Ok(())
+    }
+}
+
 unsafe impl<'js> JsLifetime<'js> for Event<'js> {
     type Changed<'to> = Event<'to>;
 }
@@ -109,5 +123,63 @@ where
         proto.prop("type", Accessor::new_get(Self::ty).enumerable())?;
 
         Ok(())
+    }
+}
+
+#[derive(Trace, Clone)]
+pub struct DynEvent<'js> {
+    inner: Value<'js>,
+}
+
+impl<'js> DynEvent<'js> {
+    pub fn ty(&self, ctx: &Ctx<'js>) -> rquickjs::Result<EventKey<'js>> {
+        let Some(obj) = self.inner.as_object() else {
+            throw!(@type ctx, "Expected object");
+        };
+
+        obj.get("type")
+    }
+}
+
+impl<'js> AsRef<Value<'js>> for DynEvent<'js> {
+    fn as_ref(&self) -> &Value<'js> {
+        &self.inner
+    }
+}
+
+impl<'js> FromJs<'js> for DynEvent<'js> {
+    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+        if !Event::is_subclass(ctx, &value)? {
+            return Err(rquickjs::Error::new_from_js_message(
+                "value",
+                "event",
+                "Expected a sublcass of Event",
+            ));
+        }
+
+        Ok(DynEvent { inner: value })
+    }
+}
+
+impl<'js> IntoJs<'js> for DynEvent<'js> {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        Ok(self.inner)
+    }
+}
+
+pub trait IntoDynEvent<'js> {
+    fn into_dynevent(self, ctx: &Ctx<'js>) -> rquickjs::Result<DynEvent<'js>>;
+}
+
+impl<'js> IntoDynEvent<'js> for DynEvent<'js> {
+    fn into_dynevent(self, _ctx: &Ctx<'js>) -> rquickjs::Result<DynEvent<'js>> {
+        Ok(self)
+    }
+}
+
+impl<'js> IntoDynEvent<'js> for Event<'js> {
+    fn into_dynevent(self, ctx: &Ctx<'js>) -> rquickjs::Result<DynEvent<'js>> {
+        let event = Class::instance(ctx.clone(), self)?.into_value();
+        DynEvent::from_js(ctx, event)
     }
 }

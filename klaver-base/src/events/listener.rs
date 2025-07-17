@@ -1,5 +1,7 @@
 use rquickjs::{Class, Ctx, Function, class::Trace};
 
+use crate::DynEvent;
+
 use super::event::Event;
 
 pub enum Listener<'js> {
@@ -8,7 +10,7 @@ pub enum Listener<'js> {
 }
 
 impl<'js> Listener<'js> {
-    pub fn call(&self, ctx: Ctx<'js>, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+    pub fn call(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
         match self {
             Self::Js(js) => js.call((event,)),
             Self::Native(native) => {
@@ -38,11 +40,11 @@ impl<'js> PartialEq<Function<'js>> for Listener<'js> {
 }
 
 pub trait NativeListener<'js> {
-    fn on_event(&self, ctx: Ctx<'js>, event: Class<'js, Event<'js>>) -> rquickjs::Result<()>;
+    fn on_event(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()>;
 }
 
-impl<'js> NativeListener<'js> for async_channel::Sender<Class<'js, Event<'js>>> {
-    fn on_event(&self, ctx: Ctx<'js>, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+impl<'js> NativeListener<'js> for async_channel::Sender<DynEvent<'js>> {
+    fn on_event(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
         let this = self.clone();
         ctx.spawn(async move {
             this.send(event).await.ok();

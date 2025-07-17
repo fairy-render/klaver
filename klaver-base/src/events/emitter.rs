@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::{DynEvent, IntoDynEvent};
+
 use super::listener::NativeListener;
 
 use super::event::{Event, EventKey};
@@ -38,14 +40,19 @@ where
     }
 
     #[allow(unused)]
-    fn dispatch(&self, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+    fn dispatch(&self, event: DynEvent<'js>) -> rquickjs::Result<()> {
         Ok(())
     }
 
-    fn dispatch_inner(&self, ctx: Ctx<'js>, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+    fn dispatch_native<T>(&self, ctx: &Ctx<'js>, event: T) -> rquickjs::Result<()>
+    where
+        T: IntoDynEvent<'js>,
+    {
+        let event = event.into_dynevent(ctx)?;
+
         self.dispatch(event.clone())?;
 
-        let Some(listeners) = self.get_listeners().get(&event.borrow().ty) else {
+        let Some(listeners) = self.get_listeners().get(&event.ty(ctx)?) else {
             return Ok(());
         };
 
@@ -104,8 +111,8 @@ where
     fn dispatch_event(
         this: This<Class<'js, Self>>,
         ctx: Ctx<'js>,
-        event: Class<'js, Event<'js>>,
+        event: DynEvent<'js>,
     ) -> rquickjs::Result<()> {
-        this.borrow().dispatch_inner(ctx, event)
+        this.borrow().dispatch_native(&ctx, event)
     }
 }

@@ -1,5 +1,5 @@
 use rquickjs::{class::JsClass, module::ModuleDef};
-use rquickjs_util::Inheritable2;
+use rquickjs_util::{Inheritable, Subclass};
 
 pub struct BaseModule;
 
@@ -45,9 +45,7 @@ impl ModuleDef for BaseModule {
         );
 
         EventTarget::add_event_target_prototype(ctx)?;
-
-        AbortSignal::add_event_target_prototype(ctx)?;
-        <EventTarget as Inheritable2<'js, AbortSignal>>::inherit(ctx)?;
+        AbortSignal::inherit(ctx)?;
 
         DOMException::init(ctx)?;
 

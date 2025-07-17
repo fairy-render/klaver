@@ -1,12 +1,12 @@
 use flume::{Receiver, Sender};
 use futures::{SinkExt, StreamExt, channel::mpsc, future::LocalBoxFuture};
-use klaver_base::{Emitter, EventList};
+use klaver_base::{Emitter, Event, EventList, NativeEvent};
 use klaver_runner::{Func, Runner, Shutdown, Workers};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
-    String, Value, class::Trace,
+    String, Value, class::Trace, prelude::Opt,
 };
-use rquickjs_util::{RuntimeError, Val};
+use rquickjs_util::{RuntimeError, StringRef, Subclass, Val};
 
 #[rquickjs::class]
 pub struct WebWorker<'js> {
@@ -101,6 +101,7 @@ async fn listen<'js>(
                 };
 
 
+
             }
             _ = kill => {
                 return Ok(())
@@ -150,7 +151,7 @@ fn work(
 }
 
 struct Work {
-    path: String,
+    path: std::string::String,
     rx: flume::Receiver<Message>,
 }
 
@@ -210,8 +211,9 @@ enum Message {
 #[derive(Debug, Trace, JsLifetime)]
 #[rquickjs::class]
 pub struct MessageEvent<'js> {
+    ty: String<'js>,
     #[qjs(get)]
-    data: Value<'js>,
+    data: Option<Value<'js>>,
 }
 
 pub struct MessageEventOptions<'js> {
@@ -226,5 +228,21 @@ impl<'js> FromJs<'js> for MessageEventOptions<'js> {
 
 #[rquickjs::methods]
 impl<'js> MessageEvent<'js> {
-    pub fn new(ty: String<'js>) -> rquickjs::Result<MessageEvent<'js>> {}
+    pub fn new(
+        ty: String<'js>,
+        ops: Opt<MessageEventOptions<'js>>,
+    ) -> rquickjs::Result<MessageEvent<'js>> {
+        Ok(MessageEvent { data: None, ty })
+    }
 }
+
+impl<'js> NativeEvent<'js> for MessageEvent<'js> {
+    fn ty(
+        this: rquickjs::prelude::This<Class<'js, Self>>,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<String<'js>> {
+        Ok(this.borrow().ty.clone())
+    }
+}
+
+impl<'js> Subclass<'js, Event<'js>> for MessageEvent<'js> {}

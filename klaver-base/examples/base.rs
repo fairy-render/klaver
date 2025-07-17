@@ -3,7 +3,7 @@ use klaver_runner::{FuncFn, Runner};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Module, Value, class::JsClass, prelude::Func,
 };
-use rquickjs_util::{RuntimeError, StringRef};
+use rquickjs_util::{Inheritable, RuntimeError, StringRef, Subclass, SuperClass};
 
 fn main() -> Result<(), RuntimeError> {
     futures::executor::block_on(async move {
@@ -15,15 +15,15 @@ fn main() -> Result<(), RuntimeError> {
             &context,
             FuncFn::new(|ctx, worker| {
                 Box::pin(async move {
-                    AbortSignal::add_event_target_prototype(&ctx)?;
-                    EventTarget::inherit::<AbortSignal>(&ctx)?;
+                    // AbortSignal::add_event_target_prototype(&ctx)?;
+                    AbortSignal::inherit(&ctx)?;
 
                     let signal = Class::instance(ctx.clone(), AbortSignal::new()?)?
                         .into_value()
                         .into_object()
                         .unwrap();
 
-                    println!("IS ISTANCEOF {}", EventTarget::instance_of(&ctx, &signal)?);
+                    println!("IS ISTANCEOF {}", EventTarget::is_subclass(&ctx, &signal)?);
 
                     println!("FUNC {:?}", signal.get::<_, Value>("addEventListener")?);
 

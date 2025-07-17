@@ -1,6 +1,7 @@
 use rquickjs::{Class, Ctx, Function, JsLifetime, class::Trace};
+use rquickjs_util::Subclass;
 
-use crate::{Emitter, Event, EventList};
+use crate::{DynEvent, Emitter, Event, EventList, EventTarget};
 
 #[rquickjs::class]
 pub struct AbortSignal<'js> {
@@ -56,7 +57,7 @@ impl<'js> Emitter<'js> for AbortSignal<'js> {
         &mut self.listeners
     }
 
-    fn dispatch(&self, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+    fn dispatch(&self, event: DynEvent<'js>) -> rquickjs::Result<()> {
         if let Some(onabort) = &self.onabort {
             onabort.call::<_, ()>((event,))?;
         }
@@ -64,3 +65,5 @@ impl<'js> Emitter<'js> for AbortSignal<'js> {
         Ok(())
     }
 }
+
+impl<'js> Subclass<'js, EventTarget<'js>> for AbortSignal<'js> {}

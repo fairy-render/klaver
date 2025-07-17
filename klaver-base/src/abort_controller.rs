@@ -54,11 +54,10 @@ impl<'js> AbortController<'js> {
             onabort.call_arg::<()>(args)?;
         }
 
-        Emitter::dispatch_event(
-            This(self.signal.clone()),
-            ctx.clone(),
-            Class::instance(ctx.clone(), Event::new_native(&ctx, "abort")?)?,
-        )?;
+        self.signal
+            .borrow()
+            .dispatch_native(&ctx, Event::new_native(&ctx, "abort")?)?;
+
         Ok(())
     }
 }

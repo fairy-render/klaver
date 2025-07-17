@@ -1,8 +1,9 @@
 use rquickjs::{
     Class, Ctx, JsLifetime, Object, Value,
     class::{JsClass, Trace},
+    prelude::Func,
 };
-use rquickjs_util::{Inheritable, Inheritable2, throw};
+use rquickjs_util::{Inheritable, SuperClass, throw};
 
 use super::emitter::{Emitter, EventList};
 
@@ -26,30 +27,20 @@ impl<'js> EventTarget<'js> {
     }
 }
 
-impl<'js> EventTarget<'js> {
-    // pub fn inherit<T: Emitter<'js>>(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
-    //     let event_target = Class::<Self>::prototype(ctx)?;
-    //     let proto = Class::<T>::prototype(ctx)?;
+impl<'js, T> Inheritable<'js, T> for EventTarget<'js>
+where
+    T: JsClass<'js> + Emitter<'js>,
+{
+    fn additional_override(ctx: &Ctx<'js>, proto: &Object<'js>) -> rquickjs::Result<()> {
+        proto.set("addEventListener", Func::new(T::add_event_listener))?;
+        proto.set("removeEventListener", Func::new(T::remove_event_listener))?;
+        proto.set("dispatchEvent", Func::new(T::dispatch_event))?;
 
-    //     let Some(proto) = proto else {
-    //         throw!(@type ctx, "Could not get prototype")
-    //     };
-
-    //     proto.set_prototype(event_target.as_ref())?;
-
-    //     Ok(())
-    // }
-
-    // pub fn instance_of(ctx: &Ctx<'js>, value: &Object<'js>) -> rquickjs::Result<bool> {
-    //     let ctor = Class::<Self>::create_constructor(ctx)?;
-
-    //     let Some(ctor) = ctor else { panic!("no ctor") };
-
-    //     Ok(value.is_instance_of(&ctor))
-    // }
+        Ok(())
+    }
 }
 
-impl<'js, T> Inheritable2<'js, T> for EventTarget<'js> where T: JsClass<'js> {}
+impl<'js> SuperClass<'js> for EventTarget<'js> {}
 
 impl<'js> Emitter<'js> for EventTarget<'js> {
     fn get_listeners(&self) -> &EventList<'js> {
