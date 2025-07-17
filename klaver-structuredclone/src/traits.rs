@@ -4,11 +4,13 @@ use std::{
 };
 
 use ordered_float::OrderedFloat;
-use rquickjs::{Class, Ctx, FromJs, IntoJs, Object, String, Value, class::JsClass};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use rquickjs::{
+    Array, ArrayBuffer, Class, Ctx, FromJs, IntoJs, Object, String, Type, Value, class::JsClass,
+};
+use rquickjs_util::{Date, Map, Set, throw, util::ArrayExt};
 
 use crate::{
-    Registry,
+    Registry, get_tag,
     value::{TransObject, TransferData},
 };
 
@@ -44,15 +46,18 @@ impl StructuredClone for StringCloner {
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
-        registry: &Registry,
+        _registry: &Registry,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
-        todo!()
+        match obj {
+            TransferData::String(str) => rquickjs::String::from_str(ctx.clone(), &str),
+            _ => throw!(@type ctx, "Expected String"),
+        }
     }
 
     fn to_transfer_object<'js>(
         _ctx: &Ctx<'js>,
-        registry: &Registry,
+        _: &Registry,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::String(value.to_string()?))
@@ -75,7 +80,10 @@ impl StructuredClone for IntCloner {
         registry: &Registry,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
-        todo!()
+        match obj {
+            TransferData::Integer(i) => Ok(i),
+            _ => throw!(@type ctx, "Expected integer"),
+        }
     }
 
     fn to_transfer_object<'js>(
@@ -103,7 +111,10 @@ impl StructuredClone for FloatCloner {
         registry: &Registry,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
-        todo!()
+        match obj {
+            TransferData::Float(i) => Ok(*i),
+            _ => throw!(@type ctx, "Expected Float"),
+        }
     }
 
     fn to_transfer_object<'js>(
@@ -128,10 +139,13 @@ impl StructuredClone for BoolCloner {
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
-        registry: &Registry,
+        _registry: &Registry,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
-        todo!()
+        match obj {
+            TransferData::Bool(i) => Ok(i),
+            _ => throw!(@type ctx, "Expected Boolean"),
+        }
     }
 
     fn to_transfer_object<'js>(
@@ -147,12 +161,151 @@ impl Clonable for bool {
     type Cloner = BoolCloner;
 }
 
+// Null
+
+#[derive(Debug, Clone, Copy)]
+pub struct NullClone<T>(PhantomData<T>);
+
+impl<T> NullClone<T> {
+    pub fn new() -> NullClone<T> {
+        NullClone(PhantomData)
+    }
+}
+
+impl<T> StructuredClone for NullClone<T>
+where
+    T: StructuredClone,
+{
+    const TAG: &'static str = "Null";
+    type Item<'js> = Option<T::Item<'js>>;
+
+    fn from_transfer_object<'js>(
+        ctx: &Ctx<'js>,
+        registry: &Registry,
+        obj: TransferData,
+    ) -> rquickjs::Result<Self::Item<'js>> {
+        match obj {
+            TransferData::Option(ret) => match ret {
+                Some(ret) => Ok(Some(T::from_transfer_object(ctx, registry, *ret)?)),
+                None => Ok(None),
+            },
+            _ => throw!(@type ctx, "Expected integer"),
+        }
+    }
+
+    fn to_transfer_object<'js>(
+        ctx: &Ctx<'js>,
+        registry: &Registry,
+        value: &Self::Item<'js>,
+    ) -> rquickjs::Result<TransferData> {
+        match value {
+            Some(ret) => Ok(TransferData::Option(Some(Box::new(T::to_transfer_object(
+                ctx, registry, ret,
+            )?)))),
+            None => Ok(TransferData::Option(None)),
+        }
+    }
+}
+
+impl<T> Clonable for Option<T>
+where
+    T: StructuredClone + 'static,
+{
+    type Cloner = NullClone<T>;
+}
+
+// DAte
+
+#[derive(Debug, Clone, Copy)]
+pub struct DateCloner;
+
+impl StructuredClone for DateCloner {
+    const TAG: &'static str = "Date";
+    type Item<'js> = Date<'js>;
+
+    fn from_transfer_object<'js>(
+        ctx: &Ctx<'js>,
+        _registry: &Registry,
+        obj: TransferData,
+    ) -> rquickjs::Result<Self::Item<'js>> {
+        match obj {
+            TransferData::String(i) => Ok(Date::from_str(ctx, &i)?),
+            _ => throw!(@type ctx, "Expected Boolean"),
+        }
+    }
+
+    fn to_transfer_object<'js>(
+        _ctx: &Ctx<'js>,
+        _registry: &Registry,
+        value: &Self::Item<'js>,
+    ) -> rquickjs::Result<TransferData> {
+        Ok(TransferData::String(
+            value.to_string()?.as_str().to_string(),
+        ))
+    }
+}
+
+impl<'js> Clonable for Date<'js> {
+    type Cloner = DateCloner;
+}
+
 pub struct ObjectCloner;
 
 impl StructuredClone for ObjectCloner {
     const TAG: &'static str = "Object";
 
     type Item<'js> = Object<'js>;
+
+    fn from_transfer_object<'js>(
+        ctx: &Ctx<'js>,
+        registry: &Registry,
+        obj: TransferData,
+    ) -> rquickjs::Result<Self::Item<'js>> {
+        let TransferData::Object(btree) = obj else {
+            throw!(@type ctx, "Expected Object")
+        };
+
+        let obj = Object::new(ctx.clone())?;
+
+        for (k, v) in btree {
+            let key = registry.from_transfer_object_value(ctx, k)?;
+            let val = registry.from_transfer_object_value(ctx, v)?;
+            obj.set(key, val)?;
+        }
+
+        Ok(obj)
+    }
+
+    fn to_transfer_object<'js>(
+        ctx: &Ctx<'js>,
+        registry: &Registry,
+        value: &Self::Item<'js>,
+    ) -> rquickjs::Result<TransferData> {
+        let mut output = BTreeMap::new();
+
+        for ret in value.clone().into_iter() {
+            let (k, v) = ret?;
+            let key = registry.to_transfer_object::<String>(ctx, k.to_js_string()?)?;
+            let value = value_transfer(ctx, registry, &v)?;
+            output.insert(key, value);
+        }
+
+        Ok(TransferData::Object(output))
+    }
+}
+
+impl<'js> Clonable for Object<'js> {
+    type Cloner = ObjectCloner;
+}
+
+// Array
+
+pub struct ArrayCloner;
+
+impl StructuredClone for ArrayCloner {
+    const TAG: &'static str = "Array";
+
+    type Item<'js> = Array<'js>;
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -167,21 +320,20 @@ impl StructuredClone for ObjectCloner {
         registry: &Registry,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
-        let mut output = BTreeMap::new();
+        let mut output = Vec::new();
 
         for ret in value.clone().into_iter() {
-            let (k, v) = ret?;
-            let key = registry.to_transfer_object::<String>(ctx, k.to_js_string()?)?;
-            let value = registry.to_transfer_object_value(ctx, &v)?;
-            output.insert(key, value);
+            let value = ret?;
+            let value = value_transfer(ctx, registry, &value)?;
+            output.push(value);
         }
 
-        Ok(TransferData::Object(output))
+        Ok(TransferData::List(output))
     }
 }
 
-impl<'js> Clonable for Object<'js> {
-    type Cloner = ObjectCloner;
+impl<'js> Clonable for Array<'js> {
+    type Cloner = ArrayCloner;
 }
 
 pub struct ValueCloner;
@@ -196,7 +348,8 @@ impl StructuredClone for ValueCloner {
         registry: &Registry,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
-        todo!()
+        let value = transer_value(ctx, registry, obj)?;
+        Ok(value)
     }
 
     fn to_transfer_object<'js>(
@@ -204,25 +357,7 @@ impl StructuredClone for ValueCloner {
         registry: &Registry,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
-        let data = match value.type_of() {
-            rquickjs::Type::Uninitialized => todo!(),
-            rquickjs::Type::Undefined => todo!(),
-            rquickjs::Type::Null => todo!(),
-            rquickjs::Type::Bool => registry.to_transfer_object_value(ctx, value)?,
-            rquickjs::Type::Int => todo!(),
-            rquickjs::Type::Float => todo!(),
-            rquickjs::Type::String => todo!(),
-            rquickjs::Type::Symbol => todo!(),
-            rquickjs::Type::Array => todo!(),
-            rquickjs::Type::Constructor => todo!(),
-            rquickjs::Type::Function => todo!(),
-            rquickjs::Type::Promise => todo!(),
-            rquickjs::Type::Exception => todo!(),
-            rquickjs::Type::Object => todo!(),
-            rquickjs::Type::Module => todo!(),
-            rquickjs::Type::BigInt => todo!(),
-            rquickjs::Type::Unknown => todo!(),
-        };
+        let data = value_transfer(ctx, registry, value)?;
 
         Ok(TransferData::Item(Box::new(data)))
     }
@@ -230,4 +365,119 @@ impl StructuredClone for ValueCloner {
 
 impl<'js> Clonable for Value<'js> {
     type Cloner = ValueCloner;
+}
+
+fn value_transfer<'js>(
+    ctx: &Ctx<'js>,
+    registry: &Registry,
+    value: &Value<'js>,
+) -> rquickjs::Result<TransObject> {
+    match value.type_of() {
+        Type::Null | Type::Undefined | Type::Uninitialized => registry
+            .get_by_tag(ctx, NullClone::<ValueCloner>::TAG)?
+            .to_transfer_object(ctx, registry, value),
+        Type::Bool => registry
+            .get_by_tag(ctx, BoolCloner::TAG)?
+            .to_transfer_object(ctx, registry, value),
+        Type::Int => registry
+            .get_by_tag(ctx, IntCloner::TAG)?
+            .to_transfer_object(ctx, registry, value),
+        Type::Float => registry
+            .get_by_tag(ctx, FloatCloner::TAG)?
+            .to_transfer_object(ctx, registry, value),
+        Type::String => registry
+            .get_by_tag(ctx, StringCloner::TAG)?
+            .to_transfer_object(ctx, registry, value),
+
+        Type::Array => registry
+            .get_by_tag(ctx, ArrayCloner::TAG)?
+            .to_transfer_object(ctx, registry, value),
+        Type::Object => {
+            //
+
+            if Date::is(ctx, value)? {
+                registry
+                    .get_by_tag(ctx, DateCloner::TAG)?
+                    .to_transfer_object(ctx, registry, value)
+            } else {
+                let obj = value.as_object().unwrap();
+                if let Ok(tag) = get_tag(ctx, obj) {
+                    registry
+                        .get_by_tag(ctx, tag.as_str())?
+                        .to_transfer_object(ctx, registry, value)
+                } else {
+                    registry
+                        .get_by_tag(ctx, ObjectCloner::TAG)?
+                        .to_transfer_object(ctx, registry, value)
+                }
+            }
+            /*if Map::is(ctx, value)? {
+                todo!()
+            } else if Set::is(ctx, value)? {
+                todo!()
+            } else if Date::is(ctx, value)? {
+                todo!()
+            } else {
+                let obj = value.as_object().unwrap();
+                if let Ok(tag) = get_tag(ctx, obj) {
+                    registry
+                        .get_by_tag(ctx, tag.as_str())?
+                        .to_transfer_object(ctx, registry, value)
+                } else {
+                    registry
+                        .get_by_tag(ctx, ObjectCloner::TAG)?
+                        .to_transfer_object(ctx, registry, value)
+                }
+            }*/
+        }
+        Type::Constructor => todo!(),
+        Type::Function => todo!(),
+        Type::Promise => todo!(),
+        Type::Exception => todo!(),
+
+        Type::Module => todo!(),
+        Type::BigInt => todo!(),
+        Type::Unknown => todo!(),
+        Type::Symbol => todo!(),
+    }
+}
+
+fn transer_value<'js>(
+    ctx: &Ctx<'js>,
+    registry: &Registry,
+    data: TransferData,
+) -> rquickjs::Result<Value<'js>> {
+    match data {
+        TransferData::String(str) => {
+            Ok(rquickjs::String::from_str(ctx.clone(), &*str)?.into_value())
+        }
+        TransferData::Integer(i) => Ok(Value::new_int(ctx.clone(), i as i32)),
+        TransferData::Float(ordered_float) => Ok(Value::new_float(ctx.clone(), *ordered_float)),
+        TransferData::Bool(b) => Ok(Value::new_bool(ctx.clone(), b)),
+        TransferData::Bytes(b) => Ok(ArrayBuffer::new(ctx.clone(), b)?.into_value()),
+        TransferData::List(trans_objects) => {
+            let output = Array::new(ctx.clone())?;
+
+            for obj in trans_objects {
+                let value = registry.from_transfer_object_value(ctx, obj)?;
+                output.push(value)?;
+            }
+
+            Ok(output.into_value())
+        }
+        TransferData::Object(btree_map) => {
+            Ok(
+                ObjectCloner::from_transfer_object(ctx, registry, TransferData::Object(btree_map))?
+                    .into_value(),
+            )
+        }
+        TransferData::Item(trans_object) => registry.from_transfer_object_value(ctx, *trans_object),
+        TransferData::NativeObject(native_data) => {
+            todo!()
+        }
+        TransferData::Option(opt) => {
+            //
+            todo!()
+        }
+    }
 }

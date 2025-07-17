@@ -1,7 +1,8 @@
 use std::{collections::HashMap, marker::PhantomData};
 
+use indexmap::IndexMap;
 use rquickjs::{Ctx, FromJs, IntoJs, JsLifetime, Value};
-use rquickjs_util::throw;
+use rquickjs_util::{Date, throw};
 
 use crate::{
     traits::{Clonable, StructuredClone},
@@ -9,7 +10,7 @@ use crate::{
 };
 
 pub struct Registry {
-    types: HashMap<String, Box<dyn Cloner + Send + Sync>>,
+    types: IndexMap<String, Box<dyn Cloner + Send + Sync>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for Registry {
@@ -22,14 +23,23 @@ impl Registry {
             types: Default::default(),
         };
 
-        registry.register::<rquickjs::String>()?;
-        registry.register::<rquickjs::Object>()?;
-        registry.register::<rquickjs::Value>()?;
         registry.register::<i64>()?;
         registry.register::<f64>()?;
         registry.register::<bool>()?;
+        registry.register::<Date>()?;
+        registry.register::<rquickjs::String>()?;
+        registry.register::<rquickjs::Object>()?;
+        registry.register::<rquickjs::Value>()?;
 
         Ok(registry)
+    }
+
+    pub fn get_by_tag(&self, ctx: &Ctx<'_>, tag: &str) -> rquickjs::Result<&dyn Cloner> {
+        let Some(cloner) = self.types.get(tag) else {
+            throw!(@type ctx, "No cloner for tag")
+        };
+
+        Ok(&**cloner)
     }
 
     pub fn register<T>(&mut self) -> rquickjs::Result<()>
@@ -65,6 +75,7 @@ impl Registry {
         value: &Value<'js>,
     ) -> rquickjs::Result<Value<'js>> {
         let data = self.to_transfer_object_value(ctx, value)?;
+        // println!("OBJ: {:#?}", data);
         let value = self.from_transfer_object_value(ctx, data)?;
         Ok(value)
     }
@@ -112,7 +123,7 @@ impl Registry {
     }
 }
 
-trait Cloner {
+pub trait Cloner {
     fn tag(&self) -> &str;
 
     fn from_transfer_object<'js>(

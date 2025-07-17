@@ -114,6 +114,12 @@ impl<'js> Date<'js> {
         let func = self.object.get::<_, Function>("toString")?;
         func.call((This(self.object.clone()),))
     }
+
+    pub fn from_str(ctx: &Ctx<'js>, date_string: &str) -> rquickjs::Result<Date<'js>> {
+        let ctor = ctx.eval::<Function, _>("(dateString) => new Date(dateString)")?;
+        let date_obj = ctor.call::<_, Value>((date_string,))?;
+        Date::from_js(ctx, date_obj)
+    }
 }
 
 impl<'js> FromJs<'js> for Date<'js> {

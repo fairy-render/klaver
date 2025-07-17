@@ -1,4 +1,4 @@
-use rquickjs::{promise::PromiseState, Array, Ctx, FromJs, Function, Object, Type, Value};
+use rquickjs::{promise::PromiseState, Array, Ctx, Filter, FromJs, Function, Object, Type, Value};
 use std::fmt::Write;
 
 use crate::{Buffer, Date, StringRef};
@@ -51,7 +51,7 @@ pub fn format_value<'js, W: Write>(
         Type::Bool => write!(f, "{}", rest.as_bool().unwrap()),
         Type::Int => write!(f, "{}", rest.as_int().unwrap()),
         Type::Float => write!(f, "{}", rest.as_float().unwrap()),
-        Type::String => write!(f, "{}", StringRef::from_js(ctx, rest)?),
+        Type::String => write!(f, "\"{}\"", StringRef::from_js(ctx, rest)?),
         Type::Symbol => {
             write!(f, r#"Symbol(""#).unwrap();
             format_value(ctx, rest.as_symbol().unwrap().description()?, f, options)?;
@@ -121,7 +121,10 @@ fn format_object<'js, W: Write>(
     }
 
     o.write_str("{ ").expect("write");
-    for (idx, v) in obj.props::<Value, Value>().enumerate() {
+    for (idx, v) in obj
+        .own_props::<Value, Value>(Filter::new().private().string().symbol())
+        .enumerate()
+    {
         if idx > 0 {
             write!(o, ", ").expect("write");
         }
