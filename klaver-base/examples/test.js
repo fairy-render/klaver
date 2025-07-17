@@ -3,9 +3,13 @@ import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDef
 const output = []
 
 
+
+
 const console = new Console((level, msg) => {
   print(`[${level}] ${msg}`)
 })
+
+console.log(typeof structuredClone);
 
 // const test = new WritableStreamDefaultController({
 

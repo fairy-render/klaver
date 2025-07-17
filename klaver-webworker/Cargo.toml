@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 klaver-runner = { path = "../klaver-runner" }
+klaver-base = { path = "../klaver-base" }
 rquickjs.workspace = true
 rquickjs-util = { path = "../rquickjs-util" }
 

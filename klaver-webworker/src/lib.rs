@@ -1,28 +1,33 @@
 use flume::{Receiver, Sender};
 use futures::{SinkExt, StreamExt, channel::mpsc, future::LocalBoxFuture};
+use klaver_base::{Emitter, EventList};
 use klaver_runner::{Func, Runner, Shutdown, Workers};
 use rquickjs::{
-    AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, JsLifetime, Module, class::Trace,
+    AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
+    String, Value, class::Trace,
 };
 use rquickjs_util::{RuntimeError, Val};
 
 #[rquickjs::class]
-pub struct WebWorker {
+pub struct WebWorker<'js> {
     sx: Sender<Message>,
+    listeners: EventList<'js>,
 }
 
-impl<'js> Trace<'js> for WebWorker {
-    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
+impl<'js> Trace<'js> for WebWorker<'js> {
+    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.listeners.trace(tracer);
+    }
 }
 
-unsafe impl<'js> JsLifetime<'js> for WebWorker {
+unsafe impl<'js> JsLifetime<'js> for WebWorker<'js> {
     type Changed<'to> = WebWorker;
 }
 
 #[rquickjs::methods]
-impl WebWorker {
+impl<'js> WebWorker<'js> {
     #[qjs(constructor)]
-    pub fn new<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<WebWorker> {
+    pub fn new(ctx: Ctx<'js>, path: String) -> rquickjs::Result<Class<'js, WebWorker<'js>>> {
         let (work_sx, work_rx) = flume::bounded(1);
         let (parent_sx, parent_rx) = flume::bounded(1);
 
@@ -32,20 +37,32 @@ impl WebWorker {
             work(&path, work_rx, parent_sx).ok();
         });
 
+        let this = Class::instance(
+            ctx.clone(),
+            WebWorker {
+                sx: work_sx,
+                listeners: EventList::default(),
+            },
+        )?;
+
+        let cloned_this = this.clone();
         workers.push(ctx.clone(), |ctx, kill| async move {
-            listen(ctx.clone(), kill, parent_rx).await.catch(&ctx)?;
+            listen(ctx.clone(), kill, parent_rx, cloned_this)
+                .await
+                .catch(&ctx)?;
             Ok(())
         });
 
-        Ok(WebWorker { sx: work_sx })
+        Ok(this)
     }
 
     #[qjs(rename = "postMessage")]
-    pub fn post_message<'js>(&self, ctx: Ctx<'js>, msg: Val) -> rquickjs::Result<()> {
+    pub fn post_message(&self, ctx: Ctx<'js>, msg: Val) -> rquickjs::Result<()> {
         let sx = self.sx.clone();
         ctx.spawn(async move {
             sx.send_async(Message::Event(msg)).await.ok();
         });
+
         Ok(())
     }
 
@@ -54,8 +71,42 @@ impl WebWorker {
     }
 }
 
-async fn listen<'js>(ctx: Ctx<'js>, kill: Shutdown, rx: Receiver<Val>) -> rquickjs::Result<()> {
-    loop {}
+impl<'js> Emitter<'js> for WebWorker<'js> {
+    fn get_listeners(&self) -> &EventList<'js> {
+        &self.listeners
+    }
+
+    fn get_listeners_mut(&mut self) -> &mut EventList<'js> {
+        &mut self.listeners
+    }
+}
+
+async fn listen<'js>(
+    ctx: Ctx<'js>,
+    mut kill: Shutdown,
+    rx: Receiver<Val>,
+    worker: Class<'js, WebWorker<'js>>,
+) -> rquickjs::Result<()> {
+    loop {
+        if kill.is_killed() {
+            return Ok(());
+        }
+
+        futures::select! {
+            ret = rx.recv_async() => {
+
+                let Ok(ret) = ret else {
+                    // Channel closed, which means the worker thread is terminated
+                    return Ok(())
+                };
+
+
+            }
+            _ = kill => {
+                return Ok(())
+            }
+        }
+    }
 
     Ok(())
 }
@@ -154,4 +205,26 @@ impl Func for Work {
 enum Message {
     Kill,
     Event(Val),
+}
+
+#[derive(Debug, Trace, JsLifetime)]
+#[rquickjs::class]
+pub struct MessageEvent<'js> {
+    #[qjs(get)]
+    data: Value<'js>,
+}
+
+pub struct MessageEventOptions<'js> {
+    data: Option<Value<'js>>,
+}
+
+impl<'js> FromJs<'js> for MessageEventOptions<'js> {
+    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+        todo!()
+    }
+}
+
+#[rquickjs::methods]
+impl<'js> MessageEvent<'js> {
+    pub fn new(ty: String<'js>) -> rquickjs::Result<MessageEvent<'js>> {}
 }

@@ -126,7 +126,21 @@ where
     }
 
     #[allow(unused)]
-    fn dispatch(&mut self, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+    fn dispatch(&self, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+        Ok(())
+    }
+
+    fn dispatch_inner(&self, ctx: Ctx<'js>, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
+        self.dispatch(event.clone())?;
+
+        let Some(listeners) = self.get_listeners().get(&event.borrow().ty) else {
+            return Ok(());
+        };
+
+        for listener in listeners {
+            listener.callback.call(ctx.clone(), event.clone())?;
+        }
+
         Ok(())
     }
 
@@ -180,18 +194,7 @@ where
         ctx: Ctx<'js>,
         event: Class<'js, Event<'js>>,
     ) -> rquickjs::Result<()> {
-        this.0.borrow_mut().dispatch(event.clone())?;
-
-        let this = this.0.borrow();
-        let Some(listeners) = this.get_listeners().get(&event.borrow().ty) else {
-            return Ok(());
-        };
-
-        for listener in listeners {
-            listener.callback.call(ctx.clone(), event.clone())?;
-        }
-
-        Ok(())
+        this.borrow().dispatch_inner(ctx, event)
     }
 }
 

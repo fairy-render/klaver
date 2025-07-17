@@ -2148,6 +2148,7 @@ version = "0.1.0"
 dependencies = [
  "flume",
  "futures",
+ "klaver-base",
  "klaver-runner",
  "rquickjs",
  "rquickjs-util",
