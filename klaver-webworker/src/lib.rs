@@ -1,5 +1,6 @@
+use flume::{Receiver, Sender};
 use futures::{SinkExt, StreamExt, channel::mpsc, future::LocalBoxFuture};
-use klaver_runner::{Func, FuncFn, Runner, Shutdown, Workers};
+use klaver_runner::{Func, Runner, Shutdown, Workers};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, JsLifetime, Module, class::Trace,
 };
@@ -7,12 +8,11 @@ use rquickjs_util::{RuntimeError, Val};
 
 #[rquickjs::class]
 pub struct WebWorker {
-    sx: mpsc::Sender<Message>,
-    rx: mpsc::Receiver<Val>,
+    sx: Sender<Message>,
 }
 
 impl<'js> Trace<'js> for WebWorker {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {}
+    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
 
 unsafe impl<'js> JsLifetime<'js> for WebWorker {
@@ -23,31 +23,28 @@ unsafe impl<'js> JsLifetime<'js> for WebWorker {
 impl WebWorker {
     #[qjs(constructor)]
     pub fn new<'js>(ctx: Ctx<'js>, path: String) -> rquickjs::Result<WebWorker> {
-        let (work_sx, work_rx) = mpsc::channel(1);
-        let (parent_sx, parent_rx) = mpsc::channel(1);
+        let (work_sx, work_rx) = flume::bounded(1);
+        let (parent_sx, parent_rx) = flume::bounded(1);
 
         let workers = Workers::from_ctx(&ctx)?;
 
         std::thread::spawn(move || {
-            work(&path, work_rx, parent_sx);
+            work(&path, work_rx, parent_sx).ok();
         });
 
         workers.push(ctx.clone(), |ctx, kill| async move {
-            listen(ctx.clone(), kill).await.catch(&ctx)?;
+            listen(ctx.clone(), kill, parent_rx).await.catch(&ctx)?;
             Ok(())
         });
 
-        Ok(WebWorker {
-            sx: work_sx,
-            rx: parent_rx,
-        })
+        Ok(WebWorker { sx: work_sx })
     }
 
     #[qjs(rename = "postMessage")]
     pub fn post_message<'js>(&self, ctx: Ctx<'js>, msg: Val) -> rquickjs::Result<()> {
-        let mut sx = self.sx.clone();
+        let sx = self.sx.clone();
         ctx.spawn(async move {
-            sx.send(Message::Event(msg)).await;
+            sx.send_async(Message::Event(msg)).await.ok();
         });
         Ok(())
     }
@@ -57,14 +54,16 @@ impl WebWorker {
     }
 }
 
-async fn listen<'js>(ctx: Ctx<'js>, kill: Shutdown) -> rquickjs::Result<()> {
+async fn listen<'js>(ctx: Ctx<'js>, kill: Shutdown, rx: Receiver<Val>) -> rquickjs::Result<()> {
+    loop {}
+
     Ok(())
 }
 
 fn work(
     path: &str,
-    rx: mpsc::Receiver<Message>,
-    sx: mpsc::Sender<Val>,
+    rx: flume::Receiver<Message>,
+    sx: flume::Sender<Val>,
 ) -> Result<(), RuntimeError> {
     futures::executor::block_on(async move {
         let runtime = AsyncRuntime::new()?;
@@ -76,9 +75,9 @@ fn work(
                     "postMessage",
                     rquickjs::prelude::Func::from(rquickjs::function::MutFn::new(
                         move |ctx: Ctx<'_>, msg: Val| {
-                            let mut sx = sx.clone();
+                            let sx = sx.clone();
                             ctx.spawn(async move {
-                                sx.send(msg).await.ok();
+                                sx.send_async(msg).await.ok();
                             });
                             rquickjs::Result::Ok(())
                         },
@@ -91,7 +90,6 @@ fn work(
             &context,
             Work {
                 path: path.to_string(),
-                // sx,
                 rx,
             },
         );
@@ -102,14 +100,13 @@ fn work(
 
 struct Work {
     path: String,
-    // sx: mpsc::Sender<Val>,
-    rx: mpsc::Receiver<Message>,
+    rx: flume::Receiver<Message>,
 }
 
 impl Func for Work {
     type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
-    fn call<'js>(mut self, ctx: Ctx<'js>, worker: klaver_runner::Workers) -> Self::Future<'js> {
+    fn call<'js>(self, ctx: Ctx<'js>, worker: klaver_runner::Workers) -> Self::Future<'js> {
         Box::pin(async move {
             worker.push(ctx.clone(), |ctx, mut shutdown| async move {
                 //
@@ -124,8 +121,8 @@ impl Func for Work {
                         _ = shutdown => {
                             break
                         }
-                        val = self.rx.next() => {
-                            let Some(val) = val else {
+                        val = self.rx.recv_async() => {
+                            let Ok(val) = val else {
                                 break;
                             };
 
