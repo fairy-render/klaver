@@ -1,24 +1,19 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    marker::PhantomData,
-};
-
-use ordered_float::OrderedFloat;
-use rquickjs::{
-    Array, ArrayBuffer, Class, Ctx, FromJs, IntoJs, Object, String, Type, Value, class::JsClass,
-};
+use rquickjs::{Array, ArrayBuffer, Ctx, FromJs, IntoJs, Object, String, Type, Value};
 use rquickjs_util::{Date, Map, Set, throw, util::ArrayExt};
+use std::{collections::BTreeMap, marker::PhantomData};
 
 use crate::{
     Registry, get_tag,
+    tag::Tag,
     value::{TransObject, TransferData},
 };
 
 pub trait StructuredClone: Sized {
-    const TAG: &'static str;
     const TRANSFERBLE: bool = false;
 
     type Item<'js>: IntoJs<'js> + FromJs<'js>;
+
+    fn tag() -> &'static Tag;
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -41,8 +36,12 @@ pub trait Clonable {
 pub struct StringCloner;
 
 impl StructuredClone for StringCloner {
-    const TAG: &'static str = "String";
     type Item<'js> = rquickjs::String<'js>;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -72,8 +71,12 @@ impl<'js> Clonable for rquickjs::String<'js> {
 pub struct IntCloner;
 
 impl StructuredClone for IntCloner {
-    const TAG: &'static str = "Integer";
     type Item<'js> = i64;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -103,8 +106,12 @@ impl Clonable for i64 {
 pub struct FloatCloner;
 
 impl StructuredClone for FloatCloner {
-    const TAG: &'static str = "Float";
     type Item<'js> = f64;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -134,8 +141,12 @@ impl Clonable for f64 {
 pub struct BoolCloner;
 
 impl StructuredClone for BoolCloner {
-    const TAG: &'static str = "Boolean";
     type Item<'js> = bool;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -176,8 +187,12 @@ impl<T> StructuredClone for NullClone<T>
 where
     T: StructuredClone,
 {
-    const TAG: &'static str = "Null";
     type Item<'js> = Option<T::Item<'js>>;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -220,8 +235,12 @@ where
 pub struct DateCloner;
 
 impl StructuredClone for DateCloner {
-    const TAG: &'static str = "Date";
     type Item<'js> = Date<'js>;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -252,9 +271,12 @@ impl<'js> Clonable for Date<'js> {
 pub struct ObjectCloner;
 
 impl StructuredClone for ObjectCloner {
-    const TAG: &'static str = "Object";
-
     type Item<'js> = Object<'js>;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -303,9 +325,12 @@ impl<'js> Clonable for Object<'js> {
 pub struct ArrayCloner;
 
 impl StructuredClone for ArrayCloner {
-    const TAG: &'static str = "Array";
-
     type Item<'js> = Array<'js>;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -339,9 +364,12 @@ impl<'js> Clonable for Array<'js> {
 pub struct ValueCloner;
 
 impl StructuredClone for ValueCloner {
-    const TAG: &'static str = "JsValue";
-
     type Item<'js> = Value<'js>;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     fn from_transfer_object<'js>(
         ctx: &Ctx<'js>,
@@ -374,40 +402,40 @@ fn value_transfer<'js>(
 ) -> rquickjs::Result<TransObject> {
     match value.type_of() {
         Type::Null | Type::Undefined | Type::Uninitialized => registry
-            .get_by_tag(ctx, NullClone::<ValueCloner>::TAG)?
+            .get_by_tag(ctx, &NullClone::<ValueCloner>::tag())?
             .to_transfer_object(ctx, registry, value),
         Type::Bool => registry
-            .get_by_tag(ctx, BoolCloner::TAG)?
+            .get_by_tag(ctx, &BoolCloner::tag())?
             .to_transfer_object(ctx, registry, value),
         Type::Int => registry
-            .get_by_tag(ctx, IntCloner::TAG)?
+            .get_by_tag(ctx, &IntCloner::tag())?
             .to_transfer_object(ctx, registry, value),
         Type::Float => registry
-            .get_by_tag(ctx, FloatCloner::TAG)?
+            .get_by_tag(ctx, &FloatCloner::tag())?
             .to_transfer_object(ctx, registry, value),
         Type::String => registry
-            .get_by_tag(ctx, StringCloner::TAG)?
+            .get_by_tag(ctx, &StringCloner::tag())?
             .to_transfer_object(ctx, registry, value),
 
         Type::Array => registry
-            .get_by_tag(ctx, ArrayCloner::TAG)?
+            .get_by_tag(ctx, &ArrayCloner::tag())?
             .to_transfer_object(ctx, registry, value),
         Type::Object => {
             //
 
             if Date::is(ctx, value)? {
                 registry
-                    .get_by_tag(ctx, DateCloner::TAG)?
+                    .get_by_tag(ctx, &DateCloner::tag())?
                     .to_transfer_object(ctx, registry, value)
             } else {
                 let obj = value.as_object().unwrap();
                 if let Ok(tag) = get_tag(ctx, obj) {
                     registry
-                        .get_by_tag(ctx, tag.as_str())?
+                        .get_by_tag(ctx, &tag)?
                         .to_transfer_object(ctx, registry, value)
                 } else {
                     registry
-                        .get_by_tag(ctx, ObjectCloner::TAG)?
+                        .get_by_tag(ctx, &ObjectCloner::tag())?
                         .to_transfer_object(ctx, registry, value)
                 }
             }

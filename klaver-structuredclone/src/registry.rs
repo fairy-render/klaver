@@ -5,12 +5,13 @@ use rquickjs::{Ctx, FromJs, IntoJs, JsLifetime, Value};
 use rquickjs_util::{Date, throw};
 
 use crate::{
+    tag::Tag,
     traits::{Clonable, StructuredClone},
     value::TransObject,
 };
 
 pub struct Registry {
-    types: IndexMap<String, Box<dyn Cloner + Send + Sync>>,
+    types: IndexMap<Tag, Box<dyn Cloner + Send + Sync>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for Registry {
@@ -34,7 +35,7 @@ impl Registry {
         Ok(registry)
     }
 
-    pub fn get_by_tag(&self, ctx: &Ctx<'_>, tag: &str) -> rquickjs::Result<&dyn Cloner> {
+    pub fn get_by_tag(&self, ctx: &Ctx<'_>, tag: &Tag) -> rquickjs::Result<&dyn Cloner> {
         let Some(cloner) = self.types.get(tag) else {
             throw!(@type ctx, "No cloner for tag")
         };
@@ -47,12 +48,12 @@ impl Registry {
         T: Clonable,
         T::Cloner: Send + Sync,
     {
-        if self.types.contains_key(T::Cloner::TAG) {
+        if self.types.contains_key(T::Cloner::tag()) {
             todo!()
         }
 
         self.types.insert(
-            T::Cloner::TAG.to_string(),
+            T::Cloner::tag().clone(),
             Box::new(ClonerImpl::<T::Cloner>(PhantomData)),
         );
 
@@ -88,7 +89,7 @@ impl Registry {
         let value = T::Cloner::to_transfer_object(ctx, self, &value)?;
 
         Ok(TransObject {
-            tag: T::Cloner::TAG.to_string(),
+            tag: T::Cloner::tag().clone(),
             data: value,
         })
     }
@@ -124,7 +125,7 @@ impl Registry {
 }
 
 pub trait Cloner {
-    fn tag(&self) -> &str;
+    fn tag(&self) -> Tag;
 
     fn from_transfer_object<'js>(
         &self,
@@ -147,8 +148,8 @@ impl<T> Cloner for ClonerImpl<T>
 where
     T: StructuredClone,
 {
-    fn tag(&self) -> &str {
-        &T::TAG
+    fn tag(&self) -> Tag {
+        T::tag().clone()
     }
 
     fn from_transfer_object<'js>(
@@ -172,7 +173,7 @@ where
         let data = T::to_transfer_object(ctx, registry, &value)?;
 
         Ok(TransObject {
-            tag: T::TAG.to_string(),
+            tag: T::tag().clone(),
             data,
         })
     }

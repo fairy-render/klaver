@@ -25,9 +25,9 @@ function isObject(o, strict = true) {
 
 const test = new TestClass("Rasmus");
 
-print(isObject(test))
-print(isObject(new Date))
-print(isObject({}))
+print(isPlainObject(test))
+print(isPlainObject(new Date))
+print(isPlainObject({}))
 const date = structuredClone({
   date: new Date,
   value: 20,

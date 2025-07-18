@@ -1,13 +1,16 @@
 mod bindings;
 mod module;
 mod registry;
+mod tag;
 mod traits;
 mod value;
 
 use rquickjs::{Class, Ctx, Object, Symbol, class::JsClass};
-use rquickjs_util::{StringRef, throw};
+use rquickjs_util::throw;
 
-pub use self::{bindings::structured_clone, module::*, registry::Registry, traits::*, value::*};
+pub use self::{
+    bindings::structured_clone, module::*, registry::Registry, tag::Tag, traits::*, value::*,
+};
 
 pub fn get_symbol<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Symbol<'js>> {
     ctx.eval("Symbol.for('$Tag')")
@@ -22,11 +25,11 @@ where
         throw!(ctx, "Could not get prototype")
     };
 
-    proto.set(get_symbol(ctx)?, T::Cloner::TAG)?;
+    proto.set(get_symbol(ctx)?, T::Cloner::tag().clone())?;
 
     Ok(())
 }
 
-pub fn get_tag<'js>(ctx: &Ctx<'js>, obj: &Object<'js>) -> rquickjs::Result<StringRef<'js>> {
+pub fn get_tag<'js>(ctx: &Ctx<'js>, obj: &Object<'js>) -> rquickjs::Result<Tag> {
     obj.get(get_symbol(ctx)?)
 }

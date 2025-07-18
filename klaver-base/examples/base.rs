@@ -1,9 +1,12 @@
 use klaver_base::{AbortSignal, Emitter, EventTarget, streams::WritableStream};
 use klaver_runner::{FuncFn, Runner};
 use rquickjs::{
-    AsyncContext, AsyncRuntime, CatchResultExt, Class, Module, Value, class::JsClass, prelude::Func,
+    AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, Module, Value, class::JsClass,
+    prelude::Func,
 };
-use rquickjs_util::{Inheritable, RuntimeError, StringRef, Subclass, SuperClass};
+use rquickjs_util::{
+    Inheritable, RuntimeError, StringRef, Subclass, SuperClass, util::is_plain_object,
+};
 
 fn main() -> Result<(), RuntimeError> {
     futures::executor::block_on(async move {

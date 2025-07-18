@@ -1,11 +1,15 @@
 use klaver_structuredclone::{
-    Clonable, Registry, StringCloner, StructuredClone, set_tag, structured_clone,
+    Clonable, Registry, StringCloner, StructuredClone, Tag, set_tag, structured_clone,
 };
 use rquickjs::{
     CatchResultExt, Class, Context, Ctx, JsLifetime, Runtime, String, Value, class::Trace,
     prelude::Func,
 };
-use rquickjs_util::{Date, RuntimeError, StringRef, format::format};
+use rquickjs_util::{Date, RuntimeError, StringRef, format::format, util::is_plain_object};
+
+fn is_object<'js>(ctx: Ctx<'js>, value: Value<'js>) -> rquickjs::Result<bool> {
+    is_plain_object(&ctx, &value)
+}
 
 #[derive(Trace, JsLifetime)]
 #[rquickjs::class]
@@ -25,7 +29,10 @@ impl<'js> TestClass<'js> {
 pub struct TestClassCloner;
 
 impl StructuredClone for TestClassCloner {
-    const TAG: &'static str = "TestClass";
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
 
     type Item<'js> = Class<'js, TestClass<'js>>;
 
@@ -72,6 +79,8 @@ fn main() -> Result<(), RuntimeError> {
                 rquickjs::Result::Ok(())
             }),
         )?;
+
+        ctx.globals().set("isPlainObject", Func::from(is_object))?;
 
         Class::<TestClass>::define(&ctx.globals())?;
         set_tag::<TestClass>(&ctx)?;
