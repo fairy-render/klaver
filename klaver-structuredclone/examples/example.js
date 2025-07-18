@@ -32,7 +32,8 @@ const date = structuredClone({
   date: new Date,
   value: 20,
   test: 'eeww',
-  class: test
+  class: test,
+  reg: new RegExp('/test/')
 });
 print(date)
 print(date.class === test)

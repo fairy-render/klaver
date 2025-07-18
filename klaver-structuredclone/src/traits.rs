@@ -1,5 +1,8 @@
 use rquickjs::{Array, ArrayBuffer, Ctx, FromJs, IntoJs, Object, String, Type, Value};
-use rquickjs_util::{Date, Map, Set, throw, util::ArrayExt};
+use rquickjs_util::{
+    Date, Map, Set, throw,
+    util::{ArrayExt, is_plain_object},
+};
 use std::{collections::BTreeMap, marker::PhantomData};
 
 use crate::{
@@ -433,10 +436,12 @@ fn value_transfer<'js>(
                     registry
                         .get_by_tag(ctx, &tag)?
                         .to_transfer_object(ctx, registry, value)
-                } else {
+                } else if is_plain_object(ctx, value)? {
                     registry
                         .get_by_tag(ctx, &ObjectCloner::tag())?
                         .to_transfer_object(ctx, registry, value)
+                } else {
+                    throw!(@type ctx, "Not serializable")
                 }
             }
             /*if Map::is(ctx, value)? {
