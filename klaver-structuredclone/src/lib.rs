@@ -5,8 +5,8 @@ mod tag;
 mod traits;
 mod value;
 
-use rquickjs::{Class, Ctx, Object, Symbol, class::JsClass};
-use rquickjs_util::throw;
+use rquickjs::{Class, Ctx, Function, Object, String, Symbol, Type, Value, class::JsClass};
+use rquickjs_util::{Date, Map, Set, StringRef, throw, util::is_plain_object, val};
 
 pub use self::{
     bindings::structured_clone, module::*, registry::Registry, tag::Tag, traits::*, value::*,
@@ -32,4 +32,61 @@ where
 
 pub fn get_tag<'js>(ctx: &Ctx<'js>, obj: &Object<'js>) -> rquickjs::Result<Tag> {
     obj.get(get_symbol(ctx)?)
+}
+
+pub fn get_tag_value<'js>(ctx: &Ctx<'js>, value: &Value<'js>) -> rquickjs::Result<Tag> {
+    let tag = match value.type_of() {
+        Type::Null | Type::Uninitialized | Type::Undefined => NullClone::<StringCloner>::tag(),
+        Type::Bool => BoolCloner::tag(),
+        Type::Int => IntCloner::tag(),
+        Type::Float => FloatCloner::tag(),
+        Type::String => StringCloner::tag(),
+        Type::Array => ArrayCloner::tag(),
+        Type::Object => {
+            let Some(obj) = value.as_object() else {
+                throw!(@type ctx, "Expected object")
+            };
+
+            if let Ok(tag) = obj.get(get_symbol(ctx)?) {
+                return Ok(tag);
+            }
+
+            if Map::is(ctx, value)? {
+                todo!()
+            } else if Set::is(ctx, value)? {
+                todo!()
+            } else if Date::is(ctx, value)? {
+                DateCloner::tag()
+            } else if is_plain_object(ctx, value)? {
+                ObjectCloner::tag()
+            } else {
+                let ctor = obj.get::<_, Option<Function<'js>>>("constructor")?;
+
+                let mut error_string = std::string::String::from("Cannot serialize ");
+
+                if let Some(ctor) = ctor {
+                    if let Ok(name) = ctor.get::<_, StringRef<'js>>("name") {
+                        error_string.push_str(name.as_str());
+                    } else {
+                        error_string.push_str("Anonymous");
+                    }
+                } else {
+                    error_string.push_str("Object");
+                };
+
+                throw!(@type ctx, error_string)
+            }
+        }
+
+        Type::Constructor => todo!(),
+        Type::Function => todo!(),
+        Type::Promise => todo!(),
+        Type::Exception => todo!(),
+        Type::Module => todo!(),
+        Type::BigInt => todo!(),
+        Type::Unknown => todo!(),
+        Type::Symbol => todo!(),
+    };
+
+    Ok(tag.clone())
 }

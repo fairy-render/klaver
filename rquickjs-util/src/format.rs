@@ -114,8 +114,8 @@ fn format_object<'js, W: Write>(
     let ctor = obj.get::<_, Option<Function<'js>>>("constructor")?;
 
     if let Some(ctor) = ctor {
-        if let Ok(name) = ctor.get::<_, String>("name") {
-            o.write_str(&name).ok();
+        if let Ok(name) = ctor.get::<_, StringRef<'js>>("name") {
+            o.write_str(name.as_str()).ok();
             o.write_char(' ').ok();
         }
     }
