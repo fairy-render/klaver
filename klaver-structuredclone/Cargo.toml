@@ -11,6 +11,7 @@ rquickjs.workspace = true
 rquickjs-util = { path = "../rquickjs-util" }
 dyn-clone = { version = "1" }
 ordered-float = { version = "5", features = [] }
-typetag = { version = "0.2", optional = true }
 indexmap = { version = "2" }
+
+typetag = { version = "0.2", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }

@@ -2188,6 +2188,7 @@ dependencies = [
  "futures",
  "klaver-base",
  "klaver-runner",
+ "klaver-structuredclone",
  "rquickjs",
  "rquickjs-util",
 ]

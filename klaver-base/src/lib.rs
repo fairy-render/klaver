@@ -7,6 +7,7 @@ mod blob;
 mod console;
 mod dom_exception;
 mod encoding;
+mod message;
 // mod event_target;
 mod events;
 mod file;
