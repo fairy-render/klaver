@@ -1,4 +1,5 @@
 use core::fmt;
+use rquickjs::{FromJs, IntoJs, JsLifetime, Value, class::Trace};
 use std::{
     fmt::Debug,
     hash::Hash,
@@ -7,8 +8,6 @@ use std::{
         atomic::{AtomicU32, Ordering},
     },
 };
-
-use rquickjs::{FromJs, IntoJs, JsLifetime, Value, class::JsClass, class::Trace};
 
 fn next_id() -> u32 {
     static COUNTER: AtomicU32 = AtomicU32::new(1);

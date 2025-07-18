@@ -5,7 +5,7 @@ use rquickjs::{
     CatchResultExt, Class, Context, Ctx, JsLifetime, Runtime, String, Value, class::Trace,
     prelude::Func,
 };
-use rquickjs_util::{Date, RuntimeError, StringRef, format::format, util::is_plain_object};
+use rquickjs_util::{RuntimeError, format::format, util::is_plain_object};
 
 fn is_object<'js>(ctx: Ctx<'js>, value: Value<'js>) -> rquickjs::Result<bool> {
     is_plain_object(&ctx, &value)
@@ -64,7 +64,7 @@ fn main() -> Result<(), RuntimeError> {
 
     context.with(|ctx| {
         //
-        let mut registry = Registry::new().catch(&ctx)?;
+        let mut registry = Registry::new()?;
         registry.register::<TestClass>()?;
 
         ctx.store_userdata(registry).unwrap();

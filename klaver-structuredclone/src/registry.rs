@@ -1,10 +1,11 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::marker::PhantomData;
 
 use indexmap::IndexMap;
 use rquickjs::{Ctx, FromJs, IntoJs, JsLifetime, Value};
-use rquickjs_util::{Date, throw};
+use rquickjs_util::{Date, RuntimeError, throw};
 
 use crate::{
+    get_tag_value,
     tag::Tag,
     traits::{Clonable, StructuredClone},
     value::TransObject,
@@ -19,7 +20,7 @@ unsafe impl<'js> JsLifetime<'js> for Registry {
 }
 
 impl Registry {
-    pub fn new() -> rquickjs::Result<Registry> {
+    pub fn new() -> Result<Registry, RuntimeError> {
         let mut registry = Registry {
             types: Default::default(),
         };
@@ -43,13 +44,16 @@ impl Registry {
         Ok(&**cloner)
     }
 
-    pub fn register<T>(&mut self) -> rquickjs::Result<()>
+    pub fn register<T>(&mut self) -> Result<(), RuntimeError>
     where
         T: Clonable,
         T::Cloner: Send + Sync,
     {
         if self.types.contains_key(T::Cloner::tag()) {
-            todo!()
+            return Err(RuntimeError::Custom(Box::from(format!(
+                "Tag '{}' already defined in registry",
+                T::Cloner::tag()
+            ))));
         }
 
         self.types.insert(
@@ -76,7 +80,6 @@ impl Registry {
         value: &Value<'js>,
     ) -> rquickjs::Result<Value<'js>> {
         let data = self.to_transfer_object_value(ctx, value)?;
-        // println!("OBJ: {:#?}", data);
         let value = self.from_transfer_object_value(ctx, data)?;
         Ok(value)
     }
@@ -99,13 +102,9 @@ impl Registry {
         ctx: &Ctx<'js>,
         value: &Value<'js>,
     ) -> rquickjs::Result<TransObject> {
-        for cloner in self.types.values() {
-            if let Ok(cloned) = cloner.to_transfer_object(ctx, self, value) {
-                return Ok(cloned);
-            }
-        }
-
-        throw!(@type ctx, "Could not serialize transferobject")
+        let tag = get_tag_value(ctx, value)?;
+        self.get_by_tag(ctx, &tag)?
+            .to_transfer_object(ctx, self, value)
     }
 
     pub fn from_transfer_object_value<'js>(
@@ -113,14 +112,8 @@ impl Registry {
         ctx: &Ctx<'js>,
         object: TransObject,
     ) -> rquickjs::Result<Value<'js>> {
-        for cloner in self.types.values() {
-            if cloner.tag() != object.tag {
-                continue;
-            }
-            return cloner.from_transfer_object(ctx, self, object);
-        }
-
-        throw!(@type ctx, "Could not deserialize transferobject")
+        let cloner = self.get_by_tag(ctx, &object.tag)?;
+        cloner.from_transfer_object(ctx, self, object)
     }
 }
 

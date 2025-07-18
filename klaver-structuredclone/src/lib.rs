@@ -5,8 +5,8 @@ mod tag;
 mod traits;
 mod value;
 
-use rquickjs::{Class, Ctx, Function, Object, String, Symbol, Type, Value, class::JsClass};
-use rquickjs_util::{Date, Map, Set, StringRef, throw, util::is_plain_object, val};
+use rquickjs::{Class, Ctx, Function, Symbol, Type, Value, class::JsClass};
+use rquickjs_util::{Date, Map, Set, StringRef, throw, util::is_plain_object};
 
 pub use self::{
     bindings::structured_clone, module::*, registry::Registry, tag::Tag, traits::*, value::*,
@@ -28,10 +28,6 @@ where
     proto.set(get_symbol(ctx)?, T::Cloner::tag().clone())?;
 
     Ok(())
-}
-
-pub fn get_tag<'js>(ctx: &Ctx<'js>, obj: &Object<'js>) -> rquickjs::Result<Tag> {
-    obj.get(get_symbol(ctx)?)
 }
 
 pub fn get_tag_value<'js>(ctx: &Ctx<'js>, value: &Value<'js>) -> rquickjs::Result<Tag> {
@@ -77,15 +73,22 @@ pub fn get_tag_value<'js>(ctx: &Ctx<'js>, value: &Value<'js>) -> rquickjs::Resul
                 throw!(@type ctx, error_string)
             }
         }
-
-        Type::Constructor => todo!(),
-        Type::Function => todo!(),
-        Type::Promise => todo!(),
-        Type::Exception => todo!(),
-        Type::Module => todo!(),
-        Type::BigInt => todo!(),
-        Type::Unknown => todo!(),
-        Type::Symbol => todo!(),
+        Type::BigInt => {
+            todo!("Serialize big int")
+        }
+        Type::Exception => {
+            todo!("Seialize exception")
+        }
+        ty => {
+            throw!(@type ctx, format!("Cannot serialize {}", ty));
+        } // Type::Constructor => todo!(),
+          // Type::Function => todo!(),
+          // Type::Promise => todo!(),
+          // Type::Exception => todo!(),
+          // Type::Module => todo!(),
+          // Type::BigInt => todo!(),
+          // Type::Unknown => todo!(),
+          // Type::Symbol => todo!(),
     };
 
     Ok(tag.clone())

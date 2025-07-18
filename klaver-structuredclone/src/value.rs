@@ -1,8 +1,7 @@
-use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hash, sync::Arc};
-
 use dyn_clone::DynClone;
 use ordered_float::OrderedFloat;
 use rquickjs::IntoJs;
+use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hash};
 
 use crate::tag::Tag;
 
