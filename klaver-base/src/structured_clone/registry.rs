@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use rquickjs::{Ctx, FromJs, IntoJs, JsLifetime, Value};
 use rquickjs_util::{Date, RuntimeError, throw, throw_if};
 
-use crate::structured_clone::context::SerializationContext;
+use crate::{ObjectId, TransferData, structured_clone::context::SerializationContext};
 
 use super::{
     get_tag_value,
@@ -54,7 +54,7 @@ impl Registry {
         registry.register::<Date>()?;
         registry.register::<rquickjs::String>()?;
         registry.register::<rquickjs::Object>()?;
-        registry.register::<rquickjs::Value>()?;
+        // registry.register::<rquickjs::Value>()?;
 
         Ok(registry)
     }
@@ -111,7 +111,9 @@ impl Registry {
         let tag = get_tag_value(ctx, value)?;
         let cloner = self.get_by_tag(ctx, &tag)?;
 
-        self.serialize_inner(&cloner, ctx, value, options)
+        let (id, data) = self.serialize_inner(&cloner, ctx, value, options)?;
+
+        Ok(TransObject::Data { tag, data, id })
     }
 
     fn serialize_inner<'js>(
@@ -120,10 +122,10 @@ impl Registry {
         ctx: &Ctx<'js>,
         value: &Value<'js>,
         options: &SerializationOptions<'js>,
-    ) -> rquickjs::Result<TransObject> {
+    ) -> rquickjs::Result<(ObjectId, TransferData)> {
         let mut ctx = SerializationContext::new(ctx.clone(), self, options);
         let data = cloner.to_transfer_object(&mut ctx, value)?;
-        Ok(data)
+        Ok((ctx.id(), data))
     }
 
     pub fn structured_clone_value<'js>(
@@ -135,7 +137,7 @@ impl Registry {
         let tag = get_tag_value(ctx, value)?;
         let cloner = self.get_by_tag(ctx, &tag)?;
 
-        let data = self.serialize_inner(&cloner, ctx, value, options)?;
+        let (_, data) = self.serialize_inner(&cloner, ctx, value, options)?;
 
         let mut ctx = SerializationContext::new(ctx.clone(), self, options);
         let value = cloner.from_transfer_object(&mut ctx, data)?;
@@ -148,10 +150,14 @@ impl Registry {
 pub struct Cloner(Arc<dyn DynCloner + Send + Sync>);
 
 impl Cloner {
+    fn tag(&self) -> &Tag {
+        self.0.tag()
+    }
+
     pub fn from_transfer_object<'js>(
         &self,
         ctx: &mut SerializationContext<'js, '_>,
-        obj: TransObject,
+        obj: TransferData,
     ) -> rquickjs::Result<Value<'js>> {
         self.0.from_transfer_object(ctx, obj)
     }
@@ -160,23 +166,24 @@ impl Cloner {
         &self,
         ctx: &mut SerializationContext<'js, '_>,
         value: &Value<'js>,
-    ) -> rquickjs::Result<TransObject> {
+    ) -> rquickjs::Result<TransferData> {
         self.0.to_transfer_object(ctx, value)
     }
 }
 
 pub trait DynCloner {
+    fn tag(&self) -> &Tag;
     fn from_transfer_object<'js>(
         &self,
         ctx: &mut SerializationContext<'js, '_>,
-        obj: TransObject,
+        obj: TransferData,
     ) -> rquickjs::Result<Value<'js>>;
 
     fn to_transfer_object<'js>(
         &self,
         ctx: &mut SerializationContext<'js, '_>,
         value: &Value<'js>,
-    ) -> rquickjs::Result<TransObject>;
+    ) -> rquickjs::Result<TransferData>;
 }
 
 struct ClonerImpl<T>(PhantomData<T>);
@@ -185,12 +192,15 @@ impl<T> DynCloner for ClonerImpl<T>
 where
     T: StructuredClone,
 {
+    fn tag(&self) -> &Tag {
+        T::tag()
+    }
     fn from_transfer_object<'js>(
         &self,
         ctx: &mut SerializationContext<'js, '_>,
-        obj: TransObject,
+        obj: TransferData,
     ) -> rquickjs::Result<Value<'js>> {
-        let value = T::from_transfer_object(ctx, obj.data)?;
+        let value = T::from_transfer_object(ctx, obj)?;
         value.into_js(ctx.ctx())
     }
 
@@ -198,15 +208,11 @@ where
         &self,
         ctx: &mut SerializationContext<'js, '_>,
         value: &Value<'js>,
-    ) -> rquickjs::Result<TransObject> {
+    ) -> rquickjs::Result<TransferData> {
         let value = T::Item::from_js(ctx.ctx(), value.clone())?;
 
         let data = T::to_transfer_object(ctx, &value)?;
 
-        Ok(TransObject {
-            tag: T::tag().clone(),
-            data,
-            id: ctx.next_id(),
-        })
+        Ok(data)
     }
 }

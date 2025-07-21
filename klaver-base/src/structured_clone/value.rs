@@ -26,10 +26,15 @@ pub enum TransferData {
 
 #[cfg_attr(feature = "serde", feature(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct TransObject {
-    pub tag: Tag,
-    pub data: TransferData,
-    pub id: ObjectId,
+pub enum TransObject {
+    Data {
+        tag: Tag,
+        data: TransferData,
+        id: ObjectId,
+    },
+    Ref {
+        id: ObjectId,
+    },
 }
 
 impl<'js> IntoJs<'js> for TransferData {

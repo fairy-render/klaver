@@ -147,6 +147,12 @@ impl<'js> IntoJs<'js> for Date<'js> {
     }
 }
 
+impl<'js> AsRef<Value<'js>> for Date<'js> {
+    fn as_ref(&self) -> &Value<'js> {
+        self.object.as_value()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use rquickjs::{Context, Runtime};

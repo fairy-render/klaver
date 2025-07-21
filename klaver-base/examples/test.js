@@ -1,7 +1,6 @@
-import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController, Console, EventTarget, AbortSignal, MessageChannel } from 'quick:base'
+import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController, Console, EventTarget, AbortSignal, MessageChannel, structuredClone } from 'quick:base'
 
 const output = []
-
 
 
 
@@ -12,6 +11,22 @@ const console = new Console((level, msg) => {
 })
 
 console.log(new AbortSignal() instanceof EventTarget);
+
+const date = new Date();
+
+const test = {
+  hello: "world",
+  date: date,
+  sub: {
+    date
+  }
+}
+
+test.self = test;
+
+const copy = structuredClone(test);
+
+console.log(test.date === copy.date, copy.date === copy.sub.date);
 
 // const test = new WritableStreamDefaultController({
 
