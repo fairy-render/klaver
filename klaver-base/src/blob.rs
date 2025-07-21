@@ -47,7 +47,7 @@ impl<'js> Blob<'js> {
     }
 
     #[qjs(rename = "arrayBuffer")]
-    pub async fn array_buffer(&self, ctx: Ctx<'js>) -> rquickjs::Result<ArrayBuffer<'js>> {
+    pub async fn array_buffer(&self, _ctx: Ctx<'js>) -> rquickjs::Result<ArrayBuffer<'js>> {
         Ok(self.buffer.clone())
     }
 
@@ -93,7 +93,7 @@ pub enum BlobInit<'js> {
 }
 
 impl<'js> BlobInit<'js> {
-    pub fn extend(&self, ctx: &Ctx<'js>, output: &mut Vec<u8>) -> rquickjs::Result<()> {
+    pub fn extend(&self, _ctx: &Ctx<'js>, output: &mut Vec<u8>) -> rquickjs::Result<()> {
         match self {
             BlobInit::String(s) => output.extend_from_slice(s.as_bytes()),
             BlobInit::Buffer(b) => {
@@ -102,7 +102,11 @@ impl<'js> BlobInit<'js> {
                 }
             }
             BlobInit::Blob(b) => {
-                todo!()
+                let blob = b.borrow();
+                let Some(bytes) = blob.buffer.as_bytes() else {
+                    todo!("Detached buffer")
+                };
+                output.extend_from_slice(bytes);
             }
         };
 

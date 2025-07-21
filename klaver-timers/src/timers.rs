@@ -121,7 +121,7 @@ impl<'js> Timers<'js> {
         repeat: Opt<bool>,
     ) -> rquickjs::Result<TimeId> {
         let Some(_) = ctx.userdata::<TimingBackend>() else {
-            throw!(@type ctx, "Timing backend not defined")
+            throw!(@type &ctx, "Timing backend not defined")
         };
         let id = TimeId(self.next_id);
         self.next_id += 1;
@@ -179,7 +179,7 @@ pub async fn work<'js>(
         };
 
         let Some(backend) = ctx.userdata::<TimingBackend>() else {
-            throw!(@type ctx, "TimingBackend not registered")
+            throw!(@type &ctx, "TimingBackend not registered")
         };
 
         let timer = backend.create_timer(next_instant);

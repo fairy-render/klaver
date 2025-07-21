@@ -22,7 +22,7 @@ pub struct SerializationOptions<'js> {
 }
 
 impl<'js> FromJs<'js> for SerializationOptions<'js> {
-    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+    fn from_js(_ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let Some(opt) = value.as_object() else {
             return Err(rquickjs::Error::new_from_js("value", "object"));
         };
@@ -80,13 +80,6 @@ impl Registry {
         Ok(Cloner(cloner.clone()))
     }
 
-    fn get_inner(&self, tag: &Tag) -> Option<Cloner> {
-        let lock = self.types.read().expect("Lock");
-
-        let cloner = lock.get(tag)?;
-        Some(Cloner(cloner.clone()))
-    }
-
     pub fn register<T>(&self) -> Result<(), RuntimeError>
     where
         T: Clonable,
@@ -109,15 +102,29 @@ impl Registry {
         Ok(())
     }
 
-    // pub fn structured_clone<'js, T: Clonable>(
-    //     &self,
-    //     ctx: &Ctx<'js>,
-    //     value: &<T::Cloner as StructuredClone>::Item<'js>,
-    // ) -> rquickjs::Result<<T::Cloner as StructuredClone>::Item<'js>> {
-    //     let data = T::Cloner::to_transfer_object(ctx, self, value)?;
-    //     let clone = T::Cloner::from_transfer_object(ctx, self, data)?;
-    //     Ok(clone)
-    // }
+    pub fn serialize<'js>(
+        &self,
+        ctx: &Ctx<'js>,
+        value: &Value<'js>,
+        options: &SerializationOptions<'js>,
+    ) -> rquickjs::Result<TransObject> {
+        let tag = get_tag_value(ctx, value)?;
+        let cloner = self.get_by_tag(ctx, &tag)?;
+
+        self.serialize_inner(&cloner, ctx, value, options)
+    }
+
+    fn serialize_inner<'js>(
+        &self,
+        cloner: &Cloner,
+        ctx: &Ctx<'js>,
+        value: &Value<'js>,
+        options: &SerializationOptions<'js>,
+    ) -> rquickjs::Result<TransObject> {
+        let mut ctx = SerializationContext::new(ctx.clone(), self, options);
+        let data = cloner.to_transfer_object(&mut ctx, value)?;
+        Ok(data)
+    }
 
     pub fn structured_clone_value<'js>(
         &self,
@@ -126,51 +133,18 @@ impl Registry {
         options: &SerializationOptions<'js>,
     ) -> rquickjs::Result<Value<'js>> {
         let tag = get_tag_value(ctx, value)?;
-
         let cloner = self.get_by_tag(ctx, &tag)?;
 
+        let data = self.serialize_inner(&cloner, ctx, value, options)?;
+
         let mut ctx = SerializationContext::new(ctx.clone(), self, options);
-        let data = cloner.to_transfer_object(&mut ctx, value)?;
         let value = cloner.from_transfer_object(&mut ctx, data)?;
 
         Ok(value)
     }
-
-    // pub fn to_transfer_object<'js, T: Clonable>(
-    //     &self,
-    //     ctx: &Ctx<'js>,
-    //     value: <T::Cloner as StructuredClone>::Item<'js>,
-    //     options: &SerializationOptions,
-    // ) -> rquickjs::Result<TransObject> {
-    //     let value = T::Cloner::to_transfer_object(ctx, self, &value)?;
-
-    //     Ok(TransObject {
-    //         tag: T::Cloner::tag().clone(),
-    //         data: value,
-    //     })
-    // }
-
-    // pub fn to_transfer_object_value<'js>(
-    //     &self,
-    //     ctx: &Ctx<'js>,
-    //     value: &Value<'js>,
-    //     options: &SerializationOptions,
-    // ) -> rquickjs::Result<TransObject> {
-    //     let tag = get_tag_value(ctx, value)?;
-    //     self.get_by_tag(ctx, &tag)?
-    //         .to_transfer_object(ctx, self, value)
-    // }
-
-    // pub fn from_transfer_object_value<'js>(
-    //     &self,
-    //     ctx: &Ctx<'js>,
-    //     object: TransObject,
-    // ) -> rquickjs::Result<Value<'js>> {
-    //     let cloner = self.get_by_tag(ctx, &object.tag)?;
-    //     cloner.from_transfer_object(ctx, self, object)
-    // }
 }
 
+#[derive(Clone)]
 pub struct Cloner(Arc<dyn DynCloner + Send + Sync>);
 
 impl Cloner {
@@ -232,6 +206,7 @@ where
         Ok(TransObject {
             tag: T::tag().clone(),
             data,
+            id: ctx.next_id(),
         })
     }
 }

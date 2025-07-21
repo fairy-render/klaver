@@ -5,7 +5,6 @@ use std::{collections::BTreeMap, marker::PhantomData};
 use crate::structured_clone::context::SerializationContext;
 
 use super::{
-    Registry, get_tag_value,
     tag::Tag,
     value::{TransObject, TransferData},
 };
@@ -59,12 +58,12 @@ impl StructuredClone for StringCloner {
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
             TransferData::String(str) => rquickjs::String::from_str(ctx.ctx().clone(), &str),
-            _ => throw!(@type ctx, "Expected String"),
+            _ => throw!(@type ctx.ctx(), "Expected String"),
         }
     }
 
     fn to_transfer_object<'js>(
-        ctx: &mut SerializationContext<'js, '_>,
+        _ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::String(value.to_string()?))
@@ -89,7 +88,7 @@ impl StructuredClone for IntCloner {
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
             TransferData::Integer(i) => Ok(i),
-            _ => throw!(@type ctx, "Expected integer"),
+            _ => throw!(@type ctx.ctx(), "Expected integer"),
         }
     }
 
@@ -119,12 +118,12 @@ impl StructuredClone for FloatCloner {
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
             TransferData::Float(i) => Ok(*i),
-            _ => throw!(@type ctx, "Expected Float"),
+            _ => throw!(@type ctx.ctx(), "Expected Float"),
         }
     }
 
     fn to_transfer_object<'js>(
-        ctx: &mut SerializationContext<'js, '_>,
+        _ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::Float((*value).into()))
@@ -149,7 +148,7 @@ impl StructuredClone for BoolCloner {
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
             TransferData::Bool(i) => Ok(i),
-            _ => throw!(@type ctx, "Expected Boolean"),
+            _ => throw!(@type ctx.ctx(), "Expected Boolean"),
         }
     }
 
@@ -193,7 +192,7 @@ where
                 Some(ret) => Ok(Some(T::from_transfer_object(ctx, *ret)?)),
                 None => Ok(None),
             },
-            _ => throw!(@type ctx, "Expected integer"),
+            _ => throw!(@type ctx.ctx(), "Expected integer"),
         }
     }
 
@@ -233,7 +232,7 @@ impl StructuredClone for DateCloner {
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
             TransferData::String(i) => Ok(Date::from_str(ctx.ctx(), &i)?),
-            _ => throw!(@type ctx, "Expected Boolean"),
+            _ => throw!(@type ctx.ctx(), "Expected Boolean"),
         }
     }
 
@@ -263,7 +262,7 @@ impl StructuredClone for ObjectCloner {
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         let TransferData::Object(btree) = obj else {
-            throw!(@type ctx, "Expected Object")
+            throw!(@type ctx.ctx(), "Expected Object")
         };
 
         let obj = Object::new(ctx.ctx().clone())?;
@@ -312,7 +311,7 @@ impl StructuredClone for ArrayCloner {
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         let TransferData::List(list) = obj else {
-            throw!(@type ctx, "Expected List")
+            throw!(@type ctx.ctx(), "Expected List")
         };
 
         let obj = Array::new(ctx.ctx().clone())?;

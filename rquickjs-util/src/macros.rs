@@ -6,10 +6,13 @@ macro_rules! throw {
         )))
     };
     (@type $ctx: expr, $err: expr) => {
-        return Err($crate::quick::Exception::throw_type(
-            &$ctx,
-            &*$err.to_string(),
-        ))
+        return {
+            use $crate::util::AsContext;
+            Err($crate::quick::Exception::throw_type(
+                $ctx.as_ctx(),
+                &*$err.to_string(),
+            ))
+        }
     };
     (@internal $ctx: expr, $err: expr) => {
         return Err($crate::quick::Exception::throw_internal(

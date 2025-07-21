@@ -5,6 +5,10 @@ use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hash};
 
 use super::tag::Tag;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct ObjectId(pub(super) u32);
+
 #[cfg_attr(feature = "serde", feature(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TransferData {
@@ -25,6 +29,7 @@ pub enum TransferData {
 pub struct TransObject {
     pub tag: Tag,
     pub data: TransferData,
+    pub id: ObjectId,
 }
 
 impl<'js> IntoJs<'js> for TransferData {
