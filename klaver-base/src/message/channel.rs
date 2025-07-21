@@ -24,4 +24,4 @@ impl<'js> MessageChannel<'js> {
     }
 }
 
-export!(MessageChannel<'js>);
+create_export!(MessageChannel<'js>);

@@ -5,7 +5,7 @@ use rquickjs::{
     function::{Constructor, Opt},
 };
 
-use crate::{Clonable, StructuredClone, Tag, export::Exportable, register};
+use crate::{Clonable, SerializationContext, StructuredClone, Tag, export::Exportable, register};
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
@@ -80,16 +80,14 @@ impl StructuredClone for DomExceptionCloner {
     }
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &crate::Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: crate::TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         todo!()
     }
 
     fn to_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &crate::Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<crate::TransferData> {
         todo!()

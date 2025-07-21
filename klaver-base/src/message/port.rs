@@ -1,6 +1,6 @@
 use crate::{Emitter, EventList, EventTarget, Exportable};
 use rquickjs::{
-    Class, Ctx, JsLifetime,
+    Class, Ctx, JsLifetime, Value,
     class::{JsClass, Trace},
 };
 use rquickjs_util::{Subclass, throw};
@@ -20,6 +20,11 @@ impl<'js> MessagePort<'js> {
     #[qjs(constructor)]
     pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<MessagePort<'js>> {
         throw!(ctx, "MessagePort cannot be constructed directly")
+    }
+
+    #[qjs(rename = "postMessage")]
+    pub fn post_message(&self, msg: Value<'js>) -> rquickjs::Result<()> {
+        todo!("Postmessage!")
     }
 }
 

@@ -29,3 +29,5 @@ impl<'js> ReadableStreamDefaultController<'js> {
         self.data.borrow_mut().fail(ctx, value)
     }
 }
+
+create_export!(ReadableStreamDefaultController<'js>);

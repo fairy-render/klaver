@@ -109,5 +109,5 @@ impl TextEncoder {
     }
 }
 
-export!(TextDecoder);
-export!(TextEncoder);
+create_export!(TextDecoder);
+create_export!(TextEncoder);

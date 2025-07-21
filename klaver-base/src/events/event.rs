@@ -6,6 +6,8 @@ use rquickjs::{
 };
 use rquickjs_util::{Inheritable, SuperClass};
 
+use crate::Exportable;
+
 #[derive(Clone, Debug, Hash)]
 pub enum EventKey<'js> {
     Symbol(Symbol<'js>),
@@ -74,6 +76,18 @@ where
 {
     fn additional_override(_ctx: &Ctx<'js>, proto: &rquickjs::Object<'js>) -> rquickjs::Result<()> {
         proto.prop("type", Accessor::new_get(T::ty).enumerable())?;
+
+        Ok(())
+    }
+}
+
+impl<'js> Exportable<'js> for Event<'js> {
+    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::ExportTarget<'js>,
+    {
+        target.set(ctx, Event::NAME, Class::<Self>::create_constructor(ctx)?)?;
+        Event::add_event_prototype(ctx)?;
 
         Ok(())
     }

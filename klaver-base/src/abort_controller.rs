@@ -62,4 +62,4 @@ impl<'js> AbortController<'js> {
     }
 }
 
-export!(AbortController<'js>);
+create_export!(AbortController<'js>);

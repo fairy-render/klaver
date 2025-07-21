@@ -16,11 +16,12 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
+pub fn export<'js>(
     ctx: &rquickjs::Ctx<'js>,
+    registry: &crate::Registry,
     exports: &rquickjs::module::Exports<'js>,
 ) -> rquickjs::Result<()> {
-    define!(exports, ctx, TextDecoder, TextEncoder);
+    export!(ctx, registry, exports, TextDecoder, TextEncoder);
 
     exports.export("atob", Func::new(atob))?;
     exports.export("btoa", Func::new(btoa))?;

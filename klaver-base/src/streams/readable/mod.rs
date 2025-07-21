@@ -21,13 +21,15 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
+pub fn export<'js>(
     ctx: &rquickjs::Ctx<'js>,
+    registry: &crate::Registry,
     exports: &rquickjs::module::Exports<'js>,
 ) -> rquickjs::Result<()> {
-    define!(
-        exports,
+    export!(
         ctx,
+        registry,
+        exports,
         ReadableStream,
         ReadableStreamDefaultController,
         ReadableStreamDefaultReader

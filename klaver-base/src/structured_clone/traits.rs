@@ -2,6 +2,8 @@ use rquickjs::{Array, ArrayBuffer, Ctx, FromJs, IntoJs, Object, String, Value};
 use rquickjs_util::{Date, throw, util::ArrayExt};
 use std::{collections::BTreeMap, marker::PhantomData};
 
+use crate::structured_clone::context::SerializationContext;
+
 use super::{
     Registry, get_tag_value,
     tag::Tag,
@@ -20,14 +22,12 @@ pub trait StructuredClone: Sized {
     fn tag() -> &'static Tag;
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>>;
 
     fn to_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData>;
 }
@@ -54,19 +54,17 @@ impl StructuredClone for StringCloner {
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        _registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
-            TransferData::String(str) => rquickjs::String::from_str(ctx.clone(), &str),
+            TransferData::String(str) => rquickjs::String::from_str(ctx.ctx().clone(), &str),
             _ => throw!(@type ctx, "Expected String"),
         }
     }
 
     fn to_transfer_object<'js>(
-        _ctx: &Ctx<'js>,
-        _: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::String(value.to_string()?))
@@ -86,8 +84,7 @@ impl StructuredClone for IntCloner {
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        _registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
@@ -97,8 +94,7 @@ impl StructuredClone for IntCloner {
     }
 
     fn to_transfer_object<'js>(
-        _ctx: &Ctx<'js>,
-        _registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::Integer(*value))
@@ -118,8 +114,7 @@ impl StructuredClone for FloatCloner {
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        _registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
@@ -129,8 +124,7 @@ impl StructuredClone for FloatCloner {
     }
 
     fn to_transfer_object<'js>(
-        _ctx: &Ctx<'js>,
-        _registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::Float((*value).into()))
@@ -150,8 +144,7 @@ impl StructuredClone for BoolCloner {
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        _registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
@@ -161,8 +154,7 @@ impl StructuredClone for BoolCloner {
     }
 
     fn to_transfer_object<'js>(
-        _ctx: &Ctx<'js>,
-        _registry: &Registry,
+        _ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::Bool(*value))
@@ -193,13 +185,12 @@ where
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
             TransferData::Option(ret) => match ret {
-                Some(ret) => Ok(Some(T::from_transfer_object(ctx, registry, *ret)?)),
+                Some(ret) => Ok(Some(T::from_transfer_object(ctx, *ret)?)),
                 None => Ok(None),
             },
             _ => throw!(@type ctx, "Expected integer"),
@@ -207,13 +198,12 @@ where
     }
 
     fn to_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         match value {
             Some(ret) => Ok(TransferData::Option(Some(Box::new(T::to_transfer_object(
-                ctx, registry, ret,
+                ctx, ret,
             )?)))),
             None => Ok(TransferData::Option(None)),
         }
@@ -238,19 +228,17 @@ impl StructuredClone for DateCloner {
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        _registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
-            TransferData::String(i) => Ok(Date::from_str(ctx, &i)?),
+            TransferData::String(i) => Ok(Date::from_str(ctx.ctx(), &i)?),
             _ => throw!(@type ctx, "Expected Boolean"),
         }
     }
 
     fn to_transfer_object<'js>(
-        _ctx: &Ctx<'js>,
-        _registry: &Registry,
+        _ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::String(
@@ -271,19 +259,18 @@ impl StructuredClone for ObjectCloner {
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         let TransferData::Object(btree) = obj else {
             throw!(@type ctx, "Expected Object")
         };
 
-        let obj = Object::new(ctx.clone())?;
+        let obj = Object::new(ctx.ctx().clone())?;
 
         for (k, v) in btree {
-            let key = registry.from_transfer_object_value(ctx, k)?;
-            let val = registry.from_transfer_object_value(ctx, v)?;
+            let key = ctx.from_transfer_object(k)?;
+            let val = ctx.from_transfer_object(v)?;
             obj.set(key, val)?;
         }
 
@@ -291,16 +278,15 @@ impl StructuredClone for ObjectCloner {
     }
 
     fn to_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         let mut output = BTreeMap::new();
 
         for ret in value.clone().into_iter() {
             let (k, v) = ret?;
-            let key = registry.to_transfer_object::<String>(ctx, k.to_js_string()?)?;
-            let value = value_transfer(ctx, registry, &v)?;
+            let key = ctx.to_transfer_object(&k.to_value()?)?;
+            let value = value_transfer(ctx, &v)?;
             output.insert(key, value);
         }
 
@@ -322,18 +308,17 @@ impl StructuredClone for ArrayCloner {
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         let TransferData::List(list) = obj else {
             throw!(@type ctx, "Expected List")
         };
 
-        let obj = Array::new(ctx.clone())?;
+        let obj = Array::new(ctx.ctx().clone())?;
 
         for v in list {
-            let val = registry.from_transfer_object_value(ctx, v)?;
+            let val = ctx.from_transfer_object(v)?;
             obj.push(val)?;
         }
 
@@ -341,15 +326,14 @@ impl StructuredClone for ArrayCloner {
     }
 
     fn to_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         let mut output = Vec::new();
 
         for ret in value.clone().into_iter() {
             let value = ret?;
-            let value = value_transfer(ctx, registry, &value)?;
+            let value = value_transfer(ctx, &value)?;
             output.push(value);
         }
 
@@ -369,20 +353,18 @@ impl StructuredClone for ValueCloner {
     tag!();
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
-        let value = transer_value(ctx, registry, obj)?;
+        let value = transer_value(ctx, obj)?;
         Ok(value)
     }
 
     fn to_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        registry: &Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
-        let data = value_transfer(ctx, registry, value)?;
+        let data = value_transfer(ctx, value)?;
 
         Ok(TransferData::Item(Box::new(data)))
     }
@@ -393,55 +375,47 @@ impl<'js> Clonable for Value<'js> {
 }
 
 fn value_transfer<'js>(
-    ctx: &Ctx<'js>,
-    registry: &Registry,
+    ctx: &mut SerializationContext<'js, '_>,
     value: &Value<'js>,
 ) -> rquickjs::Result<TransObject> {
-    let tag = get_tag_value(ctx, value)?;
-    registry
-        .get_by_tag(ctx, &tag)?
-        .to_transfer_object(ctx, registry, value)
+    ctx.to_transfer_object(value)
 }
 
 fn transer_value<'js>(
-    ctx: &Ctx<'js>,
-    registry: &Registry,
+    ctx: &mut SerializationContext<'js, '_>,
     data: TransferData,
 ) -> rquickjs::Result<Value<'js>> {
     match data {
         TransferData::String(str) => {
-            Ok(rquickjs::String::from_str(ctx.clone(), &*str)?.into_value())
+            Ok(rquickjs::String::from_str(ctx.ctx().clone(), &*str)?.into_value())
         }
-        TransferData::Integer(i) => Ok(Value::new_int(ctx.clone(), i as i32)),
-        TransferData::Float(ordered_float) => Ok(Value::new_float(ctx.clone(), *ordered_float)),
-        TransferData::Bool(b) => Ok(Value::new_bool(ctx.clone(), b)),
-        TransferData::Bytes(b) => Ok(ArrayBuffer::new(ctx.clone(), b)?.into_value()),
+        TransferData::Integer(i) => Ok(Value::new_int(ctx.ctx().clone(), i as i32)),
+        TransferData::Float(ordered_float) => {
+            Ok(Value::new_float(ctx.ctx().clone(), *ordered_float))
+        }
+        TransferData::Bool(b) => Ok(Value::new_bool(ctx.ctx().clone(), b)),
+        TransferData::Bytes(b) => Ok(ArrayBuffer::new(ctx.ctx().clone(), b)?.into_value()),
         TransferData::List(trans_objects) => {
             //
             Ok(
-                ArrayCloner::from_transfer_object(
-                    ctx,
-                    registry,
-                    TransferData::List(trans_objects),
-                )?
-                .into_value(),
-            )
-        }
-        TransferData::Object(btree_map) => {
-            Ok(
-                ObjectCloner::from_transfer_object(ctx, registry, TransferData::Object(btree_map))?
+                ArrayCloner::from_transfer_object(ctx, TransferData::List(trans_objects))?
                     .into_value(),
             )
         }
-        TransferData::Item(trans_object) => registry.from_transfer_object_value(ctx, *trans_object),
+        TransferData::Object(btree_map) => Ok(ObjectCloner::from_transfer_object(
+            ctx,
+            TransferData::Object(btree_map),
+        )?
+        .into_value()),
+        TransferData::Item(trans_object) => ctx.from_transfer_object(*trans_object),
         TransferData::NativeObject(native_data) => {
             todo!()
         }
         TransferData::Option(opt) => {
             //
             match opt {
-                Some(v) => transer_value(ctx, registry, *v),
-                None => Ok(Value::new_null(ctx.clone())),
+                Some(v) => transer_value(ctx, *v),
+                None => Ok(Value::new_null(ctx.ctx().clone())),
             }
         }
     }

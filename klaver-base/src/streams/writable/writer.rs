@@ -78,3 +78,5 @@ impl<'js> WritableStreamDefaultWriter<'js> {
         Ok(reason.0)
     }
 }
+
+create_export!(WritableStreamDefaultWriter<'js>);

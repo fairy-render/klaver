@@ -1,12 +1,7 @@
-use flume::{Receiver, Sender};
-use futures::{SinkExt, StreamExt, channel::mpsc, future::LocalBoxFuture};
-use klaver_base::{DynEvent, Emitter, Event, EventList, IntoDynEvent, NativeEvent};
-use klaver_runner::{Func, Runner, Shutdown, Workers};
-use rquickjs::{
-    AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
-    String, Value, class::Trace, prelude::Opt,
-};
-use rquickjs_util::{RuntimeError, StringRef, Subclass, Val};
+use rquickjs::{Class, Ctx, FromJs, JsLifetime, String, Value, class::Trace, prelude::Opt};
+use rquickjs_util::Subclass;
+
+use crate::{DynEvent, Event, IntoDynEvent, NativeEvent};
 
 #[derive(Debug, Trace, JsLifetime)]
 #[rquickjs::class]
@@ -48,7 +43,7 @@ impl<'js> NativeEvent<'js> for MessageEvent<'js> {
 impl<'js> Subclass<'js, Event<'js>> for MessageEvent<'js> {}
 
 impl<'js> IntoDynEvent<'js> for MessageEvent<'js> {
-    fn into_dynevent(self, ctx: &Ctx<'js>) -> rquickjs::Result<klaver_base::DynEvent<'js>> {
+    fn into_dynevent(self, ctx: &Ctx<'js>) -> rquickjs::Result<DynEvent<'js>> {
         let event = Class::instance(ctx.clone(), self)?.into_value();
         DynEvent::from_js(ctx, event)
     }

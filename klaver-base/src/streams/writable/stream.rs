@@ -4,7 +4,7 @@ use klaver_runner::{Shutdown, Workers};
 use rquickjs::{CatchResultExt, Class, Ctx, JsLifetime, String, class::Trace, prelude::Opt};
 use rquickjs_util::throw;
 
-use crate::streams::{data::StreamData, queue_strategy::QueuingStrategy};
+use crate::streams::{ReadableStream, data::StreamData, queue_strategy::QueuingStrategy};
 
 use super::{
     controller::WritableStreamDefaultController,
@@ -168,3 +168,5 @@ async fn write<'js>(
     }
     Ok(())
 }
+
+create_export!(WritableStream<'js>);

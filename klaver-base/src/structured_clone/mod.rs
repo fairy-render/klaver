@@ -1,15 +1,17 @@
 mod bindings;
+mod context;
 mod module;
 mod registry;
 mod tag;
 mod traits;
 mod value;
 
-use rquickjs::{Class, Ctx, Function, Symbol, Type, Value, class::JsClass};
+use rquickjs::{Class, Ctx, Function, Symbol, Type, Value, class::JsClass, prelude::Opt};
 use rquickjs_util::{Date, Map, Set, StringRef, throw, throw_if, util::is_plain_object};
 
 pub use self::{
-    bindings::structured_clone, module::*, registry::Registry, tag::Tag, traits::*, value::*,
+    bindings::structured_clone, context::SerializationContext, module::*, registry::Registry,
+    tag::Tag, traits::*, value::*,
 };
 
 pub fn register<'js, T>(ctx: &Ctx<'js>, registry: &crate::Registry) -> rquickjs::Result<()>
@@ -66,7 +68,7 @@ pub fn get_tag_value<'js>(ctx: &Ctx<'js>, value: &Value<'js>) -> rquickjs::Resul
                 todo!()
             } else if Date::is(ctx, value)? {
                 DateCloner::tag()
-            } else if is_plain_object(ctx, value)? {
+            } else if is_plain_object(ctx, value, Opt(Some(true)))? {
                 ObjectCloner::tag()
             } else {
                 let ctor = obj.get::<_, Option<Function<'js>>>("constructor")?;

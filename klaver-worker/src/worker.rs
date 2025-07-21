@@ -1,16 +1,18 @@
 use flume::{Receiver, Sender};
 use futures::{SinkExt, StreamExt, channel::mpsc, future::LocalBoxFuture};
-use klaver_base::{Emitter, Event, EventList, NativeEvent};
+use klaver_base::{Emitter, Event, EventList, EventTarget, Exportable, NativeEvent};
 use klaver_runner::{Func, Runner, Shutdown, Workers};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
-    String, Value, class::Trace, prelude::Opt,
+    String, Value,
+    class::{JsClass, Trace},
+    prelude::Opt,
 };
 use rquickjs_util::{RuntimeError, StringRef, Subclass, Val};
 
 use crate::work::{Message, work};
 
-#[rquickjs::class]
+#[rquickjs::class(rename = "Worker")]
 pub struct WebWorker<'js> {
     sx: Sender<Message>,
     listeners: EventList<'js>,
@@ -83,6 +85,29 @@ impl<'js> Emitter<'js> for WebWorker<'js> {
 
     fn get_listeners_mut(&mut self) -> &mut EventList<'js> {
         &mut self.listeners
+    }
+}
+
+impl<'js> Subclass<'js, EventTarget<'js>> for WebWorker<'js> {}
+
+impl<'js> Exportable<'js> for WebWorker<'js> {
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_base::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
+    where
+        T: klaver_base::ExportTarget<'js>,
+    {
+        target.set(
+            ctx,
+            WebWorker::NAME,
+            Class::<Self>::create_constructor(ctx)?,
+        )?;
+
+        Self::inherit(ctx)?;
+
+        Ok(())
     }
 }
 

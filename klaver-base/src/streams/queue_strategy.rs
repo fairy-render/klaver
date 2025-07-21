@@ -27,6 +27,8 @@ impl CountQueuingStrategy {
     }
 }
 
+create_export!(CountQueuingStrategy);
+
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 #[derive(Debug, Trace)]
@@ -61,6 +63,8 @@ impl ByteLengthQueuingStrategy {
         }
     }
 }
+
+create_export!(ByteLengthQueuingStrategy);
 
 #[derive(Trace, Clone)]
 pub enum QueuingStrategy<'js> {

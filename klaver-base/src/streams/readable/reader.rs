@@ -99,3 +99,5 @@ impl<'js> FromJs<'js> for Chunk<'js> {
         })
     }
 }
+
+create_export!(ReadableStreamDefaultReader<'js>);

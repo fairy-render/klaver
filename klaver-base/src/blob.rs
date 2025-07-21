@@ -6,7 +6,7 @@ use rquickjs::{
 use rquickjs_util::{Buffer, Inheritable, StringRef, SuperClass, throw, throw_if};
 
 use crate::{
-    Clonable, Registry, StructuredClone, Tag, TransferData,
+    Clonable, Registry, SerializationContext, StructuredClone, Tag, TransferData,
     export::{ExportTarget, Exportable},
     register,
     streams::{ReadableStream, readable::One},
@@ -143,15 +143,14 @@ impl StructuredClone for BlobCloner {
     }
 
     fn from_transfer_object<'js>(
-        ctx: &Ctx<'js>,
-        _registry: &crate::Registry,
+        ctx: &mut SerializationContext<'js, '_>,
         obj: crate::TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
             TransferData::Bytes(bytes) => {
-                let buffer = ArrayBuffer::new(ctx.clone(), bytes)?;
+                let buffer = ArrayBuffer::new(ctx.ctx().clone(), bytes)?;
                 let blob = Blob { buffer, ty: None };
-                Class::instance(ctx.clone(), blob)
+                Class::instance(ctx.ctx().clone(), blob)
             }
             _ => {
                 throw!(@type ctx, "Expected bytes")
@@ -160,8 +159,7 @@ impl StructuredClone for BlobCloner {
     }
 
     fn to_transfer_object<'js>(
-        _ctx: &Ctx<'js>,
-        _registry: &crate::Registry,
+        _ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<crate::TransferData> {
         Ok(TransferData::Bytes(

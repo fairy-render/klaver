@@ -28,3 +28,5 @@ impl<'js> WritableStreamDefaultController<'js> {
         Ok(())
     }
 }
+
+create_export!(WritableStreamDefaultController<'js>);

@@ -1,12 +1,7 @@
-use flume::{Receiver, Sender};
-use futures::{SinkExt, StreamExt, channel::mpsc, future::LocalBoxFuture};
-use klaver_base::{Emitter, Event, EventList, NativeEvent};
-use klaver_runner::{Func, Runner, Shutdown, Workers};
-use rquickjs::{
-    AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
-    String, Value, class::Trace, prelude::Opt,
-};
-use rquickjs_util::{RuntimeError, StringRef, Subclass, Val};
+use futures::future::LocalBoxFuture;
+use klaver_runner::{Func, Runner};
+use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module};
+use rquickjs_util::{RuntimeError, Val};
 
 pub enum Message {
     Kill,

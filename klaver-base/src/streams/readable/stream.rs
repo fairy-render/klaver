@@ -187,3 +187,5 @@ fn pull<'js>(
     });
     Ok(())
 }
+
+create_export!(ReadableStream<'js>);

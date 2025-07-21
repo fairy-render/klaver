@@ -1,14 +1,15 @@
 mod channel;
+mod event;
 mod port;
 
 use crate::{ExportTarget, Exportable};
 
-pub use self::{channel::MessageChannel, port::MessagePort};
+pub use self::{channel::MessageChannel, event::MessageEvent, port::MessagePort};
 
 use rquickjs::{Ctx, class::JsClass};
 
 pub fn declare<'js>(module: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
-    declare!(module, MessageChannel, MessagePort);
+    declare!(module, MessageChannel, MessageEvent, MessagePort);
     Ok(())
 }
 

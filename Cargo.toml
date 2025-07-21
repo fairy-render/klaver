@@ -16,8 +16,7 @@ members = [
   "klaver-base",
   "klaver-timers",
   "klaver-runner",
-  "klaver-webworker",
-  "klaver-structuredclone",
+  "klaver-worker",
   # "klaver-http",
 ]
 

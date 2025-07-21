@@ -12,14 +12,12 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
+pub fn exports<'js>(
     ctx: &rquickjs::Ctx<'js>,
+    registry: &crate::Registry,
     exports: &rquickjs::module::Exports<'js>,
 ) -> rquickjs::Result<()> {
-    define!(exports, ctx, Event, EventTarget);
-
-    EventTarget::add_event_target_prototype(ctx)?;
-    Event::add_event_prototype(ctx)?;
+    export!(ctx, registry, exports, Event, EventTarget);
 
     Ok(())
 }

@@ -6,16 +6,16 @@ macro_rules! declare {
     };
 }
 
-macro_rules! define {
-  ($module: ident, $ctx: ident, $($name: ident),+) => {
+macro_rules! export {
+  ($ctx: ident, $registry: ident, $target: ident, $($name: ident),+) => {
     $(
-      $module.export($name::NAME, rquickjs::class::Class::<$name>::create_constructor($ctx)?.unwrap())?;
+      <$name as $crate::Exportable<'js>>::export($ctx, $registry, $target)?;
     )+
   };
 }
 
 #[macro_export]
-macro_rules! export {
+macro_rules! create_export {
     ($item: ty) => {
         impl<'js> $crate::Exportable<'js> for $item {
             fn export<T>(
