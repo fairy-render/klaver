@@ -1,13 +1,9 @@
+use crate::streams::data::{StreamData, WaitDone, WaitReadReady};
 use rquickjs::{
     Class, Ctx, FromJs, IntoJs, JsLifetime, Object, String, Value, atom::PredefinedAtom,
     class::Trace, prelude::Opt,
 };
 use rquickjs_util::throw;
-
-use crate::streams::{
-    WritableStream,
-    data::{StreamData, WaitDone, WaitReadReady},
-};
 
 #[derive(Trace, JsLifetime)]
 #[rquickjs::class]

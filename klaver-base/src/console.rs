@@ -1,9 +1,15 @@
 use core::fmt;
 use std::{collections::HashMap, time::Instant};
 
-use rquickjs::{Ctx, Function, JsLifetime, Value, class::Trace, function::Rest};
+use rquickjs::{
+    Class, Ctx, Function, JsLifetime, Value,
+    class::{JsClass, Trace},
+    function::Rest,
+};
 
 use rquickjs_util::format::{FormatOptions, format_value};
+
+use crate::export::Exportable;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Level {
@@ -169,5 +175,18 @@ impl<'js> Console<'js> {
         }
 
         Ok(())
+    }
+}
+
+impl<'js> Exportable<'js> for Console<'js> {
+    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::export::ExportTarget<'js>,
+    {
+        target.set(
+            ctx,
+            Console::NAME,
+            Class::<Console<'js>>::create_constructor(ctx)?,
+        )
     }
 }

@@ -1,9 +1,16 @@
 use rquickjs::{
-    ArrayBuffer, Class, Ctx, FromJs, JsLifetime, Object, String, class::Trace, prelude::Opt,
+    ArrayBuffer, Class, Ctx, FromJs, JsLifetime, Object, String,
+    class::{JsClass, Trace},
+    prelude::Opt,
 };
-use rquickjs_util::{Buffer, StringRef, throw, throw_if};
+use rquickjs_util::{Buffer, Inheritable, StringRef, SuperClass, throw, throw_if};
 
-use crate::streams::{ReadableStream, readable::One};
+use crate::{
+    Clonable, Registry, StructuredClone, Tag, TransferData,
+    export::{ExportTarget, Exportable},
+    register,
+    streams::{ReadableStream, readable::One},
+};
 
 #[derive(Debug, JsLifetime)]
 #[rquickjs::class]
@@ -114,5 +121,68 @@ impl<'js> FromJs<'js> for BlobInit<'js> {
         } else {
             Err(rquickjs::Error::new_from_js("value", "blobpart"))
         }
+    }
+}
+
+// Inheritance
+
+impl<'js, T> Inheritable<'js, T> for Blob<'js> where T: JsClass<'js> {}
+
+impl<'js> SuperClass<'js> for Blob<'js> {}
+
+// Structured Cloning;
+
+pub struct BlobCloner;
+
+impl StructuredClone for BlobCloner {
+    type Item<'js> = Class<'js, Blob<'js>>;
+
+    fn tag() -> &'static Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
+
+    fn from_transfer_object<'js>(
+        ctx: &Ctx<'js>,
+        _registry: &crate::Registry,
+        obj: crate::TransferData,
+    ) -> rquickjs::Result<Self::Item<'js>> {
+        match obj {
+            TransferData::Bytes(bytes) => {
+                let buffer = ArrayBuffer::new(ctx.clone(), bytes)?;
+                let blob = Blob { buffer, ty: None };
+                Class::instance(ctx.clone(), blob)
+            }
+            _ => {
+                throw!(@type ctx, "Expected bytes")
+            }
+        }
+    }
+
+    fn to_transfer_object<'js>(
+        _ctx: &Ctx<'js>,
+        _registry: &crate::Registry,
+        value: &Self::Item<'js>,
+    ) -> rquickjs::Result<crate::TransferData> {
+        Ok(TransferData::Bytes(
+            value.borrow().buffer.as_slice()?.to_vec(),
+        ))
+    }
+}
+
+impl<'js> Clonable for Blob<'js> {
+    type Cloner = BlobCloner;
+}
+
+// Export
+
+impl<'js> Exportable<'js> for Blob<'js> {
+    fn export<T>(ctx: &Ctx<'js>, registry: &Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: ExportTarget<'js>,
+    {
+        register::<Blob>(ctx, registry)?;
+        target.set(ctx, Blob::NAME, Class::<Blob>::create_constructor(ctx)?)?;
+        Ok(())
     }
 }

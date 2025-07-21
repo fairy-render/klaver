@@ -1,41 +1,6 @@
 use core::fmt;
-use rquickjs::{Class, Ctx, Exception, Result, Value, class::Trace, function::Opt};
+use rquickjs::{Ctx, Exception, Result, Value, class::Trace, function::Opt};
 use rquickjs_util::{Buffer, StringRef};
-
-pub fn init(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
-    let globals = ctx.globals();
-    Class::<TextDecoder>::define(&globals)?;
-    Class::<TextEncoder>::define(&globals)?;
-
-    Ok(())
-}
-
-// pub struct Encoding;
-
-// module_info!("@klaver/encoding" @types: include_str!("../module.d.ts") => Encoding);
-
-// impl ModuleDef for Encoding {
-//     fn declare<'js>(decl: &Declarations<'js>) -> Result<()> {
-//         decl.declare("TextDecoder")?;
-//         decl.declare("TextEncoder")?;
-//         decl.declare("atob")?;
-//         decl.declare("btoa")?;
-//         Ok(())
-//     }
-
-//     fn evaluate<'js>(ctx: &Ctx<'js>, exports: &Exports<'js>) -> Result<()> {
-//         Class::<TextDecoder>::register(ctx)?;
-//         Class::<TextEncoder>::register(ctx)?;
-
-//         exports.export("TextDecoder", Class::<TextDecoder>::create_constructor(ctx))?;
-//         exports.export("TextEncoder", Class::<TextEncoder>::create_constructor(ctx))?;
-
-//         exports.export("atob", Func::new(crate::b64::atob))?;
-//         exports.export("btoa", Func::new(crate::b64::btoa))?;
-
-//         Ok(())
-//     }
-// }
 
 #[derive(Debug)]
 pub struct UnknownEncoding;
@@ -143,3 +108,6 @@ impl TextEncoder {
         rquickjs::TypedArray::<u8>::new(ctx.clone(), &*ret)
     }
 }
+
+export!(TextDecoder);
+export!(TextEncoder);

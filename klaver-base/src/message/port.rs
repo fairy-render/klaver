@@ -1,5 +1,8 @@
-use crate::{Emitter, EventList, EventTarget};
-use rquickjs::{Ctx, JsLifetime, class::Trace};
+use crate::{Emitter, EventList, EventTarget, Exportable};
+use rquickjs::{
+    Class, Ctx, JsLifetime,
+    class::{JsClass, Trace},
+};
 use rquickjs_util::{Subclass, throw};
 
 #[derive(Trace, Default)]
@@ -31,3 +34,20 @@ impl<'js> Emitter<'js> for MessagePort<'js> {
 }
 
 impl<'js> Subclass<'js, EventTarget<'js>> for MessagePort<'js> {}
+
+impl<'js> Exportable<'js> for MessagePort<'js> {
+    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::ExportTarget<'js>,
+    {
+        target.set(
+            ctx,
+            MessagePort::NAME,
+            Class::<Self>::create_constructor(ctx)?,
+        )?;
+
+        MessagePort::inherit(ctx)?;
+
+        Ok(())
+    }
+}

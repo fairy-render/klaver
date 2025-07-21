@@ -2037,13 +2037,18 @@ dependencies = [
  "async-channel",
  "async-trait",
  "base64",
+ "dyn-clone",
  "encoding_rs",
  "event-listener",
  "futures",
+ "indexmap",
  "klaver-runner",
+ "ordered-float",
  "pin-project-lite",
  "rquickjs",
  "rquickjs-util",
+ "serde",
+ "typetag",
 ]
 
 [[package]]

@@ -4,7 +4,7 @@ use crate::{DynEvent, IntoDynEvent};
 
 use super::listener::NativeListener;
 
-use super::event::{Event, EventKey};
+use super::event::EventKey;
 
 use super::listener::Listener;
 use rquickjs::class::{JsClass, Trace};

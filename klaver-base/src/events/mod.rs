@@ -1,9 +1,10 @@
+mod dyn_event;
 mod emitter;
 mod event;
 mod event_target;
 mod listener;
 
-pub use self::{emitter::*, event::*, event_target::*, listener::*};
+pub use self::{dyn_event::*, emitter::*, event::*, event_target::*, listener::*};
 use rquickjs::class::JsClass;
 
 pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {

@@ -6,7 +6,7 @@ use rquickjs_util::throw;
 use crate::streams::{
     WritableStream,
     data::{StreamData, WaitWriteReady},
-    queue_strategy::{self, QueuingStrategy},
+    queue_strategy::QueuingStrategy,
     readable::{
         NativeSource,
         controller::ReadableStreamDefaultController,

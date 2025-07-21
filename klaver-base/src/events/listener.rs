@@ -1,8 +1,6 @@
-use rquickjs::{Class, Ctx, Function, class::Trace};
+use rquickjs::{Ctx, Function, class::Trace};
 
 use crate::DynEvent;
-
-use super::event::Event;
 
 pub enum Listener<'js> {
     Js(Function<'js>),

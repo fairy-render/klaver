@@ -1,7 +1,10 @@
-use rquickjs::{Class, Ctx, Function, JsLifetime, class::Trace};
+use rquickjs::{
+    Class, Ctx, Function, JsLifetime,
+    class::{JsClass, Trace},
+};
 use rquickjs_util::Subclass;
 
-use crate::{DynEvent, Emitter, Event, EventList, EventTarget};
+use crate::{DynEvent, Emitter, EventList, EventTarget, export::Exportable};
 
 #[rquickjs::class]
 pub struct AbortSignal<'js> {
@@ -67,3 +70,18 @@ impl<'js> Emitter<'js> for AbortSignal<'js> {
 }
 
 impl<'js> Subclass<'js, EventTarget<'js>> for AbortSignal<'js> {}
+
+impl<'js> Exportable<'js> for AbortSignal<'js> {
+    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::export::ExportTarget<'js>,
+    {
+        AbortSignal::inherit(ctx)?;
+        target.set(
+            ctx,
+            AbortSignal::NAME,
+            Class::<AbortSignal>::create_constructor(ctx)?,
+        )?;
+        Ok(())
+    }
+}

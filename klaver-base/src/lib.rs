@@ -7,15 +7,18 @@ mod blob;
 mod console;
 mod dom_exception;
 mod encoding;
-mod message;
-// mod event_target;
 mod events;
+mod export;
 mod file;
+mod message;
 pub mod streams;
-mod workers;
+
+mod structured_clone;
 
 mod module;
 
-pub use self::{abort_controller::*, abort_signal::*, console::*, events::*};
+pub use self::{
+    abort_controller::*, abort_signal::*, console::*, events::*, export::*, structured_clone::*,
+};
 
 pub use self::module::BaseModule;

@@ -1,7 +1,7 @@
 use rquickjs::{
     Class, Ctx, JsLifetime,
     class::Trace,
-    function::{Args, Opt, This},
+    function::{Args, Opt},
 };
 
 use crate::{
@@ -61,3 +61,5 @@ impl<'js> AbortController<'js> {
         Ok(())
     }
 }
+
+export!(AbortController<'js>);

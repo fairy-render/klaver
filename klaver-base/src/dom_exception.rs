@@ -1,8 +1,11 @@
 use rquickjs::{
     Class, Ctx, Object, Result,
     atom::PredefinedAtom,
+    class::JsClass,
     function::{Constructor, Opt},
 };
+
+use crate::{Clonable, StructuredClone, Tag, export::Exportable, register};
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
@@ -63,5 +66,52 @@ impl DOMException {
         }
 
         [self.name.as_str(), self.message.as_str()].join(": ")
+    }
+}
+
+pub struct DomExceptionCloner;
+
+impl StructuredClone for DomExceptionCloner {
+    type Item<'js> = Class<'js, DOMException>;
+
+    fn tag() -> &'static crate::Tag {
+        static TAG: Tag = Tag::new();
+        &TAG
+    }
+
+    fn from_transfer_object<'js>(
+        ctx: &Ctx<'js>,
+        registry: &crate::Registry,
+        obj: crate::TransferData,
+    ) -> rquickjs::Result<Self::Item<'js>> {
+        todo!()
+    }
+
+    fn to_transfer_object<'js>(
+        ctx: &Ctx<'js>,
+        registry: &crate::Registry,
+        value: &Self::Item<'js>,
+    ) -> rquickjs::Result<crate::TransferData> {
+        todo!()
+    }
+}
+
+impl Clonable for DOMException {
+    type Cloner = DomExceptionCloner;
+}
+
+impl<'js> Exportable<'js> for DOMException {
+    fn export<T>(ctx: &Ctx<'js>, registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::export::ExportTarget<'js>,
+    {
+        register::<DOMException>(ctx, registry)?;
+        target.set(
+            ctx,
+            DOMException::NAME,
+            Class::<DOMException>::create_constructor(ctx)?,
+        )?;
+
+        Ok(())
     }
 }

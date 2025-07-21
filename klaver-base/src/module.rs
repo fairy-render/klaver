@@ -1,11 +1,11 @@
 use rquickjs::{class::JsClass, module::ModuleDef};
-use rquickjs_util::{Inheritable, Subclass};
+use rquickjs_util::Subclass;
 
 pub struct BaseModule;
 
 use crate::{
-    Console, Emitter, EventTarget, abort_controller::AbortController, abort_signal::AbortSignal,
-    blob::Blob, dom_exception::DOMException, events::Event, file::File,
+    Console, Emitter, EventTarget, Registry, abort_controller::AbortController,
+    abort_signal::AbortSignal, blob::Blob, dom_exception::DOMException, events::Event, file::File,
 };
 
 impl ModuleDef for BaseModule {
@@ -24,6 +24,7 @@ impl ModuleDef for BaseModule {
 
         crate::streams::declare(decl)?;
         crate::encoding::declare(decl)?;
+        crate::message::declare(decl)?;
 
         Ok(())
     }
@@ -51,6 +52,10 @@ impl ModuleDef for BaseModule {
 
         crate::streams::evaluate(ctx, exports)?;
         crate::encoding::evaluate(ctx, exports)?;
+
+        let registry = Registry::get(ctx)?;
+
+        crate::message::export(ctx, &registry, exports)?;
 
         Ok(())
     }

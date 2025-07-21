@@ -16,7 +16,8 @@ members = [
   "klaver-base",
   "klaver-timers",
   "klaver-runner",
-  "klaver-webworker", "klaver-structuredclone",
+  "klaver-webworker",
+  "klaver-structuredclone",
   # "klaver-http",
 ]
 
@@ -30,6 +31,8 @@ rquickjs = { version = "0.8", features = [
 ] }
 tokio = { version = "1" }
 futures = { version = "0.3" }
+event-listener = { version = "5" }
+pin-project-lite = { version = "0.2" }
 
 
 [profile.release]

@@ -3,22 +3,29 @@ name = "klaver-base"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+serde = ["dep:serde", "typetag"]
+
 [dependencies]
 klaver-runner = { path = "../klaver-runner" }
 rquickjs.workspace = true
 rquickjs-util = { path = "../rquickjs-util" }
 async-channel = { version = "2" }
 
-event-listener = { version = "5" }
-pin-project-lite = { version = "0.2" }
+event-listener = { workspace = true }
+pin-project-lite = { workspace = true }
+futures = { workspace = true }
 
 async-trait = { version = "0.1" }
 
+## Encoding
 encoding_rs = { version = "0.8" }
 base64 = { version = "0.22" }
 
-futures = { version = "0.3" }
+## Structured Clone
+dyn-clone = { version = "1" }
+ordered-float = { version = "5", features = [] }
+indexmap = { version = "2" }
 
-
-[dev-dependencies]
-futures = { version = "0.3" }
+typetag = { version = "0.2", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }

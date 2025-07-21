@@ -10,14 +10,13 @@ pub mod iterator;
 pub mod map;
 mod proxy;
 pub mod set;
+pub mod stack_trace;
 pub mod string;
 pub mod typed_list;
 pub mod typed_map;
 pub mod util;
 #[cfg(feature = "vaerdi")]
 pub mod val;
-
-pub mod stack_trace;
 
 mod r#static;
 

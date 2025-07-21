@@ -23,3 +23,5 @@ impl<'js> MessageChannel<'js> {
         })
     }
 }
+
+export!(MessageChannel<'js>);
