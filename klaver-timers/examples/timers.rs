@@ -12,10 +12,7 @@ pub struct Test;
 impl WorkerFunc for Test {
     type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
-    fn call<'js>(self, ctx: rquickjs::Ctx<'js>, _workers: Workers) -> Self::Future<'js>
-    where
-        Self: 'js,
-    {
+    fn call<'js>(self, ctx: rquickjs::Ctx<'js>, _workers: Workers) -> Self::Future<'js> {
         Box::pin(async move {
             ctx.globals()
                 .set(

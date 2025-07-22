@@ -1,10 +1,10 @@
+use klaver_modules::{transformer::SwcTranspiler, Builder, GlobalInfo};
 use rquickjs::{prelude::Func, AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Module};
-use rquickjs_modules::{transformer::SwcTranspiler, Builder, GlobalInfo};
 
 struct TestGlobal;
 
 impl GlobalInfo for TestGlobal {
-    fn register(builder: &mut rquickjs_modules::GlobalBuilder<'_, Self>) {
+    fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
         builder.register(|ctx: Ctx<'_>| {
             //
             ctx.globals().set("TEST_GLOBAL", "Hello, from global!")?;

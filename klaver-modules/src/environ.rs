@@ -1,7 +1,7 @@
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
-use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt};
-use rquickjs_util::RuntimeError;
+use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, JsLifetime};
+use rquickjs_util::{throw, RuntimeError};
 
 use crate::{globals::Globals, Modules, Typings};
 
@@ -41,10 +41,32 @@ impl Environ {
 
     pub async fn init(&self, context: &AsyncContext) -> Result<(), RuntimeError> {
         rquickjs::async_with!(context => |ctx| {
-          self.0.globals.attach(ctx.clone()).await.catch(&ctx).map_err(|err| RuntimeError::from(err))
+          self.0.globals.attach(ctx.clone()).await.catch(&ctx)?;
+          ctx.store_userdata(self.downgrade()).map_err(|err| RuntimeError::Custom(Box::from(err.to_string())))?;
+          Result::<_, RuntimeError>::Ok(())
         })
         .await?;
 
         Ok(())
+    }
+
+    pub fn downgrade(&self) -> WeakEnviron {
+        WeakEnviron(Arc::downgrade(&self.0))
+    }
+}
+
+#[derive(Clone)]
+pub struct WeakEnviron(Weak<Inner>);
+
+unsafe impl<'js> JsLifetime<'js> for WeakEnviron {
+    type Changed<'to> = WeakEnviron;
+}
+
+impl WeakEnviron {
+    pub fn upgrade<'js>(self, ctx: &Ctx<'js>) -> rquickjs::Result<Environ> {
+        match self.0.upgrade() {
+            Some(ret) => Ok(Environ(ret)),
+            None => throw!(ctx, "Could not upgrade environment"),
+        }
     }
 }

@@ -1,4 +1,5 @@
 use std::{
+    fmt::DebugList,
     marker::PhantomData,
     sync::{Arc, RwLock},
 };
@@ -114,6 +115,16 @@ impl Registry {
         let (id, data) = self.serialize_inner(&cloner, ctx, value, options)?;
 
         Ok(TransObject::Data { tag, data, id })
+    }
+
+    pub fn deserialize<'js>(
+        &self,
+        ctx: &Ctx<'js>,
+        object: TransObject,
+    ) -> rquickjs::Result<Value<'js>> {
+        let opts = SerializationOptions::default();
+        let mut ctx = SerializationContext::new(ctx.clone(), self, &opts);
+        ctx.from_transfer_object(object)
     }
 
     fn serialize_inner<'js>(

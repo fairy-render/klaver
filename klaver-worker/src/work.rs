@@ -54,10 +54,7 @@ struct Work {
 impl Runnerable for Work {
     type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
-    fn call<'js>(self, ctx: Ctx<'js>, worker: klaver_runner::Workers) -> Self::Future<'js>
-    where
-        Self: 'js,
-    {
+    fn call<'js>(self, ctx: Ctx<'js>, worker: klaver_runner::Workers) -> Self::Future<'js> {
         Box::pin(async move {
             worker.push(ctx.clone(), |ctx, mut shutdown| async move {
                 //

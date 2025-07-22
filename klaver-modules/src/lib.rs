@@ -16,7 +16,7 @@ mod globals;
 
 pub use self::{
     builder::Builder,
-    environ::Environ,
+    environ::{Environ, WeakEnviron},
     global_info::{Global, GlobalBuilder, GlobalInfo},
     module_info::{ModuleBuilder, ModuleInfo},
     modules::Modules,

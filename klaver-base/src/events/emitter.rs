@@ -75,14 +75,12 @@ where
         Ok(())
     }
 
-    fn add_event_listener(
-        this: This<Class<'js, Self>>,
+    fn add_event_listener_native(
+        &mut self,
         event_name: EventKey<'js>,
         listener: Function<'js>,
     ) -> rquickjs::Result<()> {
-        this.0
-            .borrow_mut()
-            .get_listeners_mut()
+        self.get_listeners_mut()
             .entry(event_name)
             .or_default()
             .push(EventItem {
@@ -93,19 +91,36 @@ where
         Ok(())
     }
 
-    fn remove_event_listener(
+    fn add_event_listener(
         this: This<Class<'js, Self>>,
         event_name: EventKey<'js>,
         listener: Function<'js>,
     ) -> rquickjs::Result<()> {
-        let mut this = this.0.borrow_mut();
-        let Some(listeners) = this.get_listeners_mut().get_mut(&event_name) else {
+        this.borrow_mut()
+            .add_event_listener_native(event_name, listener)
+    }
+
+    fn remove_event_listener_native(
+        &mut self,
+        event_name: EventKey<'js>,
+        listener: Function<'js>,
+    ) -> rquickjs::Result<()> {
+        let Some(listeners) = self.get_listeners_mut().get_mut(&event_name) else {
             return Ok(());
         };
 
         listeners.retain(|m| m.callback != listener);
 
         Ok(())
+    }
+
+    fn remove_event_listener(
+        this: This<Class<'js, Self>>,
+        event_name: EventKey<'js>,
+        listener: Function<'js>,
+    ) -> rquickjs::Result<()> {
+        this.borrow_mut()
+            .remove_event_listener_native(event_name, listener)
     }
 
     fn dispatch_event(

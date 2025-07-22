@@ -1,24 +1,14 @@
 [package]
-name = "klaver-vm"
+name = "klaver"
 version = "0.1.0"
 edition = "2024"
 
-[features]
-default = []
-worker = ["flume"]
-parallel = ["rquickjs/parallel"]
-pool = ["deadpool", "worker"]
-
 [dependencies]
+klaver-wintercg = { path = "../klaver-wintercg", features = ["module"] }
+klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules" }
 klaver-runner = { path = "../klaver-runner" }
 klaver-base = { path = "../klaver-base" }
 rquickjs = { workspace = true }
 rquickjs-util = { path = "../rquickjs-util" }
 futures.workspace = true
-
-## Worker
-flume = { workspace = true, features = ["async"], optional = true }
-
-## Pool
-deadpool = { version = "0.12", optional = true }

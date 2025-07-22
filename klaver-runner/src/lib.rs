@@ -83,13 +83,9 @@ impl<'a, T: 'a> Runner<'a, T> {
 }
 
 pub trait Runnerable {
-    type Future<'js>: Future<Output = Result<(), RuntimeError>>
-    where
-        Self: 'js;
+    type Future<'js>: Future<Output = Result<(), RuntimeError>>;
 
-    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js>
-    where
-        Self: 'js;
+    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js>;
 }
 
 impl<T> Runnerable for T
@@ -97,15 +93,9 @@ where
     T: 'static,
     T: for<'js> FnOnce(Ctx<'js>, Workers) -> LocalBoxFuture<'js, Result<(), RuntimeError>>,
 {
-    type Future<'js>
-        = LocalBoxFuture<'js, Result<(), RuntimeError>>
-    where
-        Self: 'js;
+    type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
-    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js>
-    where
-        Self: 'js,
-    {
+    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js> {
         (self)(ctx, worker)
     }
 }
@@ -126,15 +116,9 @@ where
     T: 'static,
     T: for<'js> FnOnce(Ctx<'js>, Workers) -> LocalBoxFuture<'js, Result<(), RuntimeError>>,
 {
-    type Future<'js>
-        = LocalBoxFuture<'js, Result<(), RuntimeError>>
-    where
-        Self: 'js;
+    type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
-    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js>
-    where
-        Self: 'js,
-    {
+    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js> {
         (self.0)(ctx, worker)
     }
 }

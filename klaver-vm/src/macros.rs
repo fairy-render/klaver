@@ -17,7 +17,9 @@ macro_rules! async_with{
           /// Since we acquire a lock before running the future and nothing can escape the closure
           /// and future it is safe to recast the future as send.
           unsafe fn uplift<'a,'b,R>(f: std::pin::Pin<Box<dyn std::future::Future<Output = std::result::Result<R, $crate::RuntimeError>> + 'a>>) -> std::pin::Pin<Box<dyn std::future::Future<Output = std::result::Result<R, $crate::RuntimeError>> + 'b + Send>>{
-              std::mem::transmute(f)
+              unsafe {
+                std::mem::transmute(f)
+              }
           }
           unsafe{ uplift(fut) }
       })

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use klaver_modules::Environ;
-use rquickjs_util::RuntimeError;
+pub use rquickjs_util::RuntimeError;
 
 pub type Result<T> = core::result::Result<T, RuntimeError>;
 

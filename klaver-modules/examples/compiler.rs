@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rquickjs_modules::transformer::{
+use klaver_modules::transformer::{
     swc::{CompilerOptions, Decorators},
     SwcTranspiler, Transpiler,
 };

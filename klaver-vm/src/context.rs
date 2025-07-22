@@ -80,16 +80,11 @@ struct ModuleRunner<A> {
 impl<A> Runnerable for ModuleRunner<A>
 where
     A: for<'js> IntoArgs<'js>,
+    A: 'static,
 {
-    type Future<'js>
-        = LocalBoxFuture<'js, Result<(), RuntimeError>>
-    where
-        Self: 'js;
+    type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
-    fn call<'js>(self, ctx: Ctx<'js>, _worker: klaver_runner::Workers) -> Self::Future<'js>
-    where
-        Self: 'js,
-    {
+    fn call<'js>(self, ctx: Ctx<'js>, _worker: klaver_runner::Workers) -> Self::Future<'js> {
         Box::pin(async move {
             let promise = Module::import(&ctx, self.module).catch(&ctx)?;
             let module = promise.into_future::<Object>().await.catch(&ctx)?;

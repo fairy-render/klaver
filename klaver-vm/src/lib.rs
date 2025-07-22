@@ -1,5 +1,6 @@
 mod macros;
 
+mod bindings;
 mod builder;
 mod context;
 #[cfg(feature = "pool")]

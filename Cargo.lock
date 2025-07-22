@@ -1030,6 +1030,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "klaver-base",
+ "klaver-modules",
+ "klaver-runner",
+ "klaver-vm",
+ "klaver-wintercg",
+ "rquickjs",
+ "rquickjs-util",
+]
+
+[[package]]
 name = "klaver-base"
 version = "0.1.0"
 dependencies = [
@@ -1113,8 +1127,21 @@ dependencies = [
  "deadpool",
  "flume",
  "futures",
+ "klaver-base",
  "klaver-modules",
  "klaver-runner",
+ "rquickjs",
+ "rquickjs-util",
+]
+
+[[package]]
+name = "klaver-wintercg"
+version = "0.1.0"
+dependencies = [
+ "klaver-base",
+ "klaver-modules",
+ "klaver-timers",
+ "klaver-worker",
  "rquickjs",
  "rquickjs-util",
 ]
