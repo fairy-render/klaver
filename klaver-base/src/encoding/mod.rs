@@ -1,6 +1,8 @@
 mod b64;
 mod encoding;
 
+use crate::ExportTarget;
+
 pub use self::{
     b64::{atob, btoa},
     encoding::{TextDecoder, TextEncoder},
@@ -16,15 +18,18 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn export<'js>(
+pub fn export<'js, T>(
     ctx: &rquickjs::Ctx<'js>,
     registry: &crate::Registry,
-    exports: &rquickjs::module::Exports<'js>,
-) -> rquickjs::Result<()> {
+    exports: &T,
+) -> rquickjs::Result<()>
+where
+    T: ExportTarget<'js>,
+{
     export!(ctx, registry, exports, TextDecoder, TextEncoder);
 
-    exports.export("atob", Func::new(atob))?;
-    exports.export("btoa", Func::new(btoa))?;
+    exports.set(ctx, "atob", Func::new(atob))?;
+    exports.set(ctx, "btoa", Func::new(btoa))?;
 
     Ok(())
 }

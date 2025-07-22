@@ -6,7 +6,7 @@ pub mod writable;
 
 use rquickjs::class::JsClass;
 
-use crate::Registry;
+use crate::{ExportTarget, Registry};
 
 pub use self::{
     queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy},
@@ -24,11 +24,14 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn export<'js>(
+pub fn export<'js, T>(
     ctx: &rquickjs::Ctx<'js>,
     registry: &Registry,
-    exports: &rquickjs::module::Exports<'js>,
-) -> rquickjs::Result<()> {
+    exports: &T,
+) -> rquickjs::Result<()>
+where
+    T: ExportTarget<'js>,
+{
     writable::export(ctx, registry, exports)?;
     readable::export(ctx, registry, exports)?;
 

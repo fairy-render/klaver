@@ -4,6 +4,8 @@ mod reader;
 mod stream;
 mod underlying_source;
 
+use crate::ExportTarget;
+
 pub use self::{
     controller::ReadableStreamDefaultController, reader::ReadableStreamDefaultReader,
     stream::ReadableStream, underlying_source::*,
@@ -21,10 +23,10 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn export<'js>(
+pub fn export<'js, T: ExportTarget<'js>>(
     ctx: &rquickjs::Ctx<'js>,
     registry: &crate::Registry,
-    exports: &rquickjs::module::Exports<'js>,
+    exports: &T,
 ) -> rquickjs::Result<()> {
     export!(
         ctx,

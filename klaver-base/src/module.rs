@@ -1,12 +1,11 @@
-use rquickjs::{Ctx, Value, class::JsClass, module::ModuleDef, prelude::Func};
-use rquickjs_util::Subclass;
+use rquickjs::{Ctx, class::JsClass, module::ModuleDef, prelude::Func};
 
 pub struct BaseModule;
 
 use crate::{
-    Console, Emitter, EventTarget, Registry, abort_controller::AbortController,
+    Console, EventTarget, Exportable, Registry, abort_controller::AbortController,
     abort_signal::AbortSignal, blob::Blob, dom_exception::DOMException, events::Event, file::File,
-    structured_clone,
+    serialize, structured_clone,
 };
 
 impl ModuleDef for BaseModule {
@@ -28,6 +27,7 @@ impl ModuleDef for BaseModule {
         crate::message::declare(decl)?;
 
         decl.declare("structuredClone")?;
+        decl.declare("serialize")?;
 
         Ok(())
     }
@@ -38,10 +38,19 @@ impl ModuleDef for BaseModule {
     ) -> rquickjs::Result<()> {
         let registry = &Registry::get(ctx)?;
 
+        Self::export(ctx, registry, exports)
+    }
+}
+
+impl<'js> Exportable<'js> for BaseModule {
+    fn export<T>(ctx: &Ctx<'js>, registry: &Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::ExportTarget<'js>,
+    {
         export!(
             ctx,
             registry,
-            exports,
+            target,
             AbortController,
             AbortSignal,
             EventTarget,
@@ -50,16 +59,12 @@ impl ModuleDef for BaseModule {
             Console
         );
 
-        EventTarget::add_event_target_prototype(ctx)?;
-        AbortSignal::inherit(ctx)?;
+        crate::encoding::export(ctx, registry, target)?;
+        crate::streams::export(ctx, registry, target)?;
+        crate::message::export(ctx, registry, target)?;
 
-        DOMException::init(ctx)?;
-
-        crate::encoding::export(ctx, registry, exports)?;
-        crate::streams::export(ctx, registry, exports)?;
-        crate::message::export(ctx, registry, exports)?;
-
-        exports.export("structuredClone", Func::from(structured_clone))?;
+        target.set(ctx, "structuredClone", Func::from(structured_clone))?;
+        target.set(ctx, "serialize", Func::from(serialize))?;
 
         Ok(())
     }

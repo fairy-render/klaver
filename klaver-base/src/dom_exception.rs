@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, Result, String,
     atom::PredefinedAtom,
@@ -9,8 +7,8 @@ use rquickjs::{
 use rquickjs_util::{StringRef, throw};
 
 use crate::{
-    Clonable, SerializationContext, StringCloner, StructuredClone, Tag, TransferData,
-    export::Exportable, register,
+    Clonable, SerializationContext, StructuredClone, Tag, TransferData, export::Exportable,
+    register,
 };
 
 #[rquickjs::class]
@@ -166,6 +164,8 @@ impl<'js> Exportable<'js> for DOMException<'js> {
             DOMException::NAME,
             Class::<DOMException>::create_constructor(ctx)?,
         )?;
+
+        DOMException::init(ctx)?;
 
         Ok(())
     }

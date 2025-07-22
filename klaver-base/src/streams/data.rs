@@ -3,8 +3,8 @@ use event_listener::EventListener;
 use pin_project_lite::pin_project;
 use rquickjs::{Ctx, JsLifetime, String, Value, class::Class, class::Trace};
 use rquickjs::{Function, Promise};
+use rquickjs_util::StringRef;
 use rquickjs_util::throw;
-use rquickjs_util::{StringRef, util::ArrayExt};
 use std::task::{Poll, ready};
 use std::{rc::Rc, usize};
 

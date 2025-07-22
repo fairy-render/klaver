@@ -10,8 +10,13 @@ use rquickjs::{Class, Ctx, Function, Symbol, Type, Value, class::JsClass, prelud
 use rquickjs_util::{Date, Map, Set, StringRef, throw, util::is_plain_object};
 
 pub use self::{
-    bindings::structured_clone, context::SerializationContext, module::*, registry::Registry,
-    tag::Tag, traits::*, value::*,
+    bindings::{serialize, structured_clone},
+    context::SerializationContext,
+    module::*,
+    registry::Registry,
+    tag::Tag,
+    traits::*,
+    value::*,
 };
 
 pub fn register<'js, T>(ctx: &Ctx<'js>, registry: &crate::Registry) -> rquickjs::Result<()>

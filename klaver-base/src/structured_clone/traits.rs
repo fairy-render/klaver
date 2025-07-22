@@ -1,4 +1,4 @@
-use rquickjs::{Array, ArrayBuffer, FromJs, IntoJs, Object, Value};
+use rquickjs::{Array, FromJs, IntoJs, Object, Value};
 use rquickjs_util::{Date, throw, util::ArrayExt};
 use std::{collections::BTreeMap, marker::PhantomData};
 
@@ -9,6 +9,7 @@ use super::{
     value::{TransObject, TransferData},
 };
 
+// TODO: Rename to something like Serializable
 /// Traits for structured cloning in JavaScript.
 /// This trait is used to define how different types can be cloned and transferred
 /// between JavaScript and Rust. It allows for custom serialization and deserialization
