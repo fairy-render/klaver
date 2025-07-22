@@ -1,5 +1,5 @@
 use futures::future::LocalBoxFuture;
-use klaver_runner::{Func as WorkerFunc, Runner, Workers};
+use klaver_runner::{Runner, Runnerable as WorkerFunc, Workers};
 use klaver_timers::{TimeId, Timers, TimingBackend};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, Function, IntoJs, Module,
@@ -12,7 +12,10 @@ pub struct Test;
 impl WorkerFunc for Test {
     type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
-    fn call<'js>(self, ctx: rquickjs::Ctx<'js>, _workers: Workers) -> Self::Future<'js> {
+    fn call<'js>(self, ctx: rquickjs::Ctx<'js>, _workers: Workers) -> Self::Future<'js>
+    where
+        Self: 'js,
+    {
         Box::pin(async move {
             ctx.globals()
                 .set(

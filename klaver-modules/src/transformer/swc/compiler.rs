@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use std::{path::Path, sync::Arc};
-use swc_common::{Globals, Mark, SourceMap, GLOBALS};
+use swc_common::{source_map::DefaultSourceMapGenConfig, Globals, Mark, GLOBALS};
 use swc_ecma_ast::{EsVersion, Pass, Program};
 use swc_ecma_codegen::text_writer::JsWriter;
 use swc_ecma_parser::{Syntax, TsSyntax};
@@ -20,7 +20,7 @@ use swc_node_comments::SwcComments;
 
 pub struct CodegenResult {
     pub code: Vec<u8>,
-    pub sourcemap: sourcemap::SourceMap,
+    pub sourcemap: swc_sourcemap::SourceMap,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -71,7 +71,7 @@ impl Default for CompilerOptions {
 
 #[derive(Default)]
 pub struct Compiler {
-    cm: Arc<SourceMap>,
+    cm: Arc<swc_common::SourceMap>,
     comments: SwcComments,
     globals: Globals,
     opts: CompilerOptions,
@@ -164,7 +164,9 @@ impl Compiler {
 
         emitter.emit_program(&program)?;
 
-        let srcmap = self.cm.build_source_map(&srcmap);
+        let srcmap = self
+            .cm
+            .build_source_map(&srcmap, None, DefaultSourceMapGenConfig);
 
         Ok(CodegenResult {
             code,

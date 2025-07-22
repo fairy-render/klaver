@@ -1,10 +1,9 @@
 [package]
-name = "rquickjs-modules"
+name = "klaver-modules"
 version = "0.2.0"
 edition = "2021"
 
 [features]
-default = []
 oxc-transform = ["oxc"]
 swc-transform = [
   "swc_node_comments",
@@ -14,19 +13,19 @@ swc-transform = [
   "swc_ecma_parser",
   "swc_ecma_ast",
   "swc_ecma_visit",
+  "swc_sourcemap",
   "anyhow",
-  "sourcemap",
+  "par-core",
 ]
 
 
 [dependencies]
 rquickjs = { workspace = true, features = ["loader", "futures"] }
 rquickjs-util = { path = "../rquickjs-util" }
-oxc_resolver = { version = "5" }
-oxc = { version = "0.38", features = [
+oxc_resolver = { version = "11.6" }
+oxc = { version = "0.77", features = [
   "transformer",
   "codegen",
-  "sourcemap",
   "semantic",
 ], optional = true }
 relative-path = { version = "2" }
@@ -35,8 +34,9 @@ parking_lot = { version = "0.12" }
 tracing = { version = "0.1" }
 geenie = { git = "https://github.com/fairy-render/geenie.git" }
 
-swc_ecma_codegen = { version = "8.0", optional = true }
-swc_ecma_transforms = { version = "14.0", features = [
+## Swc
+swc_ecma_codegen = { version = "16.0", optional = true }
+swc_ecma_transforms = { version = "26.0", features = [
   "proposal",
   "compat",
   "module",
@@ -44,14 +44,14 @@ swc_ecma_transforms = { version = "14.0", features = [
   "react",
   "concurrent",
 ], optional = true }
-swc_parallel = { version = "1", features = ["chili"] }
-swc_common = { version = "8.0", features = ["sourcemap"], optional = true }
-swc_ecma_parser = { version = "10.0", optional = true }
-swc_ecma_ast = { version = "8.1", optional = true }
-swc_ecma_visit = { version = "8.0", optional = true }
-swc_node_comments = { version = "8.0", optional = true }
-sourcemap = { version = "9", optional = true }
+swc_common = { version = "14.0", features = ["sourcemap"], optional = true }
+swc_ecma_parser = { version = "21.0", optional = true }
+swc_ecma_ast = { version = "14.0", optional = true }
+swc_ecma_visit = { version = "14.0", optional = true }
+swc_node_comments = { version = "14.0", optional = true }
+swc_sourcemap = { version = "9", optional = true }
 anyhow = { version = "1", optional = true }
+par-core = { version = "2", optional = true, features = ["chili"] }
 
 [dev-dependencies]
 futures = { version = "0.3" }

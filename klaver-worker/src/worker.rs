@@ -1,7 +1,6 @@
 use flume::{Receiver, Sender};
-use futures::{SinkExt, StreamExt, channel::mpsc, future::LocalBoxFuture};
-use klaver_base::{Emitter, Event, EventList, EventTarget, Exportable, NativeEvent};
-use klaver_runner::{Func, Runner, Shutdown, Workers};
+use klaver_base::{Emitter, EventList, EventTarget, Exportable};
+use klaver_runner::{Shutdown, Workers};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
     String, Value,

@@ -1,5 +1,5 @@
 use futures::future::LocalBoxFuture;
-use klaver_runner::{Func, Runner};
+use klaver_runner::{Runner, Runnerable};
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module};
 use rquickjs_util::{RuntimeError, Val};
 
@@ -51,10 +51,13 @@ struct Work {
     rx: flume::Receiver<Message>,
 }
 
-impl Func for Work {
+impl Runnerable for Work {
     type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
-    fn call<'js>(self, ctx: Ctx<'js>, worker: klaver_runner::Workers) -> Self::Future<'js> {
+    fn call<'js>(self, ctx: Ctx<'js>, worker: klaver_runner::Workers) -> Self::Future<'js>
+    where
+        Self: 'js,
+    {
         Box::pin(async move {
             worker.push(ctx.clone(), |ctx, mut shutdown| async move {
                 //

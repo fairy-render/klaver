@@ -4,19 +4,21 @@ resolver = "2"
 
 members = [
 
-  "klaver-image",
+  # "klaver-image",
   "rquickjs-util",
-  "klaver-fs",
-  "klaver-dom",
-  "klaver-wintercg",
-  "rquickjs-modules",
-  "klaver-cli",
-  "klaver",
-  "klaver-handlebars",
+  # "klaver-fs",
+  # "klaver-dom",
+  # "klaver-wintercg",
+  "klaver-modules",
+  # "klaver-cli",
+  # "klaver",
+  # "klaver-handlebars",
   "klaver-base",
   "klaver-timers",
   "klaver-runner",
   "klaver-worker",
+  "klaver-fetch",
+  "klaver-vm",
   # "klaver-http",
 ]
 
@@ -28,11 +30,10 @@ rquickjs = { version = "0.8", features = [
   "classes",
   "array-buffer",
 ] }
-tokio = { version = "1" }
 futures = { version = "0.3" }
 event-listener = { version = "5" }
 pin-project-lite = { version = "0.2" }
-
+flume = { version = "0.11" }
 
 [profile.release]
 lto = "fat"

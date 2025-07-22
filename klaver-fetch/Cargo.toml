@@ -1,0 +1,8 @@
+[package]
+name = "klaver-fetch"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rquickjs.workspace = true
+rquickjs-util = { path = "../rquickjs-util" }

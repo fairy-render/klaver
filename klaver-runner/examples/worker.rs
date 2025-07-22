@@ -1,11 +1,11 @@
 use futures::future::LocalBoxFuture;
-use klaver_runner::{Func, FuncFn, Runner, Workers};
+use klaver_runner::{FuncFn, Runner, Runnerable, Workers};
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx};
 use rquickjs_util::RuntimeError;
 
 pub struct Test<'a>(&'a str);
 
-impl<'a> Func for Test<'a> {
+impl<'a> Runnerable for Test<'a> {
     type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
 
     fn call<'js>(self, ctx: rquickjs::Ctx<'js>, workers: Workers) -> Self::Future<'js> {

@@ -14,14 +14,14 @@ pub struct Runner<'a, T: ?Sized> {
     func: T,
 }
 
-impl<'a, T> Runner<'a, T> {
+impl<'a, T: 'a> Runner<'a, T> {
     pub fn new(context: &'a AsyncContext, func: T) -> Runner<'a, T> {
         Runner { context, func }
     }
 
     pub async fn run(self) -> Result<(), RuntimeError>
     where
-        for<'b> T: Func + 'b,
+        for<'b> T: Runnerable + 'b,
     {
         let workers = Workers::new();
 
@@ -82,19 +82,30 @@ impl<'a, T> Runner<'a, T> {
     }
 }
 
-pub trait Func {
-    type Future<'js>: Future<Output = Result<(), RuntimeError>>;
+pub trait Runnerable {
+    type Future<'js>: Future<Output = Result<(), RuntimeError>>
+    where
+        Self: 'js;
 
-    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js>;
+    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js>
+    where
+        Self: 'js;
 }
 
-impl<T> Func for T
+impl<T> Runnerable for T
 where
+    T: 'static,
     T: for<'js> FnOnce(Ctx<'js>, Workers) -> LocalBoxFuture<'js, Result<(), RuntimeError>>,
 {
-    type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
+    type Future<'js>
+        = LocalBoxFuture<'js, Result<(), RuntimeError>>
+    where
+        Self: 'js;
 
-    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js> {
+    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js>
+    where
+        Self: 'js,
+    {
         (self)(ctx, worker)
     }
 }
@@ -110,13 +121,20 @@ where
     }
 }
 
-impl<T> Func for FuncFn<T>
+impl<T> Runnerable for FuncFn<T>
 where
+    T: 'static,
     T: for<'js> FnOnce(Ctx<'js>, Workers) -> LocalBoxFuture<'js, Result<(), RuntimeError>>,
 {
-    type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
+    type Future<'js>
+        = LocalBoxFuture<'js, Result<(), RuntimeError>>
+    where
+        Self: 'js;
 
-    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js> {
+    fn call<'js>(self, ctx: Ctx<'js>, worker: Workers) -> Self::Future<'js>
+    where
+        Self: 'js,
+    {
         (self.0)(ctx, worker)
     }
 }
