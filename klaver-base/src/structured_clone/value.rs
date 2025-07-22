@@ -1,6 +1,5 @@
 use dyn_clone::DynClone;
 use ordered_float::OrderedFloat;
-use rquickjs::IntoJs;
 use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hash};
 
 use super::tag::Tag;
@@ -35,12 +34,6 @@ pub enum TransObject {
     Ref {
         id: ObjectId,
     },
-}
-
-impl<'js> IntoJs<'js> for TransferData {
-    fn into_js(self, ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
-        todo!()
-    }
 }
 
 #[cfg_attr(feature = "serde", feature(serde::Serialize, serde::Deserialize))]

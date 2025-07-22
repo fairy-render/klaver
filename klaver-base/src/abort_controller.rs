@@ -1,5 +1,5 @@
 use rquickjs::{
-    Class, Ctx, JsLifetime,
+    Class, Ctx, JsLifetime, String,
     class::Trace,
     function::{Args, Opt},
 };
@@ -38,9 +38,11 @@ impl<'js> AbortController<'js> {
         self.signal.borrow_mut().reason = Some(if let Some(value) = reason.0 {
             value
         } else {
+            let error = String::from_str(ctx.clone(), "AbortError")?;
+
             Class::instance(
                 ctx.clone(),
-                DOMException::new(ctx.clone(), Opt(None), Opt(Some("AbortError".to_string())))?,
+                DOMException::new(ctx.clone(), Opt(None), Opt(Some(error)))?,
             )?
             .into_value()
         });

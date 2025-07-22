@@ -355,78 +355,9 @@ impl<'js> Clonable for Array<'js> {
     type Cloner = ArrayCloner;
 }
 
-// pub struct ValueCloner;
-
-// impl StructuredClone for ValueCloner {
-//     type Item<'js> = Value<'js>;
-
-//     tag!();
-
-//     fn from_transfer_object<'js>(
-//         ctx: &mut SerializationContext<'js, '_>,
-//         obj: TransferData,
-//     ) -> rquickjs::Result<Self::Item<'js>> {
-//         let value = transer_value(ctx, obj)?;
-//         Ok(value)
-//     }
-
-//     fn to_transfer_object<'js>(
-//         ctx: &mut SerializationContext<'js, '_>,
-//         value: &Self::Item<'js>,
-//     ) -> rquickjs::Result<TransferData> {
-//         let data = value_transfer(ctx, value)?;
-
-//         Ok(TransferData::Item(Box::new(data)))
-//     }
-// }
-
-// impl<'js> Clonable for Value<'js> {
-//     type Cloner = ValueCloner;
-// }
-
 fn value_transfer<'js>(
     ctx: &mut SerializationContext<'js, '_>,
     value: &Value<'js>,
 ) -> rquickjs::Result<TransObject> {
     ctx.to_transfer_object(value)
-}
-
-fn transer_value<'js>(
-    ctx: &mut SerializationContext<'js, '_>,
-    data: TransferData,
-) -> rquickjs::Result<Value<'js>> {
-    match data {
-        TransferData::String(str) => {
-            Ok(rquickjs::String::from_str(ctx.ctx().clone(), &*str)?.into_value())
-        }
-        TransferData::Integer(i) => Ok(Value::new_int(ctx.ctx().clone(), i as i32)),
-        TransferData::Float(ordered_float) => {
-            Ok(Value::new_float(ctx.ctx().clone(), *ordered_float))
-        }
-        TransferData::Bool(b) => Ok(Value::new_bool(ctx.ctx().clone(), b)),
-        TransferData::Bytes(b) => Ok(ArrayBuffer::new(ctx.ctx().clone(), b)?.into_value()),
-        TransferData::List(trans_objects) => {
-            //
-            Ok(
-                ArrayCloner::from_transfer_object(ctx, TransferData::List(trans_objects))?
-                    .into_value(),
-            )
-        }
-        TransferData::Object(btree_map) => Ok(ObjectCloner::from_transfer_object(
-            ctx,
-            TransferData::Object(btree_map),
-        )?
-        .into_value()),
-        TransferData::Item(trans_object) => ctx.from_transfer_object(*trans_object),
-        TransferData::NativeObject(native_data) => {
-            todo!()
-        }
-        TransferData::Option(opt) => {
-            //
-            match opt {
-                Some(v) => transer_value(ctx, *v),
-                None => Ok(Value::new_null(ctx.ctx().clone())),
-            }
-        }
-    }
 }

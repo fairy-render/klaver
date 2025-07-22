@@ -7,7 +7,7 @@ use rquickjs::{
     function::Rest,
 };
 
-use rquickjs_util::format::{FormatOptions, format_value};
+use rquickjs_util::format::{FormatOptions, format_to};
 
 use crate::export::Exportable;
 
@@ -106,12 +106,11 @@ impl<'js> Console<'js> {
     ) -> rquickjs::Result<()> {
         let mut output = String::new();
 
-        let opts = FormatOptions::default();
         for (idx, v) in values.0.into_iter().enumerate() {
             if idx != 0 {
                 output.push(' ');
             }
-            format_value(&ctx, v, &mut output, &opts)?;
+            format_to(&ctx, &v, &mut output, Some(FormatOptions::default()))?;
         }
 
         self.writer.write(level, output)?;

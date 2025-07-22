@@ -26,10 +26,6 @@ fn main() -> Result<(), RuntimeError> {
                         .into_object()
                         .unwrap();
 
-                    println!("IS ISTANCEOF {}", EventTarget::is_subclass(&ctx, &signal)?);
-
-                    println!("FUNC {:?}", signal.get::<_, Value>("addEventListener")?);
-
                     ctx.globals()
                         .set(
                             "print",

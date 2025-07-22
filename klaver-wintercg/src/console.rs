@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Instant};
 
 use rquickjs::{class::Trace, function::Rest, Ctx, Function, Value};
 
-use rquickjs_util::format::{format_value, FormatOptions};
+use rquickjs_util::format::{format_to, FormatOptions};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Level {
@@ -88,7 +88,7 @@ impl Console {
             if idx != 0 {
                 output.push(' ');
             }
-            format_value(&ctx, v, &mut output, &opts)?;
+            format_to(&ctx, &v, &mut output, Some(opts.clone()))?;
         }
 
         self.writer.write(level, output);

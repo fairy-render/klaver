@@ -58,11 +58,6 @@ impl<'js, 'a> SerializationContext<'js, 'a> {
         transfer.contains(value)
     }
 
-    pub fn dump(&self) {
-        println!("SER: {:?}", self.ser_cache);
-        println!("DE: {:?}", self.de_cache)
-    }
-
     pub(crate) fn cache_value(&self, value: impl AsRef<Value<'js>>) {
         self.ser_cache
             .borrow_mut()

@@ -26,7 +26,7 @@ test.self = test;
 
 const copy = structuredClone(test);
 
-console.log(test.date === copy.date, copy.date === copy.sub.date);
+console.log(test);
 
 // const test = new WritableStreamDefaultController({
 

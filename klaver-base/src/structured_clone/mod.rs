@@ -7,7 +7,7 @@ mod traits;
 mod value;
 
 use rquickjs::{Class, Ctx, Function, Symbol, Type, Value, class::JsClass, prelude::Opt};
-use rquickjs_util::{Date, Map, Set, StringRef, throw, throw_if, util::is_plain_object};
+use rquickjs_util::{Date, Map, Set, StringRef, throw, util::is_plain_object};
 
 pub use self::{
     bindings::structured_clone, context::SerializationContext, module::*, registry::Registry,

@@ -1,7 +1,33 @@
 use rquickjs::{promise::PromiseState, Array, Ctx, Filter, FromJs, Function, Object, Type, Value};
-use std::fmt::Write;
+use std::{collections::HashSet, fmt::Write};
 
 use crate::{Buffer, Date, StringRef};
+
+struct FormatCtx<'js, 'a> {
+    parent: Option<&'a FormatCtx<'js, 'a>>,
+    cache: HashSet<Value<'js>>,
+}
+
+impl<'js, 'a> FormatCtx<'js, 'a> {
+    fn new(parent: Option<&'a FormatCtx<'js, 'a>>) -> Self {
+        Self {
+            parent,
+            cache: HashSet::new(),
+        }
+    }
+
+    fn is_cached(&self, value: &Value<'js>) -> bool {
+        self.cache.contains(value) || self.parent.map_or(false, |p| p.is_cached(value))
+    }
+
+    fn cache(&mut self, value: Value<'js>) {
+        self.cache.insert(value);
+    }
+
+    fn child(&'a self) -> Self {
+        Self::new(Some(self))
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct FormatOptions {
@@ -26,23 +52,37 @@ impl<'js> FromJs<'js> for FormatOptions {
 }
 
 pub fn format<'js>(
-    ctx: Ctx<'js>,
-    rest: Value<'js>,
+    ctx: &Ctx<'js>,
+    rest: &Value<'js>,
     options: Option<FormatOptions>,
 ) -> rquickjs::Result<String> {
     let mut f = String::default();
-    let options = options.unwrap_or_default();
-
-    format_value(&ctx, rest, &mut f, &options)?;
+    format_to(ctx, rest, &mut f, options)?;
 
     Ok(f)
 }
 
-pub fn format_value<'js, W: Write>(
+pub fn format_to<'js, W: Write>(
     ctx: &Ctx<'js>,
-    rest: Value<'js>,
+    rest: &Value<'js>,
+    output: &mut W,
+    options: Option<FormatOptions>,
+) -> rquickjs::Result<()> {
+    let options = options.unwrap_or_default();
+
+    let mut format_ctx = FormatCtx::new(None);
+
+    format_value(&ctx, rest, output, &options, &mut format_ctx)?;
+
+    Ok(())
+}
+
+fn format_value<'js, W: Write>(
+    ctx: &Ctx<'js>,
+    rest: &Value<'js>,
     f: &mut W,
     options: &FormatOptions,
+    format_ctx: &mut FormatCtx<'js, '_>,
 ) -> rquickjs::Result<()> {
     match rest.type_of() {
         Type::Uninitialized => write!(f, "undefined"),
@@ -51,27 +91,33 @@ pub fn format_value<'js, W: Write>(
         Type::Bool => write!(f, "{}", rest.as_bool().unwrap()),
         Type::Int => write!(f, "{}", rest.as_int().unwrap()),
         Type::Float => write!(f, "{}", rest.as_float().unwrap()),
-        Type::String => write!(f, "\"{}\"", StringRef::from_js(ctx, rest)?),
+        Type::String => write!(f, "\"{}\"", StringRef::from_js(ctx, rest.clone())?),
         Type::Symbol => {
             write!(f, r#"Symbol(""#).unwrap();
-            format_value(ctx, rest.as_symbol().unwrap().description()?, f, options)?;
+            format_value(
+                ctx,
+                &rest.as_symbol().unwrap().description()?,
+                f,
+                options,
+                format_ctx,
+            )?;
             write!(f, r#"")"#)
         }
         Type::Array => {
-            let array = rest.into_array().unwrap();
-            format_array(ctx, array, f, options)?;
+            let array = rest.clone().into_array().unwrap();
+            format_array(ctx, array, f, options, format_ctx)?;
             Ok(())
         }
         Type::Constructor => {
-            let ctor = rest.into_function().unwrap();
+            let ctor = rest.clone().into_function().unwrap();
             write!(f, "[class {}]", ctor.get::<_, StringRef>("name")?)
         }
         Type::Function => {
-            let func = rest.into_object().unwrap();
+            let func = rest.clone().into_object().unwrap();
             write!(f, "[function {}]", func.get::<_, StringRef>("name")?)
         }
         Type::Promise => {
-            let rest = rest.into_promise().unwrap();
+            let rest = rest.clone().into_promise().unwrap();
             let state = match rest.state() {
                 PromiseState::Pending => "pending",
                 PromiseState::Rejected => "rejected",
@@ -81,11 +127,17 @@ pub fn format_value<'js, W: Write>(
             write!(f, "Promise[state = {state}]")
         }
         Type::Exception => {
-            let excp = rest.into_exception().unwrap();
+            let excp = rest.clone().into_exception().unwrap();
             write!(f, "{}", excp)
         }
         Type::Object => {
-            format_object(ctx, rest.into_object().unwrap(), f, options)?;
+            format_object(
+                ctx,
+                rest.clone().into_object().unwrap(),
+                f,
+                options,
+                format_ctx,
+            )?;
             Ok(())
         }
         _ => {
@@ -102,6 +154,7 @@ fn format_object<'js, W: Write>(
     obj: Object<'js>,
     o: &mut W,
     options: &FormatOptions,
+    format_ctx: &mut FormatCtx<'js, '_>,
 ) -> rquickjs::Result<()> {
     if Date::is(ctx, obj.as_value())? {
         write!(o, "{}", Date::from_js(ctx, obj.into_value())?.to_string()?).expect("write");
@@ -110,6 +163,13 @@ fn format_object<'js, W: Write>(
         write!(o, "{}", Buffer::from_js(ctx, obj.into_value())?).expect("write");
         return Ok(());
     }
+
+    if format_ctx.is_cached(obj.as_value()) {
+        o.write_str("[Circular]").ok();
+        return Ok(());
+    }
+
+    format_ctx.cache(obj.clone().into_value());
 
     let ctor = obj.get::<_, Option<Function<'js>>>("constructor")?;
 
@@ -129,9 +189,9 @@ fn format_object<'js, W: Write>(
             write!(o, ", ").expect("write");
         }
         let (k, v) = v?;
-        format_value(ctx, k, o, options)?;
+        format_value(ctx, &k, o, options, &mut format_ctx.child())?;
         o.write_str(" : ").expect("write");
-        format_value(ctx, v, o, options)?;
+        format_value(ctx, &v, o, options, &mut format_ctx.child())?;
     }
 
     o.write_str(" }").expect("write");
@@ -144,14 +204,22 @@ fn format_array<'js, W: Write>(
     obj: Array<'js>,
     o: &mut W,
     options: &FormatOptions,
+    format_ctx: &mut FormatCtx<'js, '_>,
 ) -> rquickjs::Result<()> {
+    if format_ctx.is_cached(obj.as_value()) {
+        o.write_str("[Circular]").ok();
+        return Ok(());
+    }
+
+    format_ctx.cache(obj.clone().into_value());
+
     o.write_str("[ ").expect("write");
     for (idx, v) in obj.iter::<rquickjs::Value>().enumerate() {
         if idx > 0 {
             write!(o, ", ").expect("write");
         }
         let v = v?;
-        format_value(ctx, v, o, options)?;
+        format_value(ctx, &v, o, options, &mut format_ctx.child())?;
     }
 
     o.write_str(" ]").expect("write");
