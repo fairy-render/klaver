@@ -143,6 +143,35 @@ impl<'js> ReadableStream<'js> {
         };
         Ok(Box::pin(stream))
     }
+
+    pub fn to_byte_stream(
+        &self,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<LocalBoxStream<'js, rquickjs::Result<Vec<u8>>>> {
+        let reader = self.get_reader(ctx.clone())?;
+
+        let stream = async_stream::try_stream! {
+            loop {
+                let next = reader.read(ctx.clone()).await?;
+
+                if  let Some(value) = next.value {
+                    if value.is_string() {
+                        let chunk = StringRef::from_js(&ctx, value)?;
+                        yield chunk.as_bytes().to_vec()
+                    } else  {
+                        let buffer = Buffer::from_js(&ctx, value)?;
+                        if let Some(bytes) = buffer.as_raw() {
+                            yield bytes.slice().to_vec()
+                        }
+                    }
+                } else if next.done {
+                    break;
+                }
+
+            }
+        };
+        Ok(Box::pin(stream))
+    }
 }
 
 #[rquickjs::methods]

@@ -1,5 +1,6 @@
 mod body;
 mod body_init;
+mod fetch;
 mod headers;
 mod method;
 mod request;

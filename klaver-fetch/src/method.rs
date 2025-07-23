@@ -3,7 +3,7 @@ use core::fmt;
 use rquickjs::{Error, FromJs, IntoJs, Value, class::Trace};
 
 #[derive(Clone)]
-pub struct Method(http::Method);
+pub struct Method(pub http::Method);
 
 impl<'js> Trace<'js> for Method {
     fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}

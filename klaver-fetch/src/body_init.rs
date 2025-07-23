@@ -2,6 +2,8 @@ use klaver_base::streams::{ReadableStream, readable::One};
 use rquickjs::{Class, Ctx, FromJs, class::Trace};
 use rquickjs_util::Buffer;
 
+use crate::{Headers, body::BodyMixin};
+
 #[derive(Trace)]
 pub enum BodyInit<'js> {
     Buffer(Buffer<'js>),
@@ -10,7 +12,11 @@ pub enum BodyInit<'js> {
 }
 
 impl<'js> BodyInit<'js> {
-    pub fn to_stream(self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
+    pub fn to_body(
+        self,
+        ctx: &Ctx<'js>,
+        headers: &Class<'js, Headers<'js>>,
+    ) -> rquickjs::Result<BodyMixin<'js>> {
         // match self {
         //     BodyInit::Buffer(buffer) => ReadableStream::from_native(ctx.clone(), One::new(buffer)),
         //     BodyInit::String(str) => ReadableStream::from_native(ctx.clone(), One::new(str)),

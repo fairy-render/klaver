@@ -15,7 +15,7 @@ use crate::{
 #[derive(Debug, JsLifetime)]
 #[rquickjs::class]
 pub struct Blob<'js> {
-    buffer: ArrayBuffer<'js>,
+    pub buffer: ArrayBuffer<'js>,
     #[qjs(rename = "type", get)]
     pub ty: Option<String<'js>>,
 }

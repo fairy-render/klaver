@@ -1,6 +1,6 @@
 use http::HeaderMap;
 use rquickjs::{Class, Ctx, FromJs, JsLifetime, String, class::Trace, function::Opt};
-use rquickjs_util::typed_multi_map::TypedMultiMap;
+use rquickjs_util::{typed_multi_map::TypedMultiMap, util::StringExt};
 
 #[derive(Trace)]
 pub struct HeadersInit<'js> {
@@ -42,6 +42,12 @@ unsafe impl<'js> JsLifetime<'js> for Headers<'js> {
 }
 
 impl<'js> Headers<'js> {
+    pub fn new_native(ctx: Ctx<'js>) -> rquickjs::Result<Headers<'js>> {
+        Ok(Headers {
+            inner: TypedMultiMap::new(ctx)?,
+        })
+    }
+
     pub fn from_headers(
         ctx: &Ctx<'js>,
         headers: HeaderMap,
@@ -76,14 +82,19 @@ impl<'js> Headers<'js> {
         key: String<'js>,
         value: rquickjs::String<'js>,
     ) -> rquickjs::Result<()> {
-        self.inner.append(&ctx, key, value)
+        self.inner
+            .append(&ctx, key, value.to_lowercase(ctx.clone())?)
     }
 
-    pub fn get(&self, key: String<'js>) -> rquickjs::Result<Option<rquickjs::String<'js>>> {
-        self.inner.get(key)
+    pub fn get(
+        &self,
+        ctx: Ctx<'js>,
+        key: String<'js>,
+    ) -> rquickjs::Result<Option<rquickjs::String<'js>>> {
+        self.inner.get(key.to_lowercase(ctx)?)
     }
 
-    pub fn has(&self, key: String<'js>) -> rquickjs::Result<bool> {
-        self.inner.has(key)
+    pub fn has(&self, ctx: Ctx<'js>, key: String<'js>) -> rquickjs::Result<bool> {
+        self.inner.has(key.to_lowercase(ctx)?)
     }
 }
