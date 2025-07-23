@@ -39,6 +39,7 @@ impl<'js> Exportable<'js> for WinterCG {
     {
         klaver_base::BaseModule::export(ctx, registry, target)?;
         klaver_worker::WebWorker::export(ctx, registry, target)?;
+        klaver_fetch::FetchModule::export(ctx, registry, target)?;
 
         // EventTarget
         crate::event_target::export(ctx, target)?;

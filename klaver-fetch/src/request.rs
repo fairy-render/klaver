@@ -1,5 +1,5 @@
 use http::Extensions;
-use klaver_base::{AbortSignal, Blob, streams::ReadableStream};
+use klaver_base::{AbortSignal, Blob, create_export, streams::ReadableStream};
 use reggie::Body;
 use rquickjs::{
     ArrayBuffer, Class, Coerced, Ctx, JsLifetime, String, TypedArray, class::Trace, prelude::Opt,
@@ -107,3 +107,5 @@ impl<'js> Request<'js> {
         self.body.blob(&ctx, content_type).await
     }
 }
+
+create_export!(Request<'js>);

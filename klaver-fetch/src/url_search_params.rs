@@ -1,3 +1,4 @@
+use klaver_base::create_export;
 use rquickjs::{
     Array, Ctx, FromJs, Function, IntoJs, JsLifetime, Value, atom::PredefinedAtom, class::Trace,
     prelude::Opt,
@@ -206,3 +207,5 @@ impl<'js> Iterable<'js> for URLSearchParams<'js> {
         Ok(NativeIter::new(self.map.entries()?))
     }
 }
+
+create_export!(URLSearchParams<'js>);

@@ -11,6 +11,7 @@ module = ["klaver-modules"]
 klaver-base = { path = "../klaver-base" }
 klaver-timers = { path = "../klaver-timers" }
 klaver-worker = { path = "../klaver-worker" }
+klaver-fetch = { path = "../klaver-fetch" }
 klaver-modules = { path = "../klaver-modules", optional = true }
 
 rquickjs.workspace = true

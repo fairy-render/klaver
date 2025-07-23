@@ -1,4 +1,5 @@
 use http::HeaderMap;
+use klaver_base::create_export;
 use rquickjs::{Class, Ctx, FromJs, JsLifetime, String, class::Trace, function::Opt};
 use rquickjs_util::{typed_multi_map::TypedMultiMap, util::StringExt};
 
@@ -98,3 +99,5 @@ impl<'js> Headers<'js> {
         self.inner.has(key.to_lowercase(ctx)?)
     }
 }
+
+create_export!(Headers<'js>);

@@ -1212,6 +1212,7 @@ name = "klaver-wintercg"
 version = "0.1.0"
 dependencies = [
  "klaver-base",
+ "klaver-fetch",
  "klaver-modules",
  "klaver-timers",
  "klaver-worker",

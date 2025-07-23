@@ -1,6 +1,9 @@
+use klaver_base::{Exportable, create_export};
 use rquickjs::{
     Array, Atom, Class, Ctx, FromAtom, FromJs, JsLifetime, String as JsString,
-    atom::PredefinedAtom, class::Trace, function::Opt,
+    atom::PredefinedAtom,
+    class::{JsClass, Trace},
+    function::Opt,
 };
 use rquickjs_util::{string::concat, throw_if, util::ArrayExt, util::StringExt};
 
@@ -42,7 +45,7 @@ impl<'js> FromJs<'js> for StringOrUrl<'js> {
 }
 
 #[derive(Trace)]
-#[rquickjs::class]
+#[rquickjs::class(rename = "URL")]
 pub struct Url<'js> {
     #[qjs(get, set)]
     protocol: JsString<'js>,
@@ -218,3 +221,5 @@ impl<'js> Url<'js> {
         self.get_href(ctx)
     }
 }
+
+create_export!(Url<'js>);
