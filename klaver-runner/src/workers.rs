@@ -6,7 +6,7 @@ use std::{
 
 use event_listener::{Event, listener};
 use rquickjs::{Ctx, JsLifetime, runtime::UserDataGuard};
-use rquickjs_util::throw;
+use rquickjs_util::throw_if;
 
 use crate::{shutdown::Shutdown, uncaught_exeception::UncaugthException};
 
@@ -23,11 +23,14 @@ pub struct Workers(Rc<Inner>);
 
 impl Workers {
     pub fn from_ctx<'a>(ctx: &'a Ctx<'_>) -> rquickjs::Result<UserDataGuard<'a, Self>> {
-        let Some(workers) = ctx.userdata() else {
-            throw!(ctx, "Workers not registered")
-        };
-
-        Ok(workers)
+        match ctx.userdata::<Self>() {
+            Some(ret) => Ok(ret),
+            None => {
+                let workers = Workers::new();
+                throw_if!(ctx, ctx.store_userdata(workers));
+                Ok(ctx.userdata().expect("userdata"))
+            }
+        }
     }
 
     pub fn new() -> Workers {
@@ -75,6 +78,12 @@ impl Workers {
         self.0.shutdown.notify(usize::MAX);
         self.0.events.notify(usize::MAX);
         self.0.is_shutdown.set(true);
+    }
+
+    pub(crate) fn reset(&self) {
+        self.0.is_shutdown.set(false);
+        self.0.error.replace(None);
+        self.0.worker_count.set(0);
     }
 
     pub(crate) async fn wait(&self) -> Result<(), UncaugthException> {

@@ -44,7 +44,7 @@ impl<'js> Exportable<'js> for WinterCG {
         crate::event_target::export(ctx, target)?;
 
         // Timers
-        // crate::timers::export(ctx, target)?;
+        crate::timers::export(ctx, target)?;
 
         // Console
         let console = Console::new_with(StdConsoleWriter::default());

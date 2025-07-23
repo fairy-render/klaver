@@ -14,6 +14,7 @@ pub struct Runner<'a, T: ?Sized> {
     func: T,
 }
 
+// TODO: Introduce lock so that only one runner can run at a time
 impl<'a, T: 'a> Runner<'a, T> {
     pub fn new(context: &'a AsyncContext, func: T) -> Runner<'a, T> {
         Runner { context, func }
@@ -28,9 +29,10 @@ impl<'a, T: 'a> Runner<'a, T> {
         // Start worker function
         let worker_clone = workers.clone();
         let work_future = rquickjs::async_with!(self.context => |ctx| {
-            ctx.store_userdata(worker_clone.clone()).map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
+            // ctx.store_userdata(worker_clone.clone()).map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
             self.func.call(ctx, worker_clone).await
-        }).fuse();
+        })
+        .fuse();
         pin_mut!(work_future);
 
         // Create waiting future
@@ -73,7 +75,7 @@ impl<'a, T: 'a> Runner<'a, T> {
 
         self.context
             .with(|ctx| {
-                ctx.remove_userdata::<Workers>()?;
+                Workers::from_ctx(&ctx)?.reset();
                 rquickjs::Result::Ok(())
             })
             .await?;
