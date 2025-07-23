@@ -3,8 +3,13 @@ name = "klaver-fetch"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["reqwest"]
+reqwest = ["dep:reqwest"]
+
 [dependencies]
 klaver-base = { path = "../klaver-base" }
+klaver-runner = { path = "../klaver-runner" }
 rquickjs.workspace = true
 rquickjs-util = { path = "../rquickjs-util" }
 
@@ -18,3 +23,9 @@ multer = { version = "3" }
 reggie = { git = "https://github.com/fairy-render/reggie", features = ["json"] }
 
 futures.workspace = true
+
+pin-project-lite = { version = "0.2" }
+flume.workspace = true
+
+
+reqwest = { version = "0.12", optional = true }

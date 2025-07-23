@@ -12,3 +12,7 @@ klaver-base = { path = "../klaver-base" }
 rquickjs = { workspace = true }
 rquickjs-util = { path = "../rquickjs-util" }
 futures.workspace = true
+
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }

@@ -24,10 +24,14 @@ impl<'a, T: 'a> Runner<'a, T> {
     where
         for<'b> T: Runnerable + 'b,
     {
-        let workers = Workers::new();
-
         // Start worker function
+        let workers = self
+            .context
+            .with(|ctx| Workers::from_ctx(&ctx).map(|m| m.clone()))
+            .await?;
+
         let worker_clone = workers.clone();
+
         let work_future = rquickjs::async_with!(self.context => |ctx| {
             // ctx.store_userdata(worker_clone.clone()).map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
             self.func.call(ctx, worker_clone).await

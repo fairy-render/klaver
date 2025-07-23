@@ -1,11 +1,22 @@
-use std::cell::RefCell;
+use std::{
+    cell::RefCell,
+    task::{Poll, ready},
+};
 
-use futures::{TryStreamExt, stream::LocalBoxStream};
+use futures::{
+    Stream, StreamExt, TryStreamExt,
+    future::{BoxFuture, LocalBoxFuture},
+    stream::LocalBoxStream,
+};
 use klaver_base::{
     Blob,
     streams::{ReadableStream, readable::One},
 };
-use reggie::{Body, http_body};
+use pin_project_lite::pin_project;
+use reggie::{
+    Body,
+    http_body::{self, Frame},
+};
 use rquickjs::{ArrayBuffer, Class, Ctx, String, TypedArray, Value, class::Trace};
 use rquickjs_util::{Buffer, Bytes, RuntimeError, Static, throw, throw_if};
 
@@ -122,6 +133,20 @@ impl<'js> BodyMixin<'js> {
             ty: content_type,
         })
     }
+
+    // TODO: Take fast path, if body isnt a ReadableStream
+    pub fn to_native_body(&self, ctx: &Ctx<'js>) -> rquickjs::Result<JsBody<'js>> {
+        match self.body(ctx)? {
+            Some(inner) => Ok(JsBody {
+                inner: JsBodyState::Stream {
+                    stream: inner.borrow().to_byte_stream(ctx.clone())?,
+                },
+            }),
+            None => Ok(JsBody {
+                inner: JsBodyState::Empty,
+            }),
+        }
+    }
 }
 
 impl<'js> Trace<'js> for BodyMixin<'js> {
@@ -153,9 +178,62 @@ impl<'js> From<Body> for BodyMixin<'js> {
         }
     }
 }
+pin_project! {
+    #[project = BodyProj]
+    enum JsBodyState<'js> {
+        Empty,
+        Stream {
+            #[pin]
+            stream: LocalBoxStream<'js, Result<Vec<u8>, RuntimeError>>,
+        },
+    }
+}
 
-pub struct JsBody<'js> {
-    inner: LocalBoxStream<'js, rquickjs::Result<Vec<u8>>>,
+impl<'js> Stream for JsBodyState<'js> {
+    type Item = Result<Vec<u8>, RuntimeError>;
+    fn poll_next(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        match self.project() {
+            BodyProj::Empty => Poll::Ready(None),
+            BodyProj::Stream { stream } => stream.poll_next(cx),
+        }
+    }
+}
+
+pin_project! {
+    pub struct JsBody<'js> {
+        #[pin]
+        inner: JsBodyState<'js>,
+    }
+}
+
+impl<'js> JsBody<'js> {
+    pub fn into_remote(self) -> (RemoteBody, RemoteBodyProducer<'js>) {
+        let (sx, rx) = flume::bounded(1);
+
+        let mut stream = self.inner;
+        let producer = RemoteBodyProducer {
+            inner: Box::pin(async move {
+                //
+
+                while let Some(next) = stream.next().await {
+                    sx.send_async(next.map(bytes::Bytes::from).map(Frame::data))
+                        .await
+                        .map_err(|err| RuntimeError::Custom(Box::new(err)));
+                }
+
+                Ok(())
+            }),
+        };
+
+        let body = RemoteBody {
+            rx: rx.into_stream(),
+        };
+
+        (body, producer)
+    }
 }
 
 impl<'js> http_body::Body for JsBody<'js> {
@@ -167,6 +245,45 @@ impl<'js> http_body::Body for JsBody<'js> {
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
-        todo!()
+        match ready!(self.project().inner.poll_next(cx)) {
+            Some(Ok(ret)) => Poll::Ready(Some(Ok(Frame::data(ret.into())))),
+            Some(Err(err)) => Poll::Ready(Some(Err(err))),
+            None => Poll::Ready(None),
+        }
+    }
+}
+
+pin_project! {
+    pub struct RemoteBody {
+        #[pin]
+        rx: flume::r#async::RecvStream<'static, Result<Frame<bytes::Bytes>, RuntimeError>>,
+    }
+}
+
+impl http_body::Body for RemoteBody {
+    type Data = bytes::Bytes;
+
+    type Error = RuntimeError;
+
+    fn poll_frame(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
+        self.project().rx.poll_next(cx)
+    }
+}
+
+pin_project! {
+    pub struct RemoteBodyProducer<'js> {
+        #[pin]
+        inner: LocalBoxFuture<'js, rquickjs::Result<()>>,
+    }
+}
+
+impl<'js> Future for RemoteBodyProducer<'js> {
+    type Output = rquickjs::Result<()>;
+
+    fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
+        self.project().inner.poll(cx)
     }
 }

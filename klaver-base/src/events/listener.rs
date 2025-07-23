@@ -1,3 +1,4 @@
+use futures::SinkExt;
 use rquickjs::{Ctx, Function, class::Trace};
 
 use crate::DynEvent;
@@ -44,6 +45,17 @@ pub trait NativeListener<'js> {
 impl<'js> NativeListener<'js> for async_channel::Sender<DynEvent<'js>> {
     fn on_event(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
         let this = self.clone();
+        ctx.spawn(async move {
+            this.send(event).await.ok();
+        });
+
+        Ok(())
+    }
+}
+
+impl<'js> NativeListener<'js> for futures::channel::mpsc::Sender<DynEvent<'js>> {
+    fn on_event(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
+        let mut this = self.clone();
         ctx.spawn(async move {
             this.send(event).await.ok();
         });

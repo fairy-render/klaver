@@ -4,8 +4,13 @@ use reggie::Body;
 use rquickjs::{
     ArrayBuffer, Class, Coerced, Ctx, JsLifetime, String, TypedArray, class::Trace, prelude::Opt,
 };
+use rquickjs_util::{StringRef, throw_if, util::StringExt};
 
-use crate::{Headers, Method, body::BodyMixin, request_init::RequestInit};
+use crate::{
+    Headers, Method,
+    body::{BodyMixin, JsBody},
+    request_init::RequestInit,
+};
 
 #[rquickjs::class]
 pub struct Request<'js> {
@@ -35,8 +40,27 @@ unsafe impl<'js> JsLifetime<'js> for Request<'js> {
 }
 
 impl<'js> Request<'js> {
-    pub fn to_native(&self) -> rquickjs::Result<http::Request<Body>> {
-        todo!()
+    pub fn to_native(
+        &self,
+        ctx: &Ctx<'js>,
+    ) -> rquickjs::Result<(
+        http::Request<JsBody<'js>>,
+        Option<Class<'js, AbortSignal<'js>>>,
+    )> {
+        let mut builder = http::Request::builder().uri(self.url.str_ref()?.as_str());
+
+        let headers = self.headers.borrow();
+
+        for pair in headers.inner.entries()? {
+            let pair = pair?;
+            builder = builder.header(pair.key.str_ref()?.as_str(), pair.value.str_ref()?.as_str());
+        }
+
+        let body = self.body.to_native_body(&ctx)?;
+
+        let req = throw_if!(ctx, builder.body(body));
+
+        Ok((req, self.signal.clone()))
     }
 }
 

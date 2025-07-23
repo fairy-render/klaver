@@ -1,4 +1,4 @@
-mod backend;
+pub mod backend;
 mod event_target;
 mod timers;
 

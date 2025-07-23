@@ -49,7 +49,7 @@ impl<'js> Headers<'js> {
         })
     }
 
-    pub fn from_headers(
+    pub fn from_native(
         ctx: &Ctx<'js>,
         headers: HeaderMap,
     ) -> rquickjs::Result<Class<'js, Headers<'js>>> {

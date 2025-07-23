@@ -55,12 +55,14 @@ impl Workers {
         let inner = self.0.clone();
         self.0.worker_count.update(|m| m + 1);
         self.0.events.notify(usize::MAX);
+        println!("HER");
         ctx.clone().spawn(async move {
             let ret = func(
                 ctx,
                 Shutdown::new(inner.shutdown.listen(), inner.is_shutdown.clone()),
             )
             .await;
+
             if let Err(err) = ret {
                 inner.error.replace(Some(err));
             }

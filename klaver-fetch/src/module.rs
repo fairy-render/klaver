@@ -1,5 +1,9 @@
 use klaver_base::{Exportable, Registry};
-use rquickjs::{class::JsClass, module::ModuleDef, prelude::Func};
+use rquickjs::{
+    class::JsClass,
+    module::ModuleDef,
+    prelude::{Async, Func},
+};
 
 use crate::{Headers, URLSearchParams, Url, fetch::fetch, request::Request};
 
@@ -36,7 +40,7 @@ impl<'js> Exportable<'js> for FetchModule {
         URLSearchParams::export(ctx, registry, target)?;
         Request::export(ctx, registry, target)?;
 
-        target.set(ctx, "fetch", Func::from(fetch))?;
+        target.set(ctx, "fetch", Func::from(Async(fetch)))?;
 
         Ok(())
     }

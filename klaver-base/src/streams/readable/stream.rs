@@ -4,8 +4,11 @@ use std::{
 };
 
 use futures::{TryStream, stream::LocalBoxStream};
-use rquickjs::{Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value, class::Trace, prelude::Opt};
-use rquickjs_util::{Buffer, StringRef, async_iterator::StreamContainer, throw};
+use rquickjs::{
+    CatchResultExt, Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value, class::Trace,
+    prelude::Opt,
+};
+use rquickjs_util::{Buffer, RuntimeError, StringRef, async_iterator::StreamContainer, throw};
 
 use crate::streams::{
     WritableStream,
@@ -147,19 +150,19 @@ impl<'js> ReadableStream<'js> {
     pub fn to_byte_stream(
         &self,
         ctx: Ctx<'js>,
-    ) -> rquickjs::Result<LocalBoxStream<'js, rquickjs::Result<Vec<u8>>>> {
+    ) -> rquickjs::Result<LocalBoxStream<'js, Result<Vec<u8>, RuntimeError>>> {
         let reader = self.get_reader(ctx.clone())?;
 
         let stream = async_stream::try_stream! {
             loop {
-                let next = reader.read(ctx.clone()).await?;
+                let next = reader.read(ctx.clone()).await.catch(&ctx)?;
 
                 if  let Some(value) = next.value {
                     if value.is_string() {
-                        let chunk = StringRef::from_js(&ctx, value)?;
+                        let chunk = StringRef::from_js(&ctx, value).catch(&ctx)?;
                         yield chunk.as_bytes().to_vec()
                     } else  {
-                        let buffer = Buffer::from_js(&ctx, value)?;
+                        let buffer = Buffer::from_js(&ctx, value).catch(&ctx)?;
                         if let Some(bytes) = buffer.as_raw() {
                             yield bytes.slice().to_vec()
                         }

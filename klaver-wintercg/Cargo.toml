@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["module"]
+default = ["module", "tokio"]
 module = ["klaver-modules"]
+
+tokio = ["dep:tokio", "klaver-fetch/reqwest"]
 
 [dependencies]
 klaver-base = { path = "../klaver-base" }
@@ -16,3 +18,8 @@ klaver-modules = { path = "../klaver-modules", optional = true }
 
 rquickjs.workspace = true
 rquickjs-util = { path = "../rquickjs-util" }
+
+tokio = { version = "1", features = ["time"], optional = true }
+
+
+futures.workspace = true

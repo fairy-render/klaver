@@ -1,4 +1,5 @@
 use klaver_vm::Options;
+use rquickjs::CatchResultExt;
 
 #[derive(Default)]
 pub struct Builder {
@@ -9,9 +10,16 @@ impl Builder {
     pub async fn build(self) -> klaver_vm::Result<Vm> {
         let vm = self
             .opts
+            .search_path(".")
             .global::<klaver_wintercg::WinterCG>()
             .build()
             .await?;
+
+        klaver_vm::async_with!(vm => |ctx| {
+            klaver_wintercg::backend::Tokio::default().set_runtime(&ctx).catch(&ctx)?;
+            Ok(())
+        })
+        .await?;
 
         Ok(Vm { vm })
     }

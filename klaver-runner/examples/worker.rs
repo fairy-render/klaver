@@ -15,8 +15,8 @@ impl<'a> Runnerable for Test<'a> {
                 //
 
                 println!("Started");
-                ctx.eval::<(), _>("throw new Error('Js error')")
-                    .catch(&ctx)?;
+                // ctx.eval::<(), _>("throw new Error('Js error')")
+                //     .catch(&ctx)?;
                 listener.await;
                 println!("finished");
 
