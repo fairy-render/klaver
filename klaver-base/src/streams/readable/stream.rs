@@ -1,20 +1,30 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
-use rquickjs::{Class, Ctx, JsLifetime, String, Value, class::Trace, prelude::Opt};
-use rquickjs_util::throw;
+use futures::{TryStream, stream::LocalBoxStream};
+use rquickjs::{Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value, class::Trace, prelude::Opt};
+use rquickjs_util::{Buffer, StringRef, async_iterator::StreamContainer, throw};
 
 use crate::streams::{
     WritableStream,
     data::{StreamData, WaitWriteReady},
     queue_strategy::QueuingStrategy,
     readable::{
-        NativeSource,
+        NativeSource, StreamSource,
         controller::ReadableStreamDefaultController,
         from::from,
         reader::ReadableStreamDefaultReader,
         underlying_source::{JsUnderlyingSource, UnderlyingSource},
     },
 };
+
+pub enum ReadableStreamState {
+    Readable,
+    Closed,
+    Error,
+}
 
 #[derive(Trace, JsLifetime)]
 #[rquickjs::class]
@@ -23,6 +33,17 @@ pub struct ReadableStream<'js> {
 }
 
 impl<'js> ReadableStream<'js> {
+    pub fn from_stream<T>(ctx: Ctx<'js>, stream: T) -> rquickjs::Result<ReadableStream<'js>>
+    where
+        T: TryStream + Trace<'js> + Unpin + 'js,
+        T::Error: std::error::Error,
+        T::Ok: IntoJs<'js>,
+    {
+        let stream = StreamContainer(stream);
+
+        Self::from_native(ctx, StreamSource(stream))
+    }
+
     pub fn from_native<T: NativeSource<'js> + 'js>(
         ctx: Ctx<'js>,
         native: T,
@@ -56,8 +77,71 @@ impl<'js> ReadableStream<'js> {
         Ok(ReadableStream { data })
     }
 
+    pub fn state(&self) -> ReadableStreamState {
+        if self.data.borrow().is_closed() {
+            ReadableStreamState::Closed
+        } else if self.data.borrow().is_failed() {
+            ReadableStreamState::Error
+        } else {
+            ReadableStreamState::Readable
+        }
+    }
+
+    pub fn disturbed(&self) -> bool {
+        self.data.borrow().disturbed || self.data.borrow().is_aborted()
+    }
+
     pub fn is(value: &Value<'js>) -> bool {
         Class::<Self>::from_value(value).is_ok()
+    }
+
+    pub async fn to_bytes(&self, ctx: Ctx<'js>) -> rquickjs::Result<Vec<u8>> {
+        let reader = self.get_reader(ctx.clone())?;
+
+        let mut output = Vec::default();
+
+        loop {
+            let next = reader.read(ctx.clone()).await?;
+
+            if let Some(chunk) = next.value {
+                if chunk.is_string() {
+                    let chunk = StringRef::from_js(&ctx, chunk)?;
+                    output.extend(chunk.as_bytes())
+                } else {
+                    let buffer = Buffer::from_js(&ctx, chunk)?;
+                    if let Some(bytes) = buffer.as_raw() {
+                        output.extend_from_slice(bytes.slice());
+                    }
+                }
+            }
+
+            if next.done {
+                break;
+            }
+        }
+
+        Ok(output)
+    }
+
+    pub fn to_stream(
+        &self,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<LocalBoxStream<'js, rquickjs::Result<Value<'js>>>> {
+        let reader = self.get_reader(ctx.clone())?;
+
+        let stream = async_stream::try_stream! {
+            loop {
+                let next = reader.read(ctx.clone()).await?;
+
+                if  let Some(value) = next.value {
+                    yield value
+                } else {
+                    break;
+                }
+
+            }
+        };
+        Ok(Box::pin(stream))
     }
 }
 

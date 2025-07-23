@@ -14,6 +14,7 @@ pub mod stack_trace;
 pub mod string;
 pub mod typed_list;
 pub mod typed_map;
+pub mod typed_multi_map;
 pub mod util;
 #[cfg(feature = "vaerdi")]
 pub mod val;

@@ -26,6 +26,7 @@ pub struct StreamData<'js> {
     pub wait: Rc<Event>,
     pub state: ControllerState<'js>,
     pub locked: bool,
+    pub disturbed: bool,
 }
 
 impl<'js> Trace<'js> for StreamData<'js> {
@@ -46,6 +47,7 @@ impl<'js> StreamData<'js> {
             wait: Default::default(),
             state: ControllerState::Running,
             locked: false,
+            disturbed: false,
         }
     }
 
@@ -178,6 +180,9 @@ impl<'js> StreamData<'js> {
     pub fn pop(&mut self) -> Option<Entry<'js>> {
         let ret = self.queue.pop()?;
         self.wait.notify(usize::MAX);
+
+        // Should only be set when readable stream
+        self.disturbed = true;
 
         Some(ret)
     }

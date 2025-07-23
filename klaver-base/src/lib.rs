@@ -18,7 +18,8 @@ mod structured_clone;
 mod module;
 
 pub use self::{
-    abort_controller::*, abort_signal::*, console::*, events::*, export::*, structured_clone::*,
+    abort_controller::*, abort_signal::*, blob::*, console::*, events::*, export::*,
+    structured_clone::*,
 };
 
 pub use self::module::BaseModule;

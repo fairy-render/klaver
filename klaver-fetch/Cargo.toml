@@ -4,5 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+klaver-base = { path = "../klaver-base" }
 rquickjs.workspace = true
 rquickjs-util = { path = "../rquickjs-util" }
+
+bytes = { version = "1" }
+http = { version = "1" }
+serde_json = { version = "1" }
+url = { version = "2" }
+form_urlencoded = { version = "1" }
+urlencoding = { version = "2" }
+multer = { version = "3" }
+reggie = { git = "https://github.com/fairy-render/reggie", features = ["json"] }
+
+futures.workspace = true
