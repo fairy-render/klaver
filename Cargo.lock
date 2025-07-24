@@ -1361,6 +1361,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-util"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "futures",
+ "pin-project-lite",
+ "rquickjs",
+]
+
+[[package]]
 name = "klaver-vm"
 version = "0.1.0"
 dependencies = [

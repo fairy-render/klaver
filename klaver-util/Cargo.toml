@@ -1,0 +1,11 @@
+[package]
+name = "klaver-util"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rquickjs.workspace = true
+futures.workspace = true
+
+async-stream = { version = "0.3" }
+pin-project-lite = { version = "0.2" }
