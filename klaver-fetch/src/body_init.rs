@@ -17,12 +17,11 @@ impl<'js> BodyInit<'js> {
         ctx: &Ctx<'js>,
         headers: &Class<'js, Headers<'js>>,
     ) -> rquickjs::Result<BodyMixin<'js>> {
-        // match self {
-        //     BodyInit::Buffer(buffer) => ReadableStream::from_native(ctx.clone(), One::new(buffer)),
-        //     BodyInit::String(str) => ReadableStream::from_native(ctx.clone(), One::new(str)),
-        //     BodyInit::Stream(stream) => Ok(stream.clone()),
-        // }
-        todo!()
+        match self {
+            BodyInit::Buffer(buffer) => Ok(buffer.array_buffer()?.into()),
+            BodyInit::String(str) => todo!(),
+            BodyInit::Stream(stream) => Ok(stream.into()),
+        }
     }
 }
 

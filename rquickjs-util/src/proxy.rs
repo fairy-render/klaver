@@ -75,6 +75,14 @@ pub trait ProxyHandler<'js, T> {
         Ok(true)
     }
 
+    fn has(&self, ctx: Ctx<'js>, target: T, prop: Prop<'js>) -> rquickjs::Result<bool> {
+        Ok(false)
+    }
+
+    fn delete(&self, ctx: Ctx<'js>, target: T, prop: Prop<'js>) -> rquickjs::Result<bool> {
+        Ok(false)
+    }
+
     fn apply(
         &self,
         ctx: Ctx<'js>,
@@ -107,6 +115,10 @@ trait DynamicProxy<'js>: Trace<'js> {
         value: Value<'js>,
         receiver: Value<'js>,
     ) -> rquickjs::Result<bool>;
+
+    fn delete(&self, ctx: Ctx<'js>, target: Value<'js>, prop: Prop<'js>) -> rquickjs::Result<bool>;
+
+    fn has(&self, ctx: Ctx<'js>, target: Value<'js>, prop: Prop<'js>) -> rquickjs::Result<bool>;
 
     fn apply(
         &self,
@@ -173,6 +185,16 @@ where
         let target = T::from_js(&ctx, target)?;
         self.0.own_keys(ctx, target)
     }
+
+    fn delete(&self, ctx: Ctx<'js>, target: Value<'js>, prop: Prop<'js>) -> rquickjs::Result<bool> {
+        let target = T::from_js(&ctx, target)?;
+        self.0.delete(ctx, target, prop)
+    }
+
+    fn has(&self, ctx: Ctx<'js>, target: Value<'js>, prop: Prop<'js>) -> rquickjs::Result<bool> {
+        let target = T::from_js(&ctx, target)?;
+        self.0.has(ctx, target, prop)
+    }
 }
 
 #[rquickjs::class]
@@ -221,6 +243,14 @@ impl<'js> NativeProxy<'js> {
         args: Array<'js>,
     ) -> rquickjs::Result<()> {
         self.i.apply(ctx, target, this, args)
+    }
+
+    fn delete(&self, ctx: Ctx<'js>, target: Value<'js>, prop: Prop<'js>) -> rquickjs::Result<bool> {
+        todo!()
+    }
+
+    fn has(&self, ctx: Ctx<'js>, target: Value<'js>, prop: Prop<'js>) -> rquickjs::Result<bool> {
+        todo!()
     }
 
     #[qjs(rename = "ownKeys")]

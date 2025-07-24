@@ -128,6 +128,10 @@ impl<'js> BodyMixin<'js> {
         TypedArray::from_arraybuffer(self.array_buffer(ctx).await?)
     }
 
+    pub async fn json(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        ctx.json_parse(self.to_bytes(&ctx).await?)
+    }
+
     pub async fn blob(
         &self,
         ctx: &Ctx<'js>,

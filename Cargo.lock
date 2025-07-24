@@ -1334,6 +1334,7 @@ name = "klaver-os"
 version = "0.1.0"
 dependencies = [
  "rquickjs",
+ "rquickjs-util",
 ]
 
 [[package]]

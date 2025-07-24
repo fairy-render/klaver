@@ -1,8 +1,8 @@
 use futures::io::Repeat;
-use http::Extensions;
+use http::{Extensions, StatusCode};
 use klaver_base::{Blob, streams::ReadableStream};
 use reggie::Body;
-use rquickjs::{ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, class::Trace};
+use rquickjs::{ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, Value, class::Trace, qjs};
 
 use crate::{
     Headers,
@@ -13,8 +13,7 @@ use crate::{
 pub struct Response<'js> {
     #[qjs(get)]
     pub headers: Class<'js, Headers<'js>>,
-    #[qjs(get)]
-    pub status: u16,
+    pub status: StatusCode,
     pub body: BodyMixin<'js>,
     pub ext: Option<Extensions>,
 }
@@ -55,8 +54,28 @@ impl<'js> Response<'js> {
 
 #[rquickjs::methods]
 impl<'js> Response<'js> {
+    #[qjs(get, rename = "bodyRead")]
+    pub fn body_read(&self) -> bool {
+        self.body.body_read()
+    }
+
     pub fn body(&self, ctx: Ctx<'js>) -> rquickjs::Result<Option<Class<'js, ReadableStream<'js>>>> {
         self.body.body(&ctx)
+    }
+
+    #[qjs(get)]
+    pub fn status(&self) -> u16 {
+        self.status.as_u16()
+    }
+
+    #[qjs(get)]
+    pub fn ok(&self) -> bool {
+        self.status.is_success()
+    }
+
+    #[qjs(get, rename = "statusText")]
+    pub fn status_text(&self) -> std::string::String {
+        self.status.as_str().to_string()
     }
 
     pub async fn text(&self, ctx: Ctx<'js>) -> rquickjs::Result<String<'js>> {
@@ -78,5 +97,9 @@ impl<'js> Response<'js> {
             .get(ctx.clone(), String::from_str(ctx.clone(), "content-type")?)?;
 
         self.body.blob(&ctx, content_type).await
+    }
+
+    pub async fn json(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        self.body.json(&ctx).await
     }
 }

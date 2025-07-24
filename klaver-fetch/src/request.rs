@@ -2,7 +2,8 @@ use http::Extensions;
 use klaver_base::{AbortSignal, Blob, create_export, streams::ReadableStream};
 use reggie::Body;
 use rquickjs::{
-    ArrayBuffer, Class, Coerced, Ctx, JsLifetime, String, TypedArray, class::Trace, prelude::Opt,
+    ArrayBuffer, Class, Coerced, Ctx, JsLifetime, String, TypedArray, Value, class::Trace,
+    prelude::Opt,
 };
 use rquickjs_util::{StringRef, throw_if, util::StringExt};
 
@@ -120,6 +121,10 @@ impl<'js> Request<'js> {
 
     pub async fn bytes(&self, ctx: Ctx<'js>) -> rquickjs::Result<TypedArray<'js, u8>> {
         self.body.bytes(&ctx).await
+    }
+
+    pub async fn json(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        self.body.json(&ctx).await
     }
 
     pub async fn blob(&self, ctx: Ctx<'js>) -> rquickjs::Result<Blob<'js>> {
