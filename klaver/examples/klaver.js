@@ -1,9 +1,22 @@
 
-setTimeout(() => {
-  console.log("Hello");
-}, 200)
+// setTimeout(() => {
+//   console.log("Hello");
+// }, 0)
 
-// const test = await fetch("https://jsonplaceholder.typicode.com/posts/1")
-//   .then(response => response.text())
+const ctrl = new AbortController();
 
-console.log("Klaver.js example");
+setTimeout(()=> {
+  console.log('dsdsdpsdp')
+}
+, 10);
+
+const test = await fetch("https://jsonplaceholder.typicode.com/posts/1", {
+})
+  .then(response => {
+    console.log("Response received", response);
+    return response.text()
+  })
+
+
+
+console.log("Klaver.js example", test);

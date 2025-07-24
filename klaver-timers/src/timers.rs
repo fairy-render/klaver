@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     time::{Duration, Instant},
+    usize,
 };
 
 use event_listener::Event;
@@ -126,7 +127,7 @@ impl<'js> Timers<'js> {
         let id = TimeId(self.next_id);
         self.next_id += 1;
 
-        let timeout = Duration::from_millis(timeout.unwrap_or_default());
+        let timeout = Duration::from_millis(timeout.unwrap_or(50).max(50));
 
         let deadline = Instant::now().checked_add(timeout).expect("valid duration");
 
@@ -140,7 +141,7 @@ impl<'js> Timers<'js> {
             },
         );
 
-        self.event.notify(1);
+        self.event.notify(usize::MAX);
 
         Ok(id)
     }
@@ -148,7 +149,7 @@ impl<'js> Timers<'js> {
     #[qjs(rename = "clearTimeout")]
     pub fn clear_timeout(&mut self, id: TimeId) -> rquickjs::Result<()> {
         if self.entries.remove(&id).is_some() {
-            self.event.notify(1);
+            self.event.notify(usize::MAX);
         }
 
         Ok(())
@@ -190,6 +191,8 @@ pub async fn work<'js>(
         if should_shutdown {
             futures::select! {
                 _ = timer.fuse() => {
+
+
                     timers.borrow_mut().get_callbacks(next_instant, &mut callbacks)?;
                     for callback in callbacks.drain(..) {
                         callback.call::<_,()>(())?;
@@ -199,6 +202,7 @@ pub async fn work<'js>(
                     return Ok(())
                 }
                 _ = notifier.fuse() => {
+
                     continue
                 }
             }

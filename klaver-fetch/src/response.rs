@@ -53,6 +53,7 @@ impl<'js> Response<'js> {
     }
 }
 
+#[rquickjs::methods]
 impl<'js> Response<'js> {
     pub fn body(&self, ctx: Ctx<'js>) -> rquickjs::Result<Option<Class<'js, ReadableStream<'js>>>> {
         self.body.body(&ctx)

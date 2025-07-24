@@ -63,7 +63,9 @@ impl<'js> BodyMixin<'js> {
         &self,
         ctx: &Ctx<'js>,
     ) -> rquickjs::Result<Option<Class<'js, ReadableStream<'js>>>> {
-        match &mut *self.state.borrow_mut() {
+        let mut state = self.state.borrow_mut();
+
+        match &mut *state {
             BodyState::Empty => Ok(None),
             BodyState::HttpBody(body) => {
                 let Some(body) = body.take() else {
@@ -77,6 +79,8 @@ impl<'js> BodyMixin<'js> {
 
                 let stream = Class::instance(ctx.clone(), stream)?;
 
+                drop(state);
+
                 self.state
                     .replace(BodyState::ReadableStream(stream.clone()));
 
@@ -89,6 +93,8 @@ impl<'js> BodyMixin<'js> {
                 )?;
 
                 let stream = Class::instance(ctx.clone(), stream)?;
+
+                drop(state);
 
                 self.state
                     .replace(BodyState::ReadableStream(stream.clone()));
