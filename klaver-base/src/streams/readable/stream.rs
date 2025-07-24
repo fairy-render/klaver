@@ -1,7 +1,4 @@
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
 use futures::{TryStream, stream::LocalBoxStream};
 use rquickjs::{
@@ -12,7 +9,7 @@ use rquickjs_util::{Buffer, RuntimeError, StringRef, async_iterator::StreamConta
 
 use crate::streams::{
     WritableStream,
-    data::{StreamData, WaitWriteReady},
+    data::{StreamData, WaitReadReady},
     queue_strategy::QueuingStrategy,
     readable::{
         NativeSource, StreamSource,
@@ -288,8 +285,8 @@ fn pull<'js>(
                 break;
             }
 
-            if data.borrow().is_write_ready() {
-                WaitWriteReady::new(data.clone()).await.ok();
+            if data.borrow().is_read_ready() {
+                WaitReadReady::new(data.clone()).await.ok();
             }
 
             if let Err(err) = source.pull(ctx.clone(), ctrl.clone()).await {

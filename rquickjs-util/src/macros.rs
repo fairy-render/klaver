@@ -30,4 +30,10 @@ macro_rules! throw_if {
             Err(err) => $crate::throw!($ctx, err),
         }
     };
+    (@type $ctx: expr, $ret: expr) => {
+        match $ret {
+            Ok(ret) => ret,
+            Err(err) => $crate::throw!(@type $ctx, err),
+        }
+    };
 }

@@ -8,6 +8,7 @@ mod module;
 mod request;
 mod request_init;
 mod response;
+mod response_init;
 mod url;
 mod url_search_params;
 

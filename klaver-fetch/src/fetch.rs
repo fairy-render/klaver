@@ -32,8 +32,10 @@ impl<'js> FetchInit<'js> {
                 let req = Request::new(ctx.clone(), Coerced(url), Opt(init))?;
                 req.to_native(ctx)
             }
-            Self::Url(_) => {
-                todo!()
+            Self::Url(url) => {
+                let url = Coerced::from_js(ctx, url.into_value())?;
+                let req = Request::new(ctx.clone(), url, Opt(init))?;
+                req.to_native(ctx)
             }
         }
     }

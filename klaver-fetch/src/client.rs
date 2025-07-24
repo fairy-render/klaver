@@ -6,7 +6,7 @@ use reggie::{Body, http_body_util::BodyExt};
 
 use http::{Request, Response, Uri};
 use rquickjs::{CatchResultExt, Ctx, JsLifetime, runtime::UserDataGuard};
-use rquickjs_util::{RuntimeError, throw, throw_if};
+use rquickjs_util::{throw, throw_if};
 
 use crate::body::{JsBody, RemoteBody};
 

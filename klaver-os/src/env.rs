@@ -1,7 +1,5 @@
 use rquickjs::{Class, Coerced, Ctx, FromJs, JsLifetime, String, Value, class::Trace};
-use rquickjs_util::{
-    Entry, MapEntries, ProxyHandler, create_proxy, iterator::Iterable, typed_map::TypedMap,
-};
+use rquickjs_util::{ProxyHandler, create_proxy, typed_map::TypedMap};
 
 #[derive(Trace)]
 #[rquickjs::class]
@@ -19,6 +17,7 @@ impl<'js> Env<'js> {
     }
 }
 
+#[rquickjs::methods]
 impl<'js> Env<'js> {
     pub fn get(&self, key: String<'js>) -> rquickjs::Result<Option<String<'js>>> {
         self.map.get(key)
@@ -46,7 +45,7 @@ impl<'js> ProxyHandler<'js, Class<'js, Env<'js>>> for EnvProxyHandler {
         ctx: rquickjs::Ctx<'js>,
         target: Class<'js, Env<'js>>,
         prop: rquickjs_util::Prop<'js>,
-        receiver: rquickjs::Value<'js>,
+        _receiver: rquickjs::Value<'js>,
     ) -> rquickjs::Result<rquickjs::Value<'js>> {
         match prop {
             rquickjs_util::Prop::String(str) => Ok(target
@@ -64,7 +63,7 @@ impl<'js> ProxyHandler<'js, Class<'js, Env<'js>>> for EnvProxyHandler {
         target: Class<'js, Env<'js>>,
         prop: rquickjs_util::Prop<'js>,
         value: rquickjs::Value<'js>,
-        receiver: rquickjs::Value<'js>,
+        _receiver: rquickjs::Value<'js>,
     ) -> rquickjs::Result<bool> {
         match prop {
             rquickjs_util::Prop::String(str) => {
@@ -74,24 +73,6 @@ impl<'js> ProxyHandler<'js, Class<'js, Env<'js>>> for EnvProxyHandler {
             rquickjs_util::Prop::Symbol(symbol) => todo!(),
         }
         Ok(true)
-    }
-
-    fn apply(
-        &self,
-        ctx: rquickjs::Ctx<'js>,
-        target: Class<'js, Env<'js>>,
-        this: rquickjs::Value<'js>,
-        args: rquickjs::Array<'js>,
-    ) -> rquickjs::Result<()> {
-        Ok(())
-    }
-
-    fn own_keys(
-        &self,
-        ctx: rquickjs::Ctx<'js>,
-        target: Class<'js, Env<'js>>,
-    ) -> rquickjs::Result<rquickjs::Array<'js>> {
-        rquickjs::Array::new(ctx)
     }
 }
 

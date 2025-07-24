@@ -4,8 +4,6 @@ use rquickjs::{Array, Class, IntoJs, JsLifetime, Object, class::Trace};
 use rquickjs_util::util::ArrayExt;
 use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hash};
 
-use crate::structured_clone::value;
-
 use super::tag::Tag;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

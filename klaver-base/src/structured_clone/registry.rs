@@ -1,5 +1,4 @@
 use std::{
-    fmt::DebugList,
     marker::PhantomData,
     sync::{Arc, RwLock},
 };

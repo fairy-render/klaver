@@ -175,7 +175,7 @@ impl<'js> URLSearchParams<'js> {
     }
 
     #[qjs(rename = PredefinedAtom::ToString)]
-    pub fn to_string(&mut self, _ctx: Ctx<'js>) -> rquickjs::Result<String> {
+    pub fn to_string(&self, _ctx: Ctx<'js>) -> rquickjs::Result<String> {
         let entries = self.map.entries()?;
         let mut output = String::new();
         for (idx, entry) in entries.enumerate() {

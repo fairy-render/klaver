@@ -2,11 +2,16 @@ use futures::io::Repeat;
 use http::{Extensions, StatusCode};
 use klaver_base::{Blob, streams::ReadableStream};
 use reggie::Body;
-use rquickjs::{ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, Value, class::Trace, qjs};
+use rquickjs::{
+    ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, Value, class::Trace, prelude::Opt, qjs,
+};
+use rquickjs_util::{throw_if, util::StringExt};
 
 use crate::{
     Headers,
     body::{BodyMixin, JsBody},
+    body_init::BodyInit,
+    response_init::ResponseInit,
 };
 
 #[rquickjs::class]
@@ -31,7 +36,19 @@ unsafe impl<'js> JsLifetime<'js> for Response<'js> {
 
 impl<'js> Response<'js> {
     pub fn to_native(&self, ctx: &Ctx<'js>) -> rquickjs::Result<http::Response<JsBody<'js>>> {
-        todo!()
+        let mut builder = http::Response::builder().status(self.status.clone());
+
+        let headers = self.headers.borrow();
+
+        for pair in headers.inner.entries()? {
+            let pair = pair?;
+            builder = builder.header(pair.key.str_ref()?.as_str(), pair.value.str_ref()?.as_str());
+        }
+
+        let body = self.body.to_native_body(&ctx)?;
+
+        let req = throw_if!(ctx, builder.body(body));
+        Ok(req)
     }
 
     pub fn from_native(
@@ -54,6 +71,34 @@ impl<'js> Response<'js> {
 
 #[rquickjs::methods]
 impl<'js> Response<'js> {
+    #[qjs(constructor)]
+    pub fn new(
+        ctx: Ctx<'js>,
+        Opt(body): Opt<BodyInit<'js>>,
+        Opt(init): Opt<ResponseInit<'js>>,
+    ) -> rquickjs::Result<Response<'js>> {
+        let (headers, status, status_text) = match init {
+            Some(init) => init.build(ctx.clone())?,
+            None => (
+                Class::instance(ctx.clone(), Headers::new_native(ctx.clone())?)?,
+                StatusCode::OK,
+                String::from_str(ctx.clone(), "")?,
+            ),
+        };
+
+        let body = match body {
+            Some(body) => body.to_body(&ctx, &headers)?,
+            None => BodyMixin::empty(),
+        };
+
+        Ok(Response {
+            headers,
+            status,
+            body,
+            ext: None,
+        })
+    }
+
     #[qjs(get, rename = "bodyRead")]
     pub fn body_read(&self) -> bool {
         self.body.body_read()
