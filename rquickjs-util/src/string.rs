@@ -24,10 +24,17 @@ pub fn concat_many<'js>(
     ctx.eval::<Function, _>("(...a) => a.join('')")?.call_arg(a)
 }
 
+#[derive(Debug)]
 pub struct StringRef<'js> {
     ptr: NonNull<c_char>,
     len: usize,
     value: String<'js>,
+}
+
+impl<'js> From<StringRef<'js>> for String<'js> {
+    fn from(value: StringRef<'js>) -> Self {
+        value.value.clone()
+    }
 }
 
 impl<'js> StringRef<'js> {
@@ -57,6 +64,10 @@ impl<'js> StringRef<'js> {
 
     pub fn len(&self) -> usize {
         self.len
+    }
+
+    pub fn as_string(&self) -> &String<'js> {
+        &self.value
     }
 
     pub fn as_bytes(&self) -> &[u8] {

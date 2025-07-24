@@ -53,12 +53,11 @@ impl<'js> Exportable<'js> for BaseModule {
             target,
             AbortController,
             AbortSignal,
-            EventTarget,
             DOMException,
             Blob,
             Console
         );
-
+        crate::events::exports(ctx, registry, target)?;
         crate::encoding::export(ctx, registry, target)?;
         crate::streams::export(ctx, registry, target)?;
         crate::message::export(ctx, registry, target)?;

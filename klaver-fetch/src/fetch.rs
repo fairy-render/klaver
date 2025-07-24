@@ -2,7 +2,7 @@ use futures::{FutureExt, StreamExt};
 use http::Uri;
 use klaver_base::{AbortSignal, Emitter, EventKey};
 use rquickjs::{Class, Coerced, Ctx, FromJs, String, prelude::Opt};
-use rquickjs_util::{StringRef, throw, throw_if};
+use rquickjs_util::{StringRef, throw, throw_if, util::StringExt};
 
 use crate::{
     Url, body::JsBody, client::Client, request::Request, request_init::RequestInit,
@@ -68,7 +68,7 @@ pub async fn fetch<'js>(
         let (sx, mut rx) = futures::channel::mpsc::channel(1);
 
         signal.borrow_mut().add_native_listener(
-            EventKey::String(String::from_str(ctx.clone(), "abort")?),
+            String::from_str(ctx.clone(), "abort")?.str_ref()?.into(),
             sx,
         );
 

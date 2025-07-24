@@ -127,7 +127,7 @@ impl<'js> Timers<'js> {
         let id = TimeId(self.next_id);
         self.next_id += 1;
 
-        let timeout = Duration::from_millis(timeout.unwrap_or(50).max(50));
+        let timeout = Duration::from_millis(timeout.unwrap_or(0));
 
         let deadline = Instant::now().checked_add(timeout).expect("valid duration");
 
