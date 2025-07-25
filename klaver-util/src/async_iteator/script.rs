@@ -3,13 +3,13 @@ use rquickjs::{FromJs, Function, Object, Value, atom::PredefinedAtom, class::Tra
 use crate::{async_iteator::native::NativeAsyncIteratorInterface, func::FunctionExt};
 
 #[derive(Trace)]
-pub struct AsyncIterator<'js> {
+pub struct AsyncIter<'js> {
     target: Value<'js>,
     next: Function<'js>,
     returns: Option<Function<'js>>,
 }
 
-impl<'js> NativeAsyncIteratorInterface<'js> for AsyncIterator<'js> {
+impl<'js> NativeAsyncIteratorInterface<'js> for AsyncIter<'js> {
     type Item = Value<'js>;
 
     async fn next(&self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Option<Self::Item>> {
@@ -25,7 +25,7 @@ impl<'js> NativeAsyncIteratorInterface<'js> for AsyncIterator<'js> {
     }
 }
 
-impl<'js> FromJs<'js> for AsyncIterator<'js> {
+impl<'js> FromJs<'js> for AsyncIter<'js> {
     fn from_js(ctx: &rquickjs::Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let obj: Object = value.get()?;
 
@@ -38,7 +38,7 @@ impl<'js> FromJs<'js> for AsyncIterator<'js> {
             returns = Some(ret.bind(ctx, (obj.clone(),))?);
         }
 
-        Ok(AsyncIterator {
+        Ok(AsyncIter {
             next,
             returns,
             target: value,
@@ -53,7 +53,7 @@ pub struct AsyncIteratable<'js> {
 }
 
 impl<'js> AsyncIteratable<'js> {
-    pub fn create(&self) -> rquickjs::Result<AsyncIterator<'js>> {
+    pub fn create(&self) -> rquickjs::Result<AsyncIter<'js>> {
         Ok(self.create.call(())?)
     }
 }

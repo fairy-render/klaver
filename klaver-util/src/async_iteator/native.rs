@@ -6,7 +6,7 @@ use rquickjs::{
     prelude::{Async, Func, Opt, This},
 };
 
-use crate::async_iteator::result::IteratorResult;
+use crate::iterator::IteratorResult;
 
 pub trait NativeAsyncIteratorInterface<'js>: Trace<'js> {
     type Item: IntoJs<'js>;
@@ -16,7 +16,7 @@ pub trait NativeAsyncIteratorInterface<'js>: Trace<'js> {
     fn returns(&self, ctx: &Ctx<'js>) -> impl Future<Output = rquickjs::Result<()>>;
 }
 
-trait DynNativeInteratorInterface<'js>: Trace<'js> {
+trait DynNativeAsyncInteratorInterface<'js>: Trace<'js> {
     fn next<'a>(
         &'a self,
         ctx: &'a Ctx<'js>,
@@ -25,7 +25,7 @@ trait DynNativeInteratorInterface<'js>: Trace<'js> {
 }
 
 pub struct NativeAsyncIterator<'js> {
-    inner: Box<dyn DynNativeInteratorInterface<'js> + 'js>,
+    inner: Box<dyn DynNativeAsyncInteratorInterface<'js> + 'js>,
 }
 
 impl<'js> NativeAsyncIterator<'js> {
@@ -42,7 +42,7 @@ impl<'js> NativeAsyncIterator<'js> {
             }
         }
 
-        impl<'js, T> DynNativeInteratorInterface<'js> for Impl<T>
+        impl<'js, T> DynNativeAsyncInteratorInterface<'js> for Impl<T>
         where
             T: NativeAsyncIteratorInterface<'js>,
             T::Item: IntoJs<'js>,
