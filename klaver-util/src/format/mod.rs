@@ -29,6 +29,13 @@ impl<'js, 'a> FormatCtx<'js, 'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum QuoteString {
+    No,
+    Yes,
+    MultiWord,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct FormatOptions {
     #[allow(unused)]
@@ -72,7 +79,14 @@ pub fn format_to<'js, W: Write>(
 
     let mut format_ctx = FormatCtx::new(None);
 
-    format_value(&ctx, rest, output, &options, &mut format_ctx)?;
+    format_value(
+        &ctx,
+        rest,
+        output,
+        &options,
+        &mut format_ctx,
+        QuoteString::No,
+    )?;
 
     Ok(())
 }
@@ -83,6 +97,7 @@ fn format_value<'js, W: Write>(
     f: &mut W,
     options: &FormatOptions,
     format_ctx: &mut FormatCtx<'js, '_>,
+    quote_string: QuoteString,
 ) -> rquickjs::Result<()> {
     match rest.type_of() {
         Type::Uninitialized => write!(f, "undefined"),
@@ -91,7 +106,24 @@ fn format_value<'js, W: Write>(
         Type::Bool => write!(f, "{}", rest.as_bool().unwrap()),
         Type::Int => write!(f, "{}", rest.as_int().unwrap()),
         Type::Float => write!(f, "{}", rest.as_float().unwrap()),
-        Type::String => write!(f, "\"{}\"", StringRef::from_js(ctx, rest.clone())?),
+        Type::String => {
+            let string = StringRef::from_js(ctx, rest.clone())?;
+            match quote_string {
+                QuoteString::No => {
+                    write!(f, "{}", string)
+                }
+                QuoteString::Yes => {
+                    write!(f, "\"{}\"", string)
+                }
+                QuoteString::MultiWord => {
+                    if string.as_str().contains(" ") {
+                        write!(f, "\"{}\"", string)
+                    } else {
+                        write!(f, "{}", string)
+                    }
+                }
+            }
+        }
         Type::Symbol => {
             write!(f, r#"Symbol(""#).unwrap();
             format_value(
@@ -100,6 +132,7 @@ fn format_value<'js, W: Write>(
                 f,
                 options,
                 format_ctx,
+                QuoteString::No,
             )?;
             write!(f, r#"")"#)
         }
@@ -189,9 +222,23 @@ fn format_object<'js, W: Write>(
             write!(o, ", ").expect("write");
         }
         let (k, v) = v?;
-        format_value(ctx, &k, o, options, &mut format_ctx.child())?;
+        format_value(
+            ctx,
+            &k,
+            o,
+            options,
+            &mut format_ctx.child(),
+            QuoteString::MultiWord,
+        )?;
         o.write_str(" : ").expect("write");
-        format_value(ctx, &v, o, options, &mut format_ctx.child())?;
+        format_value(
+            ctx,
+            &v,
+            o,
+            options,
+            &mut format_ctx.child(),
+            QuoteString::Yes,
+        )?;
     }
 
     o.write_str(" }").expect("write");
@@ -219,7 +266,14 @@ fn format_array<'js, W: Write>(
             write!(o, ", ").expect("write");
         }
         let v = v?;
-        format_value(ctx, &v, o, options, &mut format_ctx.child())?;
+        format_value(
+            ctx,
+            &v,
+            o,
+            options,
+            &mut format_ctx.child(),
+            QuoteString::Yes,
+        )?;
     }
 
     o.write_str(" ]").expect("write");

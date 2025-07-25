@@ -1,3 +1,4 @@
+mod array_buffer;
 mod buffer;
 mod date;
 mod map;
