@@ -1,10 +1,10 @@
 use event_listener::Event;
 use event_listener::EventListener;
+use klaver_util::StringRef;
+use klaver_util::throw;
 use pin_project_lite::pin_project;
 use rquickjs::{Ctx, JsLifetime, String, Value, class::Class, class::Trace};
 use rquickjs::{Function, Promise};
-use rquickjs_util::StringRef;
-use rquickjs_util::throw;
 use std::task::{Poll, ready};
 use std::{rc::Rc, usize};
 

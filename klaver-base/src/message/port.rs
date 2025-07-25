@@ -1,9 +1,9 @@
 use crate::{Emitter, EventList, EventTarget, Exportable};
+use klaver_util::{Subclass, throw};
 use rquickjs::{
     Class, Ctx, JsLifetime, Value,
     class::{JsClass, Trace},
 };
-use rquickjs_util::{Subclass, throw};
 
 #[derive(Trace, Default)]
 #[rquickjs::class]

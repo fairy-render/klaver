@@ -1,5 +1,5 @@
+use klaver_util::throw;
 use rquickjs::{Ctx, Value, prelude::Opt};
-use rquickjs_util::throw;
 
 use crate::{TransObject, structured_clone::registry::SerializationOptions};
 

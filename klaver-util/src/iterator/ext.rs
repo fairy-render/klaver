@@ -13,11 +13,11 @@ pub trait NativeIteratorExt<'js>: NativeIteratorInterface<'js> + Sized {
         }
     }
 
-    fn into_iter(self, ctx: Ctx<'js>) -> IteratorIter<'js, Self> {
-        IteratorIter::new(ctx, self)
+    fn into_iter(self, ctx: &Ctx<'js>) -> IteratorIter<'js, Self> {
+        IteratorIter::new(ctx.clone(), self)
     }
 
-    fn from_js<U: FromJs<'js> + IntoJs<'js>>(self) -> FromJsIter<Self, U> {
+    fn from_javascript<U: FromJs<'js> + IntoJs<'js>>(self) -> FromJsIter<Self, U> {
         FromJsIter {
             iter: self,
             item: PhantomData,

@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use klaver_modules::Environ;
-pub use rquickjs_util::RuntimeError;
+use klaver_util::CaugthException;
+pub use klaver_util::RuntimeError;
 
 pub type Result<T> = core::result::Result<T, RuntimeError>;
 
@@ -26,7 +27,7 @@ pub const fn Ok<T>(value: T) -> Result<T> {
 
 pub(crate) fn update_locations(env: &Environ, mut err: RuntimeError) -> RuntimeError {
     if let Some(transform) = env.modules().transformer() {
-        let RuntimeError::Exception { stack, .. } = &mut err else {
+        let RuntimeError::Exception(CaugthException { stack, .. }) = &mut err else {
             return err;
         };
 

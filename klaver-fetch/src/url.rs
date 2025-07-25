@@ -1,11 +1,11 @@
 use klaver_base::{Exportable, create_export};
+use klaver_util::{ArrayExt, StringExt, concat, throw_if};
 use rquickjs::{
     Array, Atom, Class, Ctx, FromAtom, FromJs, JsLifetime, String as JsString,
     atom::PredefinedAtom,
     class::{JsClass, Trace},
     function::Opt,
 };
-use rquickjs_util::{string::concat, throw_if, util::ArrayExt, util::StringExt};
 
 use super::url_search_params::{URLSearchParams, URLSearchParamsInit};
 

@@ -1,5 +1,5 @@
+use klaver_util::{Buffer, StringRef};
 use rquickjs::{Class, Ctx, FromJs, Function, Object, Value, class::Trace};
-use rquickjs_util::{Buffer, StringRef};
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]

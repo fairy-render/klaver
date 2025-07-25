@@ -1,11 +1,11 @@
 use futures::future::LocalBoxFuture;
 use klaver_runner::{Runner, Runnerable as WorkerFunc, Workers};
 use klaver_timers::{TimeId, Timers, TimingBackend};
+use klaver_util::{FunctionExt, RuntimeError, StringRef};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, Function, IntoJs, Module,
     prelude::{Func, Opt},
 };
-use rquickjs_util::{RuntimeError, StringRef, util::FunctionExt};
 
 pub struct Test;
 
@@ -38,7 +38,7 @@ impl WorkerFunc for Test {
             )
             .into_js(&ctx)?
             .get::<Function>()?
-            .bind(ctx.clone(), (ctx.globals(), timers.clone()))?;
+            .bind(&ctx, (ctx.globals(), timers.clone()))?;
 
             ctx.globals().set("setTimeout", set_timeout)?;
 
@@ -47,7 +47,7 @@ impl WorkerFunc for Test {
             })
             .into_js(&ctx)?
             .get::<Function>()?
-            .bind(ctx.clone(), (ctx.globals(), timers.clone()))?;
+            .bind(&ctx, (ctx.globals(), timers.clone()))?;
 
             ctx.globals().set("clearTimeout", clear_timeout)?;
 

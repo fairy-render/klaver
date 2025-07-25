@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use klaver_modules::{Environ, GlobalInfo, ModuleInfo, ResolveOptions, transformer::Transpiler};
-use rquickjs_util::RuntimeError;
+use klaver_util::RuntimeError;
 
 use crate::{Vm, VmOptions};
 

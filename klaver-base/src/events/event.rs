@@ -1,12 +1,12 @@
 use std::hash::Hash;
 
+use klaver_util::{Inheritable, StringExt, StringRef, SuperClass};
 use rquickjs::{
     Class, Ctx, FromJs, IntoJs, JsLifetime, String, Symbol, Value,
     class::{JsClass, Trace},
     object::Accessor,
     prelude::This,
 };
-use rquickjs_util::{Inheritable, StringRef, SuperClass, util::StringExt};
 
 use crate::Exportable;
 

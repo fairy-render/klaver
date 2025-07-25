@@ -6,8 +6,8 @@ mod tag;
 mod traits;
 mod value;
 
+use klaver_util::{Date, Map, Set, StringRef, is_plain_object, throw};
 use rquickjs::{Class, Ctx, Function, Symbol, Type, Value, class::JsClass, prelude::Opt};
-use rquickjs_util::{Date, Map, Set, StringRef, throw, util::is_plain_object};
 
 pub use self::{
     bindings::{serialize, structured_clone},

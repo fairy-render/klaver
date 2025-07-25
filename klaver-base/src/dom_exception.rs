@@ -1,10 +1,10 @@
+use klaver_util::{StringRef, throw};
 use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, Result, String,
     atom::PredefinedAtom,
     class::JsClass,
     function::{Constructor, Opt},
 };
-use rquickjs_util::{StringRef, throw};
 
 use crate::{
     Clonable, SerializationContext, StructuredClone, Tag, TransferData, export::Exportable,

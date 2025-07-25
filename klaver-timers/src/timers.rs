@@ -7,8 +7,8 @@ use std::{
 use event_listener::Event;
 use futures::FutureExt;
 use klaver_runner::{Shutdown, Workers};
+use klaver_util::throw;
 use rquickjs::{CatchResultExt, Class, Ctx, Function, JsLifetime, class::Trace, prelude::Opt};
-use rquickjs_util::throw;
 
 use crate::{backend::TimingBackend, id::TimeId};
 

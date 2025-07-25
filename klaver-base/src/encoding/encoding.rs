@@ -1,6 +1,6 @@
 use core::fmt;
+use klaver_util::{Buffer, StringRef};
 use rquickjs::{Ctx, Exception, Result, Value, class::Trace, function::Opt};
-use rquickjs_util::{Buffer, StringRef};
 
 #[derive(Debug)]
 pub struct UnknownEncoding;

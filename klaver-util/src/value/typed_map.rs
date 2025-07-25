@@ -68,15 +68,15 @@ where
     }
 
     pub fn entries(&self) -> rquickjs::Result<FromJsIter<Iter<'js>, Pair<K, T>>> {
-        Ok(self.i.entries()?.from_js())
+        Ok(self.i.entries()?.from_javascript())
     }
 
     pub fn values(&self) -> rquickjs::Result<FromJsIter<Iter<'js>, T>> {
-        Ok(self.i.values()?.from_js())
+        Ok(self.i.values()?.from_javascript())
     }
 
     pub fn keys(&self) -> rquickjs::Result<FromJsIter<Iter<'js>, K>> {
-        Ok(self.i.keys()?.from_js())
+        Ok(self.i.keys()?.from_javascript())
     }
 
     pub fn clear(&self) -> rquickjs::Result<()> {

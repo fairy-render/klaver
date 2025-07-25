@@ -14,7 +14,7 @@ mod value;
 
 pub use self::{
     array::*, async_iterator::*, context::*, error::*, format::*, func::*, helpers::*, inherit::*,
-    iterator::*, object::*, proxy::*, value::*,
+    iterator::*, object::*, proxy::*, string::*, value::*,
 };
 
 pub use rquickjs;

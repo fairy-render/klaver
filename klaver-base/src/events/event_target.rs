@@ -1,9 +1,9 @@
+use klaver_util::{Inheritable, SuperClass};
 use rquickjs::{
     Class, Ctx, JsLifetime, Object,
     class::{JsClass, Trace},
     prelude::Func,
 };
-use rquickjs_util::{Inheritable, SuperClass};
 
 use crate::export::Exportable;
 

@@ -56,3 +56,9 @@ impl From<BoxError> for RuntimeError {
         RuntimeError::Custom(value)
     }
 }
+
+impl<'js> From<CaugthException> for RuntimeError {
+    fn from(value: CaugthException) -> Self {
+        RuntimeError::Exception(value)
+    }
+}

@@ -1,11 +1,10 @@
 use http::Extensions;
 use klaver_base::{AbortSignal, Blob, create_export, streams::ReadableStream};
-use reggie::Body;
+use klaver_util::{NativeIteratorExt, StringExt, throw_if};
 use rquickjs::{
     ArrayBuffer, Class, Coerced, Ctx, JsLifetime, String, TypedArray, Value, class::Trace,
     prelude::Opt,
 };
-use rquickjs_util::{StringRef, throw_if, util::StringExt};
 
 use crate::{
     Headers, Method,
@@ -52,9 +51,9 @@ impl<'js> Request<'js> {
 
         let headers = self.headers.borrow();
 
-        for pair in headers.inner.entries()? {
+        for pair in headers.inner.entries()?.into_iter(ctx) {
             let pair = pair?;
-            builder = builder.header(pair.key.str_ref()?.as_str(), pair.value.str_ref()?.as_str());
+            builder = builder.header(pair.0.str_ref()?.as_str(), pair.1.str_ref()?.as_str());
         }
 
         let body = self.body.to_native_body(&ctx)?;

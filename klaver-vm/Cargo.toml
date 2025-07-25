@@ -13,8 +13,8 @@ pool = ["deadpool", "worker"]
 klaver-modules = { path = "../klaver-modules" }
 klaver-runner = { path = "../klaver-runner" }
 klaver-base = { path = "../klaver-base" }
+klaver-util = { path = "../klaver-util" }
 rquickjs = { workspace = true }
-rquickjs-util = { path = "../rquickjs-util" }
 futures.workspace = true
 
 ## Worker

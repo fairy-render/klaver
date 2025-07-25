@@ -45,12 +45,12 @@ where
 
     pub fn entries(&self) -> rquickjs::Result<TypedListEntries<'js, T>> {
         let iter: Iter<'js> = self.i.call_property("entries", ())?;
-        Ok(iter.from_js())
+        Ok(iter.from_javascript())
     }
 
     pub fn values(&self) -> rquickjs::Result<TypedListValues<'js, T>> {
         let iter: Iter<'js> = self.i.call_property("values", ())?;
-        Ok(iter.from_js())
+        Ok(iter.from_javascript())
     }
 
     pub fn get(&self, index: usize) -> rquickjs::Result<Option<T>> {

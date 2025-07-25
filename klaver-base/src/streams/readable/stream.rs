@@ -1,18 +1,18 @@
 use std::{cell::RefCell, rc::Rc};
 
 use futures::{TryStream, stream::LocalBoxStream};
+use klaver_util::{Buffer, RuntimeError, StreamAsyncIterator, StringRef, throw};
 use rquickjs::{
     CatchResultExt, Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value, class::Trace,
     prelude::Opt,
 };
-use rquickjs_util::{Buffer, RuntimeError, StringRef, async_iterator::StreamContainer, throw};
 
 use crate::streams::{
     WritableStream,
     data::{StreamData, WaitReadReady},
     queue_strategy::QueuingStrategy,
     readable::{
-        NativeSource, StreamSource,
+        AsyncIteratorSource, NativeSource,
         controller::ReadableStreamDefaultController,
         from::from,
         reader::ReadableStreamDefaultReader,
@@ -39,9 +39,9 @@ impl<'js> ReadableStream<'js> {
         T::Error: std::error::Error,
         T::Ok: IntoJs<'js>,
     {
-        let stream = StreamContainer(stream);
+        let stream = StreamAsyncIterator::new(stream);
 
-        Self::from_native(ctx, StreamSource(stream))
+        Self::from_native(ctx, AsyncIteratorSource(stream))
     }
 
     pub fn from_native<T: NativeSource<'js> + 'js>(

@@ -1,7 +1,7 @@
 use std::sync::{Arc, Weak};
 
+use klaver_util::{throw, RuntimeError};
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, JsLifetime};
-use rquickjs_util::{throw, RuntimeError};
 
 use crate::{globals::Globals, Modules, Typings};
 

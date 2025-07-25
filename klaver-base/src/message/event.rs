@@ -1,9 +1,9 @@
+use klaver_util::Subclass;
 use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, String, Value,
     class::{JsClass, Trace},
     prelude::Opt,
 };
-use rquickjs_util::Subclass;
 
 use crate::{DynEvent, Event, Exportable, IntoDynEvent, NativeEvent};
 

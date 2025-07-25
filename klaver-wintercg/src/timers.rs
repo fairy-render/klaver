@@ -1,10 +1,10 @@
 use klaver_base::{Console, ExportTarget, Exportable, NullWriter, Registry};
 use klaver_timers::{TimeId, Timers};
+use klaver_util::FunctionExt;
 use rquickjs::{
     Class, Ctx, Function, IntoJs,
     prelude::{Func, Opt},
 };
-use rquickjs_util::util::FunctionExt;
 
 pub fn export<'js, T: ExportTarget<'js>>(ctx: &Ctx<'js>, target: &T) -> rquickjs::Result<()> {
     let timers = Timers::new(ctx.clone())?;
@@ -18,12 +18,12 @@ pub fn export<'js, T: ExportTarget<'js>>(ctx: &Ctx<'js>, target: &T) -> rquickjs
         .into_js(ctx)?
         .into_function()
         .expect("clear_timeout")
-        .bind(ctx.clone(), (timers.clone(),))?;
+        .bind(ctx, (timers.clone(),))?;
 
     target.set(
         ctx,
         "setTimeout",
-        set_timeout.bind(ctx.clone(), (ctx.globals(), timers.clone(), false)),
+        set_timeout.bind(ctx, (ctx.globals(), timers.clone(), false)),
     )?;
     target.set(ctx, "clearTimeout", clear_timeout.clone())?;
 

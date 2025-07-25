@@ -1,11 +1,11 @@
 use futures::io::Repeat;
 use http::{Extensions, StatusCode};
 use klaver_base::{Blob, streams::ReadableStream};
+use klaver_util::{NativeIteratorExt, StringExt, throw_if};
 use reggie::Body;
 use rquickjs::{
     ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, Value, class::Trace, prelude::Opt, qjs,
 };
-use rquickjs_util::{throw_if, util::StringExt};
 
 use crate::{
     Headers,
@@ -40,9 +40,9 @@ impl<'js> Response<'js> {
 
         let headers = self.headers.borrow();
 
-        for pair in headers.inner.entries()? {
+        for pair in headers.inner.entries()?.into_iter(ctx) {
             let pair = pair?;
-            builder = builder.header(pair.key.str_ref()?.as_str(), pair.value.str_ref()?.as_str());
+            builder = builder.header(pair.0.str_ref()?.as_str(), pair.1.str_ref()?.as_str());
         }
 
         let body = self.body.to_native_body(&ctx)?;

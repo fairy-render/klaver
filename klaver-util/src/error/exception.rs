@@ -6,8 +6,8 @@ use crate::error::StackTrace;
 
 #[derive(Debug, Clone)]
 pub struct CaugthException {
-    message: Option<String>,
-    stack: Vec<StackTrace>,
+    pub message: Option<String>,
+    pub stack: Vec<StackTrace>,
 }
 
 impl fmt::Display for CaugthException {

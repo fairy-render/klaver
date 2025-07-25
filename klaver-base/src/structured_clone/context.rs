@@ -4,8 +4,8 @@ use std::{
     rc::Rc,
 };
 
+use klaver_util::{AsContext, throw};
 use rquickjs::{Ctx, Value};
-use rquickjs_util::{throw, util::AsContext};
 
 use super::{ObjectId, Registry, TransObject, get_tag_value, registry::SerializationOptions};
 

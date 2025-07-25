@@ -1,7 +1,7 @@
 use http::HeaderMap;
 use klaver_base::create_export;
+use klaver_util::{StringExt, TypedMultiMap};
 use rquickjs::{Class, Ctx, FromJs, JsLifetime, String, class::Trace, function::Opt};
-use rquickjs_util::{typed_multi_map::TypedMultiMap, util::StringExt};
 
 #[derive(Trace)]
 pub struct HeadersInit<'js> {

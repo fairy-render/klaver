@@ -1,13 +1,13 @@
 use flume::{Receiver, Sender};
 use klaver_base::{Emitter, EventList, EventTarget, Exportable};
 use klaver_runner::{Shutdown, Workers};
+use klaver_util::{RuntimeError, StringRef, Subclass};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
     String, Value,
     class::{JsClass, Trace},
     prelude::Opt,
 };
-use rquickjs_util::{RuntimeError, StringRef, Subclass, Val};
 
 use crate::work::{Message, work};
 
@@ -63,7 +63,7 @@ impl<'js> WebWorker<'js> {
     }
 
     #[qjs(rename = "postMessage")]
-    pub fn post_message(&self, ctx: Ctx<'js>, msg: Val) -> rquickjs::Result<()> {
+    pub fn post_message(&self, ctx: Ctx<'js>, msg: Value<'js>) -> rquickjs::Result<()> {
         let sx = self.sx.clone();
         ctx.spawn(async move {
             sx.send_async(Message::Event(msg)).await.ok();

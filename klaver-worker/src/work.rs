@@ -1,7 +1,7 @@
 use futures::future::LocalBoxFuture;
 use klaver_runner::{Runner, Runnerable};
+use klaver_util::{RuntimeError, Val};
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module};
-use rquickjs_util::{RuntimeError, Val};
 
 pub enum Message {
     Kill,

@@ -1274,10 +1274,10 @@ dependencies = [
  "futures",
  "indexmap",
  "klaver-runner",
+ "klaver-util",
  "ordered-float",
  "pin-project-lite",
  "rquickjs",
- "rquickjs-util",
  "serde",
  "typetag",
 ]
@@ -1293,12 +1293,12 @@ dependencies = [
  "http",
  "klaver-base",
  "klaver-runner",
+ "klaver-util",
  "multer",
  "pin-project-lite",
  "reggie",
  "reqwest",
  "rquickjs",
- "rquickjs-util",
  "serde_json",
  "url",
  "urlencoding",
@@ -1311,13 +1311,13 @@ dependencies = [
  "anyhow",
  "futures",
  "geenie",
+ "klaver-util",
  "oxc",
  "oxc_resolver",
  "par-core",
  "parking_lot",
  "relative-path 2.0.1",
  "rquickjs",
- "rquickjs-util",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_codegen",
@@ -1333,8 +1333,8 @@ dependencies = [
 name = "klaver-os"
 version = "0.1.0"
 dependencies = [
+ "klaver-util",
  "rquickjs",
- "rquickjs-util",
 ]
 
 [[package]]
@@ -1343,9 +1343,9 @@ version = "0.1.0"
 dependencies = [
  "event-listener",
  "futures",
+ "klaver-util",
  "pin-project-lite",
  "rquickjs",
- "rquickjs-util",
 ]
 
 [[package]]
@@ -1355,8 +1355,8 @@ dependencies = [
  "event-listener",
  "futures",
  "klaver-runner",
+ "klaver-util",
  "rquickjs",
- "rquickjs-util",
  "tokio",
 ]
 
@@ -1382,8 +1382,8 @@ dependencies = [
  "klaver-base",
  "klaver-modules",
  "klaver-runner",
+ "klaver-util",
  "rquickjs",
- "rquickjs-util",
 ]
 
 [[package]]
@@ -1395,22 +1395,9 @@ dependencies = [
  "klaver-fetch",
  "klaver-modules",
  "klaver-timers",
- "klaver-worker",
+ "klaver-util",
  "rquickjs",
- "rquickjs-util",
  "tokio",
-]
-
-[[package]]
-name = "klaver-worker"
-version = "0.1.0"
-dependencies = [
- "flume",
- "futures",
- "klaver-base",
- "klaver-runner",
- "rquickjs",
- "rquickjs-util",
 ]
 
 [[package]]

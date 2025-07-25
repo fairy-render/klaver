@@ -7,7 +7,7 @@ use rquickjs::{
     function::Rest,
 };
 
-use rquickjs_util::format::{FormatOptions, format_to};
+use klaver_util::{FormatOptions, format_to};
 
 use crate::export::Exportable;
 

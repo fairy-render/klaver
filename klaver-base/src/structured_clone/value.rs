@@ -1,7 +1,7 @@
 use dyn_clone::DynClone;
+use klaver_util::{ArrayExt, Pair};
 use ordered_float::OrderedFloat;
 use rquickjs::{Array, Class, IntoJs, JsLifetime, Object, class::Trace};
-use rquickjs_util::util::ArrayExt;
 use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hash};
 
 use super::tag::Tag;
@@ -142,7 +142,7 @@ impl<'js> IntoJs<'js> for TransferData {
                 let array = Array::new(ctx.clone())?;
 
                 for (key, value) in o {
-                    let pair = rquickjs_util::Entry { key, value };
+                    let pair = Pair(key, value);
                     array.push(pair)?;
                 }
 

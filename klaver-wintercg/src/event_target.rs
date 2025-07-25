@@ -1,6 +1,6 @@
 use klaver_base::{DynEvent, Emitter, EventKey, EventTarget, ExportTarget};
+use klaver_util::{FunctionExt, StringRef};
 use rquickjs::{Class, Ctx, Function, IntoJs, String, prelude::Func};
-use rquickjs_util::{StringRef, util::FunctionExt};
 
 use crate::event_target;
 
@@ -55,19 +55,19 @@ pub fn export<'js, T: ExportTarget<'js>>(ctx: &Ctx<'js>, target: &T) -> rquickjs
     target.set(
         ctx,
         "addEventListener",
-        add_event_listener.bind(ctx.clone(), (event_target.clone(),)),
+        add_event_listener.bind(ctx, (event_target.clone(),)),
     )?;
 
     target.set(
         ctx,
         "removeEventListener",
-        remove_event_listener.bind(ctx.clone(), (event_target.clone(),)),
+        remove_event_listener.bind(ctx, (event_target.clone(),)),
     )?;
 
     target.set(
         ctx,
         "dispatchEvent",
-        dispatch_event.bind(ctx.clone(), (event_target.clone(),)),
+        dispatch_event.bind(ctx, (event_target.clone(),)),
     )?;
 
     Ok(())

@@ -1,6 +1,6 @@
 use crate::streams::data::StreamData;
+use klaver_util::throw;
 use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace};
-use rquickjs_util::throw;
 
 #[rquickjs::class]
 #[derive(Trace)]

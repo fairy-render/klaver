@@ -1,5 +1,5 @@
+use klaver_util::{Prop, ProxyHandler, TypedMap, create_proxy};
 use rquickjs::{Class, Coerced, Ctx, FromJs, JsLifetime, String, Value, class::Trace};
-use rquickjs_util::{ProxyHandler, create_proxy, typed_map::TypedMap};
 
 #[derive(Trace)]
 #[rquickjs::class]
@@ -44,16 +44,16 @@ impl<'js> ProxyHandler<'js, Class<'js, Env<'js>>> for EnvProxyHandler {
         &self,
         ctx: rquickjs::Ctx<'js>,
         target: Class<'js, Env<'js>>,
-        prop: rquickjs_util::Prop<'js>,
+        prop: Prop<'js>,
         _receiver: rquickjs::Value<'js>,
     ) -> rquickjs::Result<rquickjs::Value<'js>> {
         match prop {
-            rquickjs_util::Prop::String(str) => Ok(target
+            Prop::String(str) => Ok(target
                 .borrow()
                 .get(str)?
                 .map(|m| m.into_value())
                 .unwrap_or_else(|| Value::new_null(ctx))),
-            rquickjs_util::Prop::Symbol(symbol) => todo!(),
+            Prop::Symbol(symbol) => todo!(),
         }
     }
 
@@ -61,16 +61,16 @@ impl<'js> ProxyHandler<'js, Class<'js, Env<'js>>> for EnvProxyHandler {
         &self,
         ctx: rquickjs::Ctx<'js>,
         target: Class<'js, Env<'js>>,
-        prop: rquickjs_util::Prop<'js>,
+        prop: Prop<'js>,
         value: rquickjs::Value<'js>,
         _receiver: rquickjs::Value<'js>,
     ) -> rquickjs::Result<bool> {
         match prop {
-            rquickjs_util::Prop::String(str) => {
+            Prop::String(str) => {
                 let string = Coerced::<String<'js>>::from_js(&ctx, value)?;
                 target.borrow().set(str, string)?;
             }
-            rquickjs_util::Prop::Symbol(symbol) => todo!(),
+            Prop::Symbol(symbol) => todo!(),
         }
         Ok(true)
     }

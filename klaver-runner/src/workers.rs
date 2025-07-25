@@ -5,16 +5,16 @@ use std::{
 };
 
 use event_listener::{Event, listener};
+use klaver_util::{CaugthException, throw_if};
 use rquickjs::{Ctx, JsLifetime, runtime::UserDataGuard};
-use rquickjs_util::throw_if;
 
-use crate::{shutdown::Shutdown, uncaught_exeception::UncaugthException};
+use crate::shutdown::Shutdown;
 
 struct Inner {
     shutdown: Event,
     is_shutdown: Rc<Cell<bool>>,
     events: Event,
-    error: RefCell<Option<UncaugthException>>,
+    error: RefCell<Option<CaugthException>>,
     worker_count: Cell<usize>,
 }
 
@@ -43,14 +43,14 @@ impl Workers {
         }))
     }
 
-    pub fn error(&self) -> Option<UncaugthException> {
+    pub fn error(&self) -> Option<CaugthException> {
         self.0.error.borrow().clone()
     }
 
     pub fn push<'js, T, U>(&self, ctx: Ctx<'js>, func: T)
     where
         T: FnOnce(Ctx<'js>, Shutdown) -> U + 'js,
-        U: Future<Output = Result<(), UncaugthException>> + 'js,
+        U: Future<Output = Result<(), CaugthException>> + 'js,
     {
         let inner = self.0.clone();
         self.0.worker_count.update(|m| m + 1);
@@ -88,7 +88,7 @@ impl Workers {
         self.0.worker_count.set(0);
     }
 
-    pub(crate) async fn wait(&self) -> Result<(), UncaugthException> {
+    pub(crate) async fn wait(&self) -> Result<(), CaugthException> {
         loop {
             if let Some(error) = self.0.error.borrow_mut().take() {
                 return Err(error);

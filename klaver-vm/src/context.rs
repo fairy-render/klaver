@@ -1,11 +1,11 @@
 use futures::future::{BoxFuture, LocalBoxFuture};
 use klaver_modules::Environ;
 use klaver_runner::{Runner, Runnerable};
+use klaver_util::RuntimeError;
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module, Object, Value,
     markers::ParallelSend, prelude::IntoArgs,
 };
-use rquickjs_util::RuntimeError;
 
 use crate::update_locations;
 

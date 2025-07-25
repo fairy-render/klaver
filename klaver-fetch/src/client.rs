@@ -5,8 +5,8 @@ use klaver_runner::Workers;
 use reggie::{Body, http_body_util::BodyExt};
 
 use http::{Request, Response, Uri};
+use klaver_util::{throw, throw_if};
 use rquickjs::{CatchResultExt, Ctx, JsLifetime, runtime::UserDataGuard};
-use rquickjs_util::{throw, throw_if};
 
 use crate::body::{JsBody, RemoteBody};
 

@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 rquickjs.workspace = true
-rquickjs-util = { path = "../rquickjs-util" }
+klaver-util = { path = "../klaver-util" }
 futures = { version = "0.3" }
 event-listener = { version = "5" }
 

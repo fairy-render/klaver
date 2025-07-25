@@ -8,8 +8,9 @@ serde = ["dep:serde", "typetag"]
 
 [dependencies]
 klaver-runner = { path = "../klaver-runner" }
+klaver-util = { path = "../klaver-util" }
 rquickjs.workspace = true
-rquickjs-util = { path = "../rquickjs-util" }
+# rquickjs-util = { path = "../rquickjs-util" }
 async-channel = { version = "2" }
 
 event-listener = { workspace = true }

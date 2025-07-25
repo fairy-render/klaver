@@ -1,8 +1,8 @@
 use event_listener::listener;
 use futures::FutureExt;
 use klaver_runner::{Shutdown, Workers};
+use klaver_util::throw;
 use rquickjs::{CatchResultExt, Class, Ctx, JsLifetime, String, class::Trace, prelude::Opt};
-use rquickjs_util::throw;
 
 use crate::streams::{data::StreamData, queue_strategy::QueuingStrategy};
 

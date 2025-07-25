@@ -1,9 +1,9 @@
+use klaver_util::{Buffer, Inheritable, StringRef, SuperClass, throw, throw_if};
 use rquickjs::{
     ArrayBuffer, Class, Ctx, FromJs, JsLifetime, Object, String,
     class::{JsClass, Trace},
     prelude::Opt,
 };
-use rquickjs_util::{Buffer, Inheritable, StringRef, SuperClass, throw, throw_if};
 
 use crate::{
     Clonable, Registry, SerializationContext, StructuredClone, Tag, TransferData,

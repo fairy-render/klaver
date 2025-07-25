@@ -10,8 +10,8 @@ reqwest = ["dep:reqwest"]
 [dependencies]
 klaver-base = { path = "../klaver-base" }
 klaver-runner = { path = "../klaver-runner" }
+klaver-util = { path = "../klaver-util" }
 rquickjs.workspace = true
-rquickjs-util = { path = "../rquickjs-util" }
 
 bytes = { version = "1" }
 http = { version = "1" }

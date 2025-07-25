@@ -1,8 +1,8 @@
 use futures::{FutureExt, StreamExt};
 use http::Uri;
 use klaver_base::{AbortSignal, Emitter, EventKey};
+use klaver_util::{StringExt, StringRef, throw, throw_if};
 use rquickjs::{Class, Coerced, Ctx, FromJs, String, prelude::Opt};
-use rquickjs_util::{StringRef, throw, throw_if, util::StringExt};
 
 use crate::{
     Url, body::JsBody, client::Client, request::Request, request_init::RequestInit,

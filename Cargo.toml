@@ -16,9 +16,13 @@ members = [
   "klaver-base",
   "klaver-timers",
   "klaver-runner",
-  "klaver-worker",
+  # "klaver-worker",
   "klaver-fetch",
-  "klaver-vm", "klaver-wintercg", "klaver", "klaver-os", "klaver-util",
+  "klaver-vm",
+  "klaver-wintercg",
+  "klaver",
+  "klaver-os",
+  "klaver-util",
   # "klaver-http",
 ]
 

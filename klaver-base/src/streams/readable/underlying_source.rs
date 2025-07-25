@@ -1,8 +1,8 @@
 use async_trait::async_trait;
+use klaver_util::{NativeAsyncIteratorInterface, NativeIteratorInterface};
 use rquickjs::{
     CatchResultExt, CaughtError, Class, Ctx, FromJs, Function, IntoJs, Object, Value, class::Trace,
 };
-use rquickjs_util::async_iterator::DynamicStream;
 use std::{cell::RefCell, rc::Rc};
 
 use super::controller::ReadableStreamDefaultController;
@@ -23,11 +23,11 @@ pub trait NativeSource<'js>: Trace<'js> {
     ) -> rquickjs::Result<()>;
 }
 
-pub struct StreamSource<T>(pub T);
+pub struct AsyncIteratorSource<T>(pub T);
 
-impl<'js, T> Trace<'js> for StreamSource<T>
+impl<'js, T> Trace<'js> for AsyncIteratorSource<T>
 where
-    T: DynamicStream<'js>,
+    T: NativeAsyncIteratorInterface<'js>,
 {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.0.trace(tracer)
@@ -35,9 +35,9 @@ where
 }
 
 #[async_trait(?Send)]
-impl<'js, T> NativeSource<'js> for StreamSource<T>
+impl<'js, T> NativeSource<'js> for AsyncIteratorSource<T>
 where
-    T: DynamicStream<'js>,
+    T: NativeAsyncIteratorInterface<'js>,
 {
     async fn start(
         &mut self,
@@ -45,8 +45,9 @@ where
 
         ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
     ) -> rquickjs::Result<()> {
-        if let Some(next) = self.0.next(ctx.clone()).await? {
-            ctrl.borrow_mut().enqueue(ctx, next)?;
+        if let Some(next) = self.0.next(&ctx).await? {
+            ctrl.borrow_mut()
+                .enqueue(ctx.clone(), next.into_js(&ctx)?)?;
         } else {
             ctrl.borrow_mut().close(ctx)?;
         }
@@ -60,8 +61,59 @@ where
 
         ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
     ) -> rquickjs::Result<()> {
-        if let Some(next) = self.0.next(ctx.clone()).await? {
-            ctrl.borrow_mut().enqueue(ctx, next)?;
+        if let Some(next) = self.0.next(&ctx).await? {
+            ctrl.borrow_mut()
+                .enqueue(ctx.clone(), next.into_js(&ctx)?)?;
+        } else {
+            ctrl.borrow_mut().close(ctx)?;
+        }
+
+        Ok(())
+    }
+}
+
+// Iterator
+pub struct IteratorSource<T>(pub T);
+
+impl<'js, T> Trace<'js> for IteratorSource<T>
+where
+    T: NativeIteratorInterface<'js>,
+{
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.0.trace(tracer)
+    }
+}
+
+#[async_trait(?Send)]
+impl<'js, T> NativeSource<'js> for IteratorSource<T>
+where
+    T: NativeIteratorInterface<'js>,
+{
+    async fn start(
+        &mut self,
+        ctx: Ctx<'js>,
+
+        ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
+    ) -> rquickjs::Result<()> {
+        if let Some(next) = self.0.next(&ctx)? {
+            ctrl.borrow_mut()
+                .enqueue(ctx.clone(), next.into_js(&ctx)?)?;
+        } else {
+            ctrl.borrow_mut().close(ctx)?;
+        }
+
+        Ok(())
+    }
+
+    async fn pull(
+        &mut self,
+        ctx: Ctx<'js>,
+
+        ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
+    ) -> rquickjs::Result<()> {
+        if let Some(next) = self.0.next(&ctx)? {
+            ctrl.borrow_mut()
+                .enqueue(ctx.clone(), next.into_js(&ctx)?)?;
         } else {
             ctrl.borrow_mut().close(ctx)?;
         }

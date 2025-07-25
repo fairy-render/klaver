@@ -1,7 +1,7 @@
 use futures::future::LocalBoxFuture;
 use klaver_runner::{FuncFn, Runner, Runnerable, Workers};
+use klaver_util::RuntimeError;
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx};
-use rquickjs_util::RuntimeError;
 
 pub struct Test<'a>(&'a str);
 

@@ -20,8 +20,8 @@ swc-transform = [
 
 
 [dependencies]
+klaver-util = { path = "../klaver-util" }
 rquickjs = { workspace = true, features = ["loader", "futures"] }
-rquickjs-util = { path = "../rquickjs-util" }
 oxc_resolver = { version = "11.6" }
 oxc = { version = "0.77", features = [
   "transformer",

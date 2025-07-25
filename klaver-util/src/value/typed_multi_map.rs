@@ -2,7 +2,10 @@ use std::cell::RefCell;
 
 use rquickjs::{Ctx, FromJs, IntoJs, array::ArrayIter, class::Trace};
 
-use crate::{NativeIteratorInterface, Pair, TypedList, TypedListValues, TypedMap, TypedMapEntries};
+use crate::{
+    FromJsIter, Iter, NativeIteratorInterface, Pair, TypedList, TypedListValues, TypedMap,
+    TypedMapEntries,
+};
 
 pub struct TypedMultiMap<'js, K, T> {
     map: TypedMap<'js, K, TypedList<'js, T>>,

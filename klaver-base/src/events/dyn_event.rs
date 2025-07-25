@@ -1,6 +1,6 @@
 use super::{Event, EventKey};
+use klaver_util::{SuperClass, throw};
 use rquickjs::{Class, Ctx, FromJs, IntoJs, Value, class::Trace};
-use rquickjs_util::{SuperClass, throw};
 
 #[derive(Trace, Clone)]
 pub struct DynEvent<'js> {

@@ -1,8 +1,8 @@
+use klaver_util::Subclass;
 use rquickjs::{
     Class, Ctx, Function, JsLifetime,
     class::{JsClass, Trace},
 };
-use rquickjs_util::Subclass;
 
 use crate::{DynEvent, Emitter, EventList, EventTarget, export::Exportable};
 

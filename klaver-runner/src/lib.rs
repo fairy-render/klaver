@@ -1,10 +1,9 @@
 mod shutdown;
-mod uncaught_exeception;
 mod workers;
 
 use futures::{FutureExt, future::LocalBoxFuture, pin_mut};
+use klaver_util::RuntimeError;
 use rquickjs::{AsyncContext, Ctx};
-use rquickjs_util::RuntimeError;
 
 pub use self::shutdown::Shutdown;
 pub use crate::workers::Workers;

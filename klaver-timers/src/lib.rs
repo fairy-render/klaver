@@ -3,8 +3,8 @@ mod id;
 mod module;
 mod timers;
 
+use klaver_util::throw_if;
 use rquickjs::Ctx;
-use rquickjs_util::throw_if;
 
 pub use self::{
     backend::{Backend, TimingBackend},

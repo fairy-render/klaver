@@ -1,9 +1,9 @@
 use crate::streams::data::{StreamData, WaitDone, WaitReadReady};
+use klaver_util::throw;
 use rquickjs::{
     Class, Ctx, FromJs, IntoJs, JsLifetime, Object, String, Value, atom::PredefinedAtom,
     class::Trace, prelude::Opt,
 };
-use rquickjs_util::throw;
 
 #[derive(Trace, JsLifetime)]
 #[rquickjs::class]

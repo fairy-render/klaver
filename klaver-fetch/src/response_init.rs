@@ -1,6 +1,6 @@
 use http::StatusCode;
+use klaver_util::throw_if;
 use rquickjs::{Class, Ctx, FromJs, String};
-use rquickjs_util::throw_if;
 
 use crate::{Headers, headers::HeadersInit};
 
