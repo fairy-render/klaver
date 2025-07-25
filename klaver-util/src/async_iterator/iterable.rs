@@ -5,7 +5,7 @@ use rquickjs::{
     prelude::{Func, This},
 };
 
-use crate::async_iteator::native::{NativeAsyncIterator, NativeAsyncIteratorInterface};
+use crate::async_iterator::native::{NativeAsyncIterator, NativeAsyncIteratorInterface};
 
 // Trait for implementers
 pub trait AsyncIterableProtocol<'js>

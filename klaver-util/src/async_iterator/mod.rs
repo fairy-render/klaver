@@ -8,7 +8,7 @@ mod util;
 pub use self::{
     iterable::AsyncIterableProtocol,
     native::{NativeAsyncIterator, NativeAsyncIteratorInterface},
-    script::{AsyncIter, AsyncIteratable},
+    script::{AsyncIter, AsyncIterable},
     stream::*,
-    util::is_async_iteratable,
+    util::is_async_iterable,
 };

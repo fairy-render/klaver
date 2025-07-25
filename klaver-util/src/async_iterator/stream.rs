@@ -2,7 +2,7 @@ use futures::{Stream, StreamExt, stream::LocalBoxStream};
 use pin_project_lite::pin_project;
 use rquickjs::Ctx;
 
-use crate::async_iteator::native::NativeAsyncIteratorInterface;
+use crate::async_iterator::native::NativeAsyncIteratorInterface;
 
 pin_project! {
   pub struct AsyncIteratorStream<'js, T>

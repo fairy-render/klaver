@@ -48,37 +48,37 @@ impl<'js> FromJs<'js> for Iter<'js> {
 }
 
 impl<'js> IntoJs<'js> for Iter<'js> {
-    fn into_js(self, ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+    fn into_js(self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         Ok(self.target)
     }
 }
 
 #[derive(Trace)]
-pub struct Iteratable<'js> {
+pub struct Iterable<'js> {
     object: Value<'js>,
     create: Function<'js>,
 }
 
-impl<'js> Iteratable<'js> {
-    pub fn create(&self) -> rquickjs::Result<Iter<'js>> {
+impl<'js> Iterable<'js> {
+    pub fn iterator(&self) -> rquickjs::Result<Iter<'js>> {
         Ok(self.create.call(())?)
     }
 }
 
-impl<'js> FromJs<'js> for Iteratable<'js> {
+impl<'js> FromJs<'js> for Iterable<'js> {
     fn from_js(ctx: &rquickjs::Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let obj: Object = value.get()?;
 
         let create: Function<'_> = obj.get(PredefinedAtom::SymbolIterator)?;
 
-        Ok(Iteratable {
+        Ok(Iterable {
             object: value,
             create: create.bind(ctx, (obj,))?,
         })
     }
 }
 
-impl<'js> IntoJs<'js> for Iteratable<'js> {
+impl<'js> IntoJs<'js> for Iterable<'js> {
     fn into_js(self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         Ok(self.object)
     }

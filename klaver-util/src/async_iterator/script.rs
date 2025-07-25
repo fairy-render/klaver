@@ -1,6 +1,6 @@
-use rquickjs::{FromJs, Function, Object, Value, atom::PredefinedAtom, class::Trace};
+use rquickjs::{FromJs, Function, IntoJs, Object, Value, atom::PredefinedAtom, class::Trace};
 
-use crate::{async_iteator::native::NativeAsyncIteratorInterface, func::FunctionExt};
+use crate::{async_iterator::native::NativeAsyncIteratorInterface, func::FunctionExt};
 
 #[derive(Trace)]
 pub struct AsyncIter<'js> {
@@ -46,27 +46,38 @@ impl<'js> FromJs<'js> for AsyncIter<'js> {
     }
 }
 
+impl<'js> IntoJs<'js> for AsyncIter<'js> {
+    fn into_js(self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        Ok(self.target)
+    }
+}
+
 #[derive(Trace)]
-pub struct AsyncIteratable<'js> {
+pub struct AsyncIterable<'js> {
     object: Value<'js>,
     create: Function<'js>,
 }
 
-impl<'js> AsyncIteratable<'js> {
-    pub fn create(&self) -> rquickjs::Result<AsyncIter<'js>> {
+impl<'js> AsyncIterable<'js> {
+    pub fn async_iterator(&self) -> rquickjs::Result<AsyncIter<'js>> {
         Ok(self.create.call(())?)
     }
 }
 
-impl<'js> FromJs<'js> for AsyncIteratable<'js> {
+impl<'js> FromJs<'js> for AsyncIterable<'js> {
     fn from_js(ctx: &rquickjs::Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let obj: Object = value.get()?;
 
         let create: Function<'_> = obj.get(PredefinedAtom::SymbolAsyncIterator)?;
 
-        Ok(AsyncIteratable {
+        Ok(AsyncIterable {
             object: value,
             create: create.bind(ctx, (obj,))?,
         })
+    }
+}
+impl<'js> IntoJs<'js> for AsyncIterable<'js> {
+    fn into_js(self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        Ok(self.object)
     }
 }
