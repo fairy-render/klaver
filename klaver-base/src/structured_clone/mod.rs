@@ -13,7 +13,7 @@ pub use self::{
     bindings::{serialize, structured_clone},
     context::SerializationContext,
     module::*,
-    registry::Registry,
+    registry::{Registry, SerializationOptions},
     tag::Tag,
     traits::*,
     value::*,

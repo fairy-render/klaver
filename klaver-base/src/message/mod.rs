@@ -23,6 +23,7 @@ where
 {
     MessageChannel::export(ctx, registry, target)?;
     MessagePort::export(ctx, registry, target)?;
+    MessageEvent::export(ctx, registry, target)?;
 
     Ok(())
 }

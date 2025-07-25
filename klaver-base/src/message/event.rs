@@ -3,6 +3,7 @@ use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, String, Value,
     class::{JsClass, Trace},
     prelude::Opt,
+    qjs,
 };
 
 use crate::{DynEvent, Event, Exportable, IntoDynEvent, NativeEvent};
@@ -10,9 +11,9 @@ use crate::{DynEvent, Event, Exportable, IntoDynEvent, NativeEvent};
 #[derive(Debug, Trace, JsLifetime)]
 #[rquickjs::class]
 pub struct MessageEvent<'js> {
-    ty: String<'js>,
+    pub ty: String<'js>,
     #[qjs(get)]
-    data: Option<Value<'js>>,
+    pub data: Option<Value<'js>>,
 }
 
 #[derive(Default)]
@@ -32,6 +33,7 @@ impl<'js> FromJs<'js> for MessageEventOptions<'js> {
 
 #[rquickjs::methods]
 impl<'js> MessageEvent<'js> {
+    #[qjs(constructor)]
     pub fn new(
         ty: String<'js>,
         ops: Opt<MessageEventOptions<'js>>,

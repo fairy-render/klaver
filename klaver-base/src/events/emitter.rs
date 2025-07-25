@@ -40,7 +40,7 @@ where
     }
 
     #[allow(unused)]
-    fn dispatch(&self, event: DynEvent<'js>) -> rquickjs::Result<()> {
+    fn dispatch(&self, ctx: &Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
         Ok(())
     }
 
@@ -50,7 +50,7 @@ where
     {
         let event = event.into_dynevent(ctx)?;
 
-        self.dispatch(event.clone())?;
+        self.dispatch(ctx, event.clone())?;
 
         let Some(listeners) = self.get_listeners().get(&event.ty(ctx)?) else {
             return Ok(());

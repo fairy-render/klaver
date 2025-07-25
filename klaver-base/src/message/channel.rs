@@ -1,5 +1,5 @@
 use crate::message::port::MessagePort;
-use rquickjs::{Class, Ctx, JsLifetime, class::Trace};
+use rquickjs::{Class, Ctx, JsLifetime, class::Trace, qjs};
 
 #[derive(Trace)]
 #[rquickjs::class]
@@ -16,6 +16,7 @@ unsafe impl<'js> JsLifetime<'js> for MessageChannel<'js> {
 
 #[rquickjs::methods]
 impl<'js> MessageChannel<'js> {
+    #[qjs(constructor)]
     pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<MessageChannel<'js>> {
         let (sx1, rx1) = flume::unbounded();
         let (sx2, rx2) = flume::unbounded();

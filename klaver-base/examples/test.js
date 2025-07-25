@@ -3,12 +3,23 @@ import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDef
 const output = []
 
 
+const chan = new MessageChannel
 
+chan.port1.start();
+
+chan.port1.addEventListener('message', (e) => {
+  console.log('message', e.data);
+  chan.port1.close()
+})
+
+chan.port2.postMessage("HEllo")
 
 
 const console = new Console((level, msg) => {
   print(`[${level}] ${msg}`)
 })
+
+console.log(typeof MessageChannel)
 
 console.log(new AbortSignal() instanceof EventTarget);
 

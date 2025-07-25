@@ -60,7 +60,7 @@ impl<'js> Emitter<'js> for AbortSignal<'js> {
         &mut self.listeners
     }
 
-    fn dispatch(&self, event: DynEvent<'js>) -> rquickjs::Result<()> {
+    fn dispatch(&self, ctx: &Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
         if let Some(onabort) = &self.onabort {
             onabort.call::<_, ()>((event,))?;
         }

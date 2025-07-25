@@ -1,9 +1,9 @@
 
+const channel = new MessageChannel
 
-const test = {
-  hello: 'World'
-};
+channel.port1.addEventListener("message", handleMessage, false);
+function handleMessage(e) {
+  console.log(e)
+}
 
-test.self = test
-
-console.log(test)
+channel.port1.start();

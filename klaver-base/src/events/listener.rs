@@ -11,7 +11,7 @@ pub enum Listener<'js> {
 impl<'js> Listener<'js> {
     pub fn call(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
         match self {
-            Self::Js(js) => js.call((event,)),
+            Self::Js(js) => js.defer((event,)),
             Self::Native(native) => {
                 native.on_event(ctx, event)?;
                 Ok(())
