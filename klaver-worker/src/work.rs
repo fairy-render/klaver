@@ -9,6 +9,10 @@ pub enum Message {
     Event(TransObject),
 }
 
+fn post_message<'js>(ctx: Ctx<'js>, msg: Value<'js>) -> rquickjs::Result<()> {
+    Ok(())
+}
+
 pub fn work(
     path: &str,
     registry: Registry,
