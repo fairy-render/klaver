@@ -7,5 +7,6 @@ mod script;
 mod util;
 
 pub use self::{
-    iterable::IterableProtocol, iterator::IteratorIter, native::*, result::*, script::*, util::*,
+    ext::*, iterable::IterableProtocol, iterator::IteratorIter, native::*, result::*, script::*,
+    util::*,
 };

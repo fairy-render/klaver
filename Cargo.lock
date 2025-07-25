@@ -1368,6 +1368,8 @@ dependencies = [
  "futures",
  "pin-project-lite",
  "rquickjs",
+ "udled 0.4.0",
+ "udled-tokenizers 0.3.0",
 ]
 
 [[package]]
@@ -2523,7 +2525,7 @@ dependencies = [
  "chrono",
  "futures",
  "rquickjs",
- "udled",
+ "udled 0.3.1",
  "udled-tokenizers 0.2.0",
  "vaerdi",
 ]
@@ -3953,12 +3955,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "udled"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3fdf19d0b370d524a5dace07e0a67b0968b11fc2eb1028cd85dbc6af901e861"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "udled-tokenizers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da8f61945861d20245844f18f05fd66e473ae107bfa2b487a61e13d1c0f4ff29"
 dependencies = [
- "udled",
+ "udled 0.3.1",
 ]
 
 [[package]]
@@ -3967,7 +3978,17 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8fc7c235fd02fdd465ff40a421907d70c8c512babe87bf1fc390d50de3cb8a2"
 dependencies = [
- "udled",
+ "udled 0.3.1",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "udled-tokenizers"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b45a67a4197cb48e7f3fe2807c20bdf88d9de400cbb579e93f1bc1857ea430e4"
+dependencies = [
+ "udled 0.4.0",
  "unicode-segmentation",
 ]
 
@@ -4067,7 +4088,7 @@ dependencies = [
  "bitflags",
  "chrono",
  "hashbrown 0.14.5",
- "udled",
+ "udled 0.3.1",
  "udled-tokenizers 0.1.0",
  "uuid",
 ]
