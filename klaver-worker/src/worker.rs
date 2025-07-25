@@ -1,5 +1,5 @@
 use flume::{Receiver, Sender};
-use klaver_base::{Emitter, EventList, EventTarget, Exportable};
+use klaver_base::{Emitter, EventList, EventTarget, Exportable, Registry, TransObject};
 use klaver_runner::{Shutdown, Workers};
 use klaver_util::{RuntimeError, StringRef, Subclass};
 use rquickjs::{
@@ -39,8 +39,10 @@ impl<'js> WebWorker<'js> {
 
         let workers = Workers::from_ctx(&ctx)?;
 
+        let registry = Registry::get(&ctx)?;
+
         std::thread::spawn(move || {
-            work(&path, work_rx, parent_sx).ok();
+            work(&path, registry, work_rx, parent_sx).ok();
         });
 
         let this = Class::instance(
@@ -63,10 +65,12 @@ impl<'js> WebWorker<'js> {
     }
 
     #[qjs(rename = "postMessage")]
-    pub fn post_message(&self, ctx: Ctx<'js>, msg: Value<'js>) -> rquickjs::Result<()> {
+    pub fn post_message(&self, ctx: Ctx<'js>, value: Value<'js>) -> rquickjs::Result<()> {
         let sx = self.sx.clone();
+
+        let trans_object = Registry::get(&ctx)?.serialize(&ctx, &value, &Default::default())?;
         ctx.spawn(async move {
-            sx.send_async(Message::Event(msg)).await.ok();
+            sx.send_async(Message::Event(trans_object)).await.ok();
         });
 
         Ok(())
@@ -113,7 +117,7 @@ impl<'js> Exportable<'js> for WebWorker<'js> {
 async fn listen<'js>(
     ctx: Ctx<'js>,
     mut kill: Shutdown,
-    rx: Receiver<Val>,
+    rx: Receiver<TransObject>,
     worker: Class<'js, WebWorker<'js>>,
 ) -> rquickjs::Result<()> {
     loop {

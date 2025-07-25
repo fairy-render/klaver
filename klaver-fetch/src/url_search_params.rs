@@ -1,12 +1,14 @@
-use klaver_base::create_export;
+use klaver_base::{Exportable, create_export};
 
 use klaver_util::{
     Iter, Iterable, IterableProtocol, NativeIterator, NativeIteratorExt, Pair, StringExt,
     StringRef, TypedList, TypedMultiMap, TypedMultiMapEntries,
 };
 use rquickjs::{
-    Array, Class, Ctx, FromJs, Function, IntoJs, JsLifetime, String, Value, atom::PredefinedAtom,
-    class::Trace, prelude::Opt,
+    Array, Class, Ctx, FromJs, Function, IntoJs, JsLifetime, String, Value,
+    atom::PredefinedAtom,
+    class::{JsClass, Trace},
+    prelude::Opt,
 };
 use std::fmt::Write;
 
@@ -134,9 +136,16 @@ impl<'js> URLSearchParams<'js> {
         self.map.delete(key)
     }
 
-    pub fn entries(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        let iterator = NativeIterator::new(self.map.entries()?);
-        Ok(Class::instance(ctx, iterator)?.into_value())
+    pub fn entries(&self, ctx: Ctx<'js>) -> rquickjs::Result<NativeIterator<'js>> {
+        Ok(NativeIterator::new(self.map.entries()?))
+    }
+
+    pub fn keys(&self) -> rquickjs::Result<NativeIterator<'js>> {
+        Ok(NativeIterator::new(self.map.keys()?))
+    }
+
+    pub fn values(&self) -> rquickjs::Result<NativeIterator<'js>> {
+        Ok(NativeIterator::new(self.map.values()?))
     }
 
     #[qjs(rename = "forEach")]
@@ -183,14 +192,23 @@ impl<'js> IterableProtocol<'js> for URLSearchParams<'js> {
     }
 }
 
-// impl<'js> Iterable<'js> for URLSearchParams<'js> {
-//     type Item = Entry<rquickjs::String<'js>, rquickjs::String<'js>>;
+impl<'js> Exportable<'js> for URLSearchParams<'js> {
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_base::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
+    where
+        T: klaver_base::ExportTarget<'js>,
+    {
+        target.set(
+            ctx,
+            URLSearchParams::NAME,
+            Class::<Self>::create_constructor(ctx)?,
+        )?;
 
-//     type Iter = TypedMultiMapIter<'js, rquickjs::String<'js>, rquickjs::String<'js>>;
+        Self::add_iterable_prototype(ctx)?;
 
-//     fn entries(&mut self) -> rquickjs::Result<NativeIter<Self::Iter>> {
-//         Ok(NativeIter::new(self.map.entries()?))
-//     }
-// }
-
-create_export!(URLSearchParams<'js>);
+        Ok(())
+    }
+}

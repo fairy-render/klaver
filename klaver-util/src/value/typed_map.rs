@@ -6,6 +6,10 @@ use crate::{FromJsIter, Iter, Map, NativeIteratorExt, Pair};
 
 pub type TypedMapEntries<'js, K, V> = FromJsIter<Iter<'js>, Pair<K, V>>;
 
+pub type TypedMapValues<'js, V> = FromJsIter<Iter<'js>, V>;
+
+pub type TypedMapKeys<'js, K> = FromJsIter<Iter<'js>, K>;
+
 pub struct TypedMap<'js, K, T> {
     i: Map<'js>,
     ty: PhantomData<(K, T)>,

@@ -1,17 +1,19 @@
 use futures::future::LocalBoxFuture;
+use klaver_base::{Registry, TransObject};
 use klaver_runner::{Runner, Runnerable};
-use klaver_util::{RuntimeError, Val};
-use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module};
+use klaver_util::RuntimeError;
+use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module, Value};
 
 pub enum Message {
     Kill,
-    Event(Val),
+    Event(TransObject),
 }
 
 pub fn work(
     path: &str,
+    registry: Registry,
     rx: flume::Receiver<Message>,
-    sx: flume::Sender<Val>,
+    sx: flume::Sender<TransObject>,
 ) -> Result<(), RuntimeError> {
     futures::executor::block_on(async move {
         let runtime = AsyncRuntime::new()?;
@@ -19,14 +21,17 @@ pub fn work(
 
         context
             .with(move |ctx| {
+                ctx.store_userdata(registry.clone())?;
                 ctx.globals().set(
                     "postMessage",
                     rquickjs::prelude::Func::from(rquickjs::function::MutFn::new(
-                        move |ctx: Ctx<'_>, msg: Val| {
-                            let sx = sx.clone();
-                            ctx.spawn(async move {
-                                sx.send_async(msg).await.ok();
-                            });
+                        move |ctx: Ctx, msg: Value| {
+                            // let sx = sx.clone();
+                            // let trans_object =
+                            //     Registry::get(&ctx)?.serialize(&ctx, &msg, &Default::default())?;
+                            // ctx.spawn(async move {
+                            //     sx.send_async(trans_object).await.ok();
+                            // });
                             rquickjs::Result::Ok(())
                         },
                     )),

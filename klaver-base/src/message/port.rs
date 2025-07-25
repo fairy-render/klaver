@@ -1,14 +1,49 @@
-use crate::{Emitter, EventList, EventTarget, Exportable};
+use std::sync::Arc;
+
+use crate::{Emitter, EventList, EventTarget, Exportable, NativeObject, TransObject};
+use flume::{Receiver, Sender};
 use klaver_util::{Subclass, throw};
 use rquickjs::{
-    Class, Ctx, JsLifetime, Value,
+    Class, Ctx, Function, JsLifetime, Value,
     class::{JsClass, Trace},
+    qjs,
 };
 
-#[derive(Trace, Default)]
+pub struct Message {
+    message: TransObject,
+}
+
+#[derive(Clone)]
+pub struct Channel {
+    remote: Sender<Message>,
+    rx: Arc<Receiver<Message>>,
+}
+
 #[rquickjs::class]
 pub struct MessagePort<'js> {
     listener: EventList<'js>,
+    channel: Channel,
+    onmessage: Option<Function<'js>>,
+}
+
+impl<'js> MessagePort<'js> {
+    pub fn create(remote: Sender<Message>, rx: Receiver<Message>) -> MessagePort<'js> {
+        MessagePort {
+            listener: Default::default(),
+            onmessage: None,
+            channel: Channel {
+                remote,
+                rx: rx.into(),
+            },
+        }
+    }
+}
+
+impl<'js> Trace<'js> for MessagePort<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.listener.trace(tracer);
+        self.onmessage.trace(tracer);
+    }
 }
 
 unsafe impl<'js> JsLifetime<'js> for MessagePort<'js> {
@@ -25,6 +60,16 @@ impl<'js> MessagePort<'js> {
     #[qjs(rename = "postMessage")]
     pub fn post_message(&self, msg: Value<'js>) -> rquickjs::Result<()> {
         todo!("Postmessage!")
+    }
+
+    #[qjs(set, rename = "onmessage")]
+    pub fn set_onmessage(&mut self, func: Function<'js>) -> rquickjs::Result<()> {
+        Ok(())
+    }
+
+    #[qjs(get, rename = "onmessage")]
+    pub fn get_onmessage(&mut self) -> rquickjs::Result<Value<'js>> {
+        Ok(())
     }
 }
 

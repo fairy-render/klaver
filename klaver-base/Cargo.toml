@@ -19,6 +19,7 @@ futures = { workspace = true }
 
 async-trait = { version = "0.1" }
 async-stream = { version = "0.3" }
+flume = { workspace = true }
 
 ## Encoding
 encoding_rs = { version = "0.8" }

@@ -6,7 +6,16 @@
 const ctrl = new AbortController();
 
 
+const headers = new Headers();
 
+console.log(headers)
+
+headers.set("Content-Type", "application/json")
+// headers.append("Content-Length", "2100");
+
+for (const v of headers.values()) {
+  console.log(v)
+}
 
 // setTimeout(() => {
 //   console.log('dsdsdpsdp')

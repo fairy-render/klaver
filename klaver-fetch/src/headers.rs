@@ -1,7 +1,13 @@
 use http::HeaderMap;
-use klaver_base::create_export;
-use klaver_util::{StringExt, TypedMultiMap};
-use rquickjs::{Class, Ctx, FromJs, JsLifetime, String, class::Trace, function::Opt};
+use klaver_base::{Exportable, create_export};
+use klaver_util::{
+    IterableProtocol, NativeIterator, StringExt, TypedMultiMap, TypedMultiMapEntries,
+};
+use rquickjs::{
+    Class, Coerced, Ctx, FromJs, JsLifetime, String,
+    class::{JsClass, Trace},
+    function::Opt,
+};
 
 #[derive(Trace)]
 pub struct HeadersInit<'js> {
@@ -81,10 +87,19 @@ impl<'js> Headers<'js> {
         &mut self,
         ctx: Ctx<'js>,
         key: String<'js>,
-        value: rquickjs::String<'js>,
+        Coerced(value): Coerced<String<'js>>,
     ) -> rquickjs::Result<()> {
         self.inner
             .append(&ctx, key, value.to_lowercase(ctx.clone())?)
+    }
+
+    pub fn set(
+        &mut self,
+        ctx: Ctx<'js>,
+        key: String<'js>,
+        Coerced(value): Coerced<String<'js>>,
+    ) -> rquickjs::Result<()> {
+        self.inner.set(&ctx, key, value)
     }
 
     pub fn get(
@@ -98,6 +113,45 @@ impl<'js> Headers<'js> {
     pub fn has(&self, ctx: Ctx<'js>, key: String<'js>) -> rquickjs::Result<bool> {
         self.inner.has(key.to_lowercase(ctx)?)
     }
+
+    pub fn entries(&self, ctx: Ctx<'js>) -> rquickjs::Result<Class<'js, NativeIterator<'js>>> {
+        Class::instance(
+            ctx.clone(),
+            NativeIterator::new(self.create_iterator(&ctx)?),
+        )
+    }
+
+    pub fn values(&self) -> rquickjs::Result<NativeIterator<'js>> {
+        Ok(NativeIterator::new(self.inner.values()?))
+    }
+
+    pub fn keys(&self) -> rquickjs::Result<NativeIterator<'js>> {
+        Ok(NativeIterator::new(self.inner.keys()?))
+    }
 }
 
-create_export!(Headers<'js>);
+impl<'js> IterableProtocol<'js> for Headers<'js> {
+    type Iterator = TypedMultiMapEntries<'js, String<'js>, String<'js>>;
+
+    fn create_iterator(&self, _ctx: &Ctx<'js>) -> rquickjs::Result<Self::Iterator> {
+        self.inner.entries()
+    }
+}
+
+// create_export!(Headers<'js>);
+
+impl<'js> Exportable<'js> for Headers<'js> {
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_base::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
+    where
+        T: klaver_base::ExportTarget<'js>,
+    {
+        target.set(ctx, Self::NAME, Class::<Self>::create_constructor(ctx)?)?;
+        Self::add_iterable_prototype(ctx)?;
+
+        Ok(())
+    }
+}

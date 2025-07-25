@@ -22,7 +22,7 @@ where
         };
 
         proto.set(
-            PredefinedAtom::SymbolAsyncIterator,
+            PredefinedAtom::SymbolIterator,
             Func::new(Self::return_iterator),
         )?;
 

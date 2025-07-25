@@ -1271,6 +1271,7 @@ dependencies = [
  "dyn-clone",
  "encoding_rs",
  "event-listener",
+ "flume",
  "futures",
  "indexmap",
  "klaver-runner",
@@ -1398,6 +1399,19 @@ dependencies = [
  "klaver-util",
  "rquickjs",
  "tokio",
+]
+
+[[package]]
+name = "klaver-worker"
+version = "0.1.0"
+dependencies = [
+ "flume",
+ "futures",
+ "klaver-base",
+ "klaver-runner",
+ "klaver-util",
+ "rquickjs",
+ "rquickjs-util",
 ]
 
 [[package]]

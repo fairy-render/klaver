@@ -4,7 +4,7 @@ use rquickjs::{Ctx, FromJs, IntoJs, array::ArrayIter, class::Trace};
 
 use crate::{
     FromJsIter, Iter, NativeIteratorInterface, Pair, TypedList, TypedListValues, TypedMap,
-    TypedMapEntries,
+    TypedMapEntries, TypedMapKeys, TypedMapValues,
 };
 
 pub struct TypedMultiMap<'js, K, T> {
@@ -77,6 +77,18 @@ where
             queue: RefCell::new(None),
         })
     }
+
+    pub fn values(&self) -> rquickjs::Result<TypedMultiMapValues<'js, T>> {
+        let values = self.map.values()?;
+        Ok(TypedMultiMapValues {
+            iter: values,
+            queue: RefCell::new(None),
+        })
+    }
+
+    pub fn keys(&self) -> rquickjs::Result<TypedMapKeys<'js, K>> {
+        self.map.keys()
+    }
 }
 
 impl<'js, K, V> Trace<'js> for TypedMultiMap<'js, K, V> {
@@ -127,6 +139,55 @@ where
             };
 
             return Ok(Some(Pair(key.clone(), next)));
+        }
+    }
+
+    fn returns(&self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+        self.iter.returns(ctx)
+    }
+}
+
+pub struct TypedMultiMapValues<'js, T> {
+    iter: TypedMapValues<'js, TypedList<'js, T>>,
+    queue: RefCell<Option<TypedListValues<'js, T>>>,
+}
+
+impl<'js, T> Trace<'js> for TypedMultiMapValues<'js, T> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.iter.trace(tracer);
+        if let Some(n) = self.queue.borrow().as_ref() {
+            n.trace(tracer);
+        }
+    }
+}
+
+impl<'js, T> NativeIteratorInterface<'js> for TypedMultiMapValues<'js, T>
+where
+    T: FromJs<'js> + IntoJs<'js>,
+{
+    type Item = T;
+
+    fn next(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Option<Self::Item>> {
+        loop {
+            let mut queue = self.queue.borrow_mut();
+            let Some(iter) = queue.as_mut() else {
+                let Some(next) = self.iter.next(ctx)? else {
+                    return Ok(None);
+                };
+
+                let iter = next.values()?;
+
+                *queue = Some(iter);
+
+                continue;
+            };
+
+            let Some(next) = iter.next(ctx)? else {
+                *queue = None;
+                continue;
+            };
+
+            return Ok(Some(next));
         }
     }
 

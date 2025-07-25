@@ -1,6 +1,6 @@
 use klaver_base::{Blob, streams::ReadableStream};
 use klaver_util::{Buffer, StringExt};
-use rquickjs::{ArrayBuffer, Class, Ctx, FromJs, String, class::Trace};
+use rquickjs::{ArrayBuffer, Class, Coerced, Ctx, FromJs, String, class::Trace};
 
 use crate::{Headers, URLSearchParams, body::BodyMixin};
 
@@ -34,7 +34,10 @@ impl<'js> BodyInit<'js> {
                     headers.borrow_mut().append(
                         ctx.clone(),
                         content_type,
-                        String::from_str(ctx.clone(), "application/x-www-form-urlencoded")?,
+                        Coerced(String::from_str(
+                            ctx.clone(),
+                            "application/x-www-form-urlencoded",
+                        )?),
                     )?;
                 }
                 Ok(buffer.into())
@@ -43,7 +46,9 @@ impl<'js> BodyInit<'js> {
                 let buffer = blob.borrow().buffer.clone();
                 if let Some(ty) = blob.borrow().ty.clone() {
                     if !headers.borrow().has(ctx.clone(), content_type.clone())? {
-                        headers.borrow_mut().append(ctx.clone(), content_type, ty)?;
+                        headers
+                            .borrow_mut()
+                            .append(ctx.clone(), content_type, Coerced(ty))?;
                     }
                 }
 

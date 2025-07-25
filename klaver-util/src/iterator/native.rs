@@ -86,7 +86,7 @@ impl<'js> JsClass<'js> for NativeIterator<'js> {
         let proto = Object::new(ctx.clone())?;
 
         proto.set(
-            Symbol::async_iterator(ctx.clone()),
+            Symbol::iterator(ctx.clone()),
             Func::new(|this: This<Class<'js, Self>>| rquickjs::Result::Ok(this.0)),
         )?;
 
@@ -112,5 +112,11 @@ impl<'js> JsClass<'js> for NativeIterator<'js> {
         )?;
 
         Ok(Some(proto))
+    }
+}
+
+impl<'js> IntoJs<'js> for NativeIterator<'js> {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        Ok(Class::instance(ctx.clone(), self)?.into_value())
     }
 }
