@@ -1,6 +1,8 @@
 use rquickjs::{FromJs, Function, IntoJs, Object, Value, atom::PredefinedAtom, class::Trace};
 
-use crate::{async_iterator::native::NativeAsyncIteratorInterface, func::FunctionExt};
+use crate::{
+    IteratorResult, async_iterator::native::NativeAsyncIteratorInterface, func::FunctionExt,
+};
 
 #[derive(Trace)]
 pub struct AsyncIter<'js> {
@@ -13,7 +15,14 @@ impl<'js> NativeAsyncIteratorInterface<'js> for AsyncIter<'js> {
     type Item = Value<'js>;
 
     async fn next(&self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Option<Self::Item>> {
-        self.next.call_async(()).await
+        let result = self
+            .next
+            .call_async::<_, IteratorResult<Value<'js>>>(())
+            .await?;
+        match result {
+            IteratorResult::Value(value) => Ok(Some(value)),
+            IteratorResult::Done => Ok(None),
+        }
     }
 
     async fn returns(&self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<()> {

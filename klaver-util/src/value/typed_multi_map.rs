@@ -111,9 +111,9 @@ where
                     return Ok(None);
                 };
 
-                let iter = next.value.values()?;
+                let iter = next.1.values()?;
 
-                *queue = Some((next.key.clone(), iter));
+                *queue = Some((next.0.clone(), iter));
 
                 continue;
             };
@@ -123,10 +123,7 @@ where
                 continue;
             };
 
-            return Ok(Some(Pair {
-                key: key.clone(),
-                value: next,
-            }));
+            return Ok(Some(Pair(key.clone(), next)));
         }
     }
 

@@ -81,3 +81,32 @@ impl<'js, T> IntoJs<'js> for TypedList<'js, T> {
         Ok(self.i.into_value())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::NativeIteratorInterface;
+
+    use super::*;
+    use rquickjs::Ctx;
+
+    #[test]
+    fn entries() {
+        let runtime = rquickjs::Runtime::new().unwrap();
+        let context = rquickjs::Context::full(&runtime).unwrap();
+
+        context
+            .with(|ctx| {
+                let list = TypedList::<i32>::new(ctx.clone())?;
+                list.push(1)?;
+                list.push(2)?;
+
+                let entries = list.values()?;
+                assert_eq!(entries.next(&ctx)?, Some(1));
+                assert_eq!(entries.next(&ctx)?, Some(2));
+                assert_eq!(entries.next(&ctx)?, None);
+
+                rquickjs::Result::Ok(())
+            })
+            .unwrap();
+    }
+}

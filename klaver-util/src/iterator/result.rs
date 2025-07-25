@@ -1,4 +1,4 @@
-use rquickjs::{IntoJs, Object, atom::PredefinedAtom};
+use rquickjs::{FromJs, IntoJs, Object, atom::PredefinedAtom};
 
 pub enum IteratorResult<T> {
     Value(T),
@@ -22,5 +22,21 @@ where
         }
 
         Ok(obj.into_value())
+    }
+}
+
+impl<'js, T> FromJs<'js> for IteratorResult<T>
+where
+    T: FromJs<'js>,
+{
+    fn from_js(ctx: &rquickjs::Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+        let obj = Object::from_js(ctx, value)?;
+        if obj.get::<_, bool>(PredefinedAtom::Done)? {
+            Ok(Self::Done)
+        } else {
+            let val = obj.get(PredefinedAtom::Value)?;
+            let item = T::from_js(ctx, val)?;
+            Ok(Self::Value(item))
+        }
     }
 }

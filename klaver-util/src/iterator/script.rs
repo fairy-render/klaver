@@ -1,7 +1,7 @@
 use rquickjs::{FromJs, Function, IntoJs, Object, Value, atom::PredefinedAtom, class::Trace};
 
 use super::native::NativeIteratorInterface;
-use crate::func::FunctionExt;
+use crate::{IteratorResult, func::FunctionExt};
 
 #[derive(Trace)]
 pub struct Iter<'js> {
@@ -14,7 +14,11 @@ impl<'js> NativeIteratorInterface<'js> for Iter<'js> {
     type Item = Value<'js>;
 
     fn next(&self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Option<Self::Item>> {
-        self.next.call(())
+        let result = self.next.call::<_, IteratorResult<Value<'js>>>(())?;
+        match result {
+            IteratorResult::Value(value) => Ok(Some(value)),
+            IteratorResult::Done => Ok(None),
+        }
     }
 
     fn returns(&self, _ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<()> {

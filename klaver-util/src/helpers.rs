@@ -2,10 +2,7 @@ use rquickjs::{Array, Ctx, FromJs, IntoJs, Value};
 
 use crate::array::ArrayExt;
 
-pub struct Pair<K, V> {
-    pub key: K,
-    pub value: V,
-}
+pub struct Pair<K, V>(pub K, pub V);
 
 impl<'js, K, V> FromJs<'js> for Pair<K, V>
 where
@@ -18,7 +15,7 @@ where
         let key = array.get(0)?;
         let value = array.get(1)?;
 
-        Ok(Pair { key, value })
+        Ok(Pair(key, value))
     }
 }
 
@@ -30,8 +27,8 @@ where
     fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let array = Array::new(ctx.clone())?;
 
-        array.push(self.key)?;
-        array.push(self.value)?;
+        array.push(self.0)?;
+        array.push(self.1)?;
 
         Ok(array.into_value())
     }

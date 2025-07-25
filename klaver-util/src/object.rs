@@ -1,4 +1,4 @@
-use rquickjs::{Ctx, FromJs, Function, IntoAtom, Object, Value, function::Args, prelude::IntoArgs};
+use rquickjs::{FromJs, Function, IntoAtom, Object, Value, function::Args, prelude::IntoArgs};
 
 pub trait ObjectExt<'js> {
     fn call_property<K: IntoAtom<'js>, A: IntoArgs<'js>, R: FromJs<'js>>(

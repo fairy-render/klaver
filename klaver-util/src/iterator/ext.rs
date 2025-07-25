@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 use rquickjs::{Ctx, FromJs, IntoJs, class::Trace};
 
@@ -74,6 +74,7 @@ impl<'js, T: Trace<'js>, U> Trace<'js> for FromJsIter<T, U> {
 impl<'js, T, U> NativeIteratorInterface<'js> for FromJsIter<T, U>
 where
     T: NativeIteratorInterface<'js>,
+    T::Item: Debug,
     U: FromJs<'js> + IntoJs<'js>,
 {
     type Item = U;
