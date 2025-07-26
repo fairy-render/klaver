@@ -1590,6 +1590,7 @@ dependencies = [
  "flume",
  "futures",
  "indexmap",
+ "klaver-modules",
  "klaver-runner",
  "klaver-util",
  "ordered-float",
@@ -1682,6 +1683,7 @@ dependencies = [
 name = "klaver-os"
 version = "0.1.0"
 dependencies = [
+ "klaver-base",
  "klaver-util",
  "rquickjs",
 ]

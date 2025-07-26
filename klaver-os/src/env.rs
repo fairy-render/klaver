@@ -1,5 +1,12 @@
-use klaver_util::{Prop, ProxyHandler, TypedMap, create_proxy};
-use rquickjs::{Class, Coerced, Ctx, FromJs, JsLifetime, String, Value, class::Trace};
+use klaver_base::{Exportable, create_export};
+use klaver_util::{
+    IterableProtocol, NativeIterator, Prop, ProxyHandler, TypedMap, TypedMapEntries, create_proxy,
+    throw,
+};
+use rquickjs::{
+    Class, Coerced, Ctx, FromJs, JsLifetime, String, Symbol, Value,
+    class::{JsClass, Trace},
+};
 
 #[derive(Trace)]
 #[rquickjs::class]
@@ -19,8 +26,25 @@ impl<'js> Env<'js> {
 
 #[rquickjs::methods]
 impl<'js> Env<'js> {
+    #[qjs(constructor)]
+    fn construct(ctx: Ctx<'js>) -> rquickjs::Result<Env<'js>> {
+        throw!(@type ctx, "Env cannot be constructed directly");
+    }
+
     pub fn get(&self, key: String<'js>) -> rquickjs::Result<Option<String<'js>>> {
         self.map.get(key)
+    }
+
+    pub fn entries(&self) -> rquickjs::Result<NativeIterator<'js>> {
+        Ok(NativeIterator::new(self.map.entries()?))
+    }
+
+    pub fn values(&self) -> rquickjs::Result<NativeIterator<'js>> {
+        Ok(NativeIterator::new(self.map.values()?))
+    }
+
+    pub fn keys(&self) -> rquickjs::Result<NativeIterator<'js>> {
+        Ok(NativeIterator::new(self.map.keys()?))
     }
 
     pub fn set(
@@ -33,6 +57,30 @@ impl<'js> Env<'js> {
 
     pub fn del(&self, key: String<'js>) -> rquickjs::Result<()> {
         self.map.del(key)
+    }
+}
+
+impl<'js> IterableProtocol<'js> for Env<'js> {
+    type Iterator = TypedMapEntries<'js, String<'js>, String<'js>>;
+
+    fn create_iterator(&self, _ctx: &Ctx<'js>) -> rquickjs::Result<Self::Iterator> {
+        self.map.entries()
+    }
+}
+
+impl<'js> Exportable<'js> for Env<'js> {
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_base::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
+    where
+        T: klaver_base::ExportTarget<'js>,
+    {
+        target.set(ctx, Self::NAME, Class::<Self>::create_constructor(ctx)?)?;
+        Self::add_iterable_prototype(ctx)?;
+
+        Ok(())
     }
 }
 
@@ -53,7 +101,15 @@ impl<'js> ProxyHandler<'js, Class<'js, Env<'js>>> for EnvProxyHandler {
                 .get(str)?
                 .map(|m| m.into_value())
                 .unwrap_or_else(|| Value::new_null(ctx))),
-            Prop::Symbol(symbol) => todo!(),
+            Prop::Symbol(symbol) => {
+                let iterator = Symbol::iterator(ctx.clone());
+                if symbol == iterator {
+                    let entries = target.borrow().map.entries()?;
+                    return Ok(Class::instance(ctx, NativeIterator::new(entries))?.into_value());
+                }
+
+                throw!(@type ctx, format!("Symbol not supported: {:?}", symbol))
+            }
         }
     }
 
@@ -70,7 +126,9 @@ impl<'js> ProxyHandler<'js, Class<'js, Env<'js>>> for EnvProxyHandler {
                 let string = Coerced::<String<'js>>::from_js(&ctx, value)?;
                 target.borrow().set(str, string)?;
             }
-            Prop::Symbol(symbol) => todo!(),
+            Prop::Symbol(symbol) => {
+                throw!(@type ctx, format!("Symbol not supported: {:?}", symbol))
+            }
         }
         Ok(true)
     }

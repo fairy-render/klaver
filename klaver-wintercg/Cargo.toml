@@ -14,9 +14,12 @@ intl-backed = ["intl", "klaver-intl/compiled"]
 tokio = ["dep:tokio", "klaver-fetch/reqwest"]
 
 [dependencies]
-klaver-base = { path = "../klaver-base" }
-klaver-timers = { path = "../klaver-timers", features = ["module"] }
 klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules", optional = true }
+
+
+klaver-base = { path = "../klaver-base", features = ["module"] }
+klaver-timers = { path = "../klaver-timers", features = ["module"] }
 klaver-crypto = { path = "../klaver-crypto", features = [
     "module",
 ], optional = true }
@@ -26,7 +29,6 @@ klaver-fetch = { path = "../klaver-fetch", features = [
 klaver-intl = { path = "../klaver-intl", features = [
     "module",
 ], optional = true }
-klaver-modules = { path = "../klaver-modules", optional = true }
 
 rquickjs.workspace = true
 

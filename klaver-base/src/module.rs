@@ -68,3 +68,24 @@ impl<'js> Exportable<'js> for BaseModule {
         Ok(())
     }
 }
+
+#[cfg(feature = "module")]
+impl klaver_modules::Global for BaseModule {
+    async fn define<'a, 'js: 'a>(&'a self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+        Self::export(&ctx, &Registry::get(&ctx)?, &ctx.globals())?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "module")]
+impl klaver_modules::GlobalInfo for BaseModule {
+    fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
+        builder.register(BaseModule);
+    }
+
+    fn typings() -> Option<std::borrow::Cow<'static, str>> {
+        Some(std::borrow::Cow::Borrowed(include_str!(
+            "../klaver.base.d.ts"
+        )))
+    }
+}
