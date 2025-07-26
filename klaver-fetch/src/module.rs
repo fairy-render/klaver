@@ -15,6 +15,7 @@ impl ModuleDef for FetchModule {
         decl.declare(Url::NAME)?;
         decl.declare(Request::NAME)?;
         decl.declare(URLSearchParams::NAME)?;
+        decl.declare("fetch")?;
         Ok(())
     }
 
@@ -43,5 +44,21 @@ impl<'js> Exportable<'js> for FetchModule {
         target.set(ctx, "fetch", Func::from(Async(fetch)))?;
 
         Ok(())
+    }
+}
+
+#[cfg(feature = "module")]
+impl klaver_modules::Global for FetchModule {
+    async fn define<'a, 'js: 'a>(&'a self, ctx: rquickjs::Ctx<'js>) -> rquickjs::Result<()> {
+        Self::export(&ctx, &Registry::get(&ctx)?, &ctx.globals())?;
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "module")]
+impl klaver_modules::GlobalInfo for FetchModule {
+    fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
+        builder.register(Self);
     }
 }

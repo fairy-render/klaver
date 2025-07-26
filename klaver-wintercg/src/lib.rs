@@ -2,7 +2,7 @@ pub mod backend;
 mod event_target;
 mod timers;
 
-use klaver_base::{Console, Exportable, NullWriter, Registry, StdConsoleWriter};
+use klaver_base::{Console, Exportable, Registry, StdConsoleWriter};
 use rquickjs::Ctx;
 
 pub struct WinterCG;
@@ -13,6 +13,10 @@ impl<'js> klaver_modules::GlobalInfo for WinterCG {
         builder.global_dependency::<klaver_intl::IntlModule>();
         #[cfg(feature = "crypto")]
         builder.global_dependency::<klaver_crypto::CryptoModule>();
+        #[cfg(feature = "fetch")]
+        builder.global_dependency::<klaver_fetch::FetchModule>();
+
+        builder.global_dependency::<klaver_timers::TimeModule>();
 
         builder.register(WinterCG);
     }
@@ -48,11 +52,10 @@ impl<'js> Exportable<'js> for WinterCG {
         // EventTarget
         crate::event_target::export(ctx, target)?;
 
-        // Timers
-        crate::timers::export(ctx, target)?;
+        // // Timers
 
-        #[cfg(feature = "fetch")]
-        klaver_fetch::FetchModule::export(ctx, registry, target)?;
+        // #[cfg(feature = "fetch")]
+        // klaver_fetch::FetchModule::export(ctx, registry, target)?;
 
         // Console
         let console = Console::new_with(StdConsoleWriter::default());

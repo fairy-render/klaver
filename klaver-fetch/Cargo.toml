@@ -4,13 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["reqwest"]
 reqwest = ["dep:reqwest"]
+module = ["klaver-modules"]
 
 [dependencies]
 klaver-base = { path = "../klaver-base" }
 klaver-runner = { path = "../klaver-runner" }
 klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules", optional = true }
 rquickjs.workspace = true
 
 bytes = { version = "1" }

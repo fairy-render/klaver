@@ -3,9 +3,14 @@ name = "klaver-timers"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["module"]
+module = ["klaver-modules"]
+
 [dependencies]
 klaver-runner = { path = "../klaver-runner" }
 klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules", optional = true }
 rquickjs.workspace = true
 futures = { version = "0.3" }
 

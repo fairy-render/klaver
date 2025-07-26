@@ -1623,6 +1623,7 @@ dependencies = [
  "futures",
  "http",
  "klaver-base",
+ "klaver-modules",
  "klaver-runner",
  "klaver-util",
  "multer",
@@ -1702,6 +1703,7 @@ version = "0.1.0"
 dependencies = [
  "event-listener",
  "futures",
+ "klaver-modules",
  "klaver-runner",
  "klaver-util",
  "rquickjs",
