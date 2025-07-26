@@ -9,6 +9,11 @@ pub struct WinterCG;
 
 impl<'js> klaver_modules::GlobalInfo for WinterCG {
     fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
+        #[cfg(feature = "intl")]
+        builder.global_dependency::<klaver_intl::IntlModule>();
+        #[cfg(feature = "crypto")]
+        builder.global_dependency::<klaver_crypto::CryptoModule>();
+
         builder.register(WinterCG);
     }
 }
@@ -39,13 +44,15 @@ impl<'js> Exportable<'js> for WinterCG {
     {
         klaver_base::BaseModule::export(ctx, registry, target)?;
         // klaver_worker::WebWorker::export(ctx, registry, target)?;
-        klaver_fetch::FetchModule::export(ctx, registry, target)?;
 
         // EventTarget
         crate::event_target::export(ctx, target)?;
 
         // Timers
         crate::timers::export(ctx, target)?;
+
+        #[cfg(feature = "fetch")]
+        klaver_fetch::FetchModule::export(ctx, registry, target)?;
 
         // Console
         let console = Console::new_with(StdConsoleWriter::default());

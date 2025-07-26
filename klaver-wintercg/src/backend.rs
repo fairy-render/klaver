@@ -1,9 +1,12 @@
+#![allow(unused_imports)]
 use klaver_timers::Backend as TimeBackend;
 use rquickjs::Ctx;
 
+#[cfg(feature = "tokio")]
 #[derive(Clone, Default)]
 pub struct Tokio {}
 
+#[cfg(feature = "tokio")]
 impl TimeBackend for Tokio {
     type Timer = tokio::time::Sleep;
 
@@ -12,6 +15,7 @@ impl TimeBackend for Tokio {
     }
 }
 
+#[cfg(feature = "tokio")]
 impl Tokio {
     pub fn set_runtime(&self, ctx: &Ctx<'_>) -> rquickjs::Result<()> {
         klaver_timers::set_backend(ctx, self.clone())?;

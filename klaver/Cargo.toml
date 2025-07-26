@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-klaver-wintercg = { path = "../klaver-wintercg", features = ["module"] }
+klaver-wintercg = { path = "../klaver-wintercg", features = [
+    "module",
+    "tokio",
+] }
 klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules" }
 klaver-runner = { path = "../klaver-runner" }

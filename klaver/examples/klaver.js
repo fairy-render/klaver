@@ -3,6 +3,8 @@
 //   console.log("Hello");
 // }, 0)
 
+console.log(typeof crypto)
+
 const ctrl = new AbortController();
 
 
