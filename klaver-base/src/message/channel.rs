@@ -5,9 +5,9 @@ use rquickjs::{Class, Ctx, JsLifetime, class::Trace, qjs};
 #[rquickjs::class]
 pub struct MessageChannel<'js> {
     #[qjs(get)]
-    port1: Class<'js, MessagePort<'js>>,
+    pub port1: Class<'js, MessagePort<'js>>,
     #[qjs(get)]
-    port2: Class<'js, MessagePort<'js>>,
+    pub port2: Class<'js, MessagePort<'js>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for MessageChannel<'js> {

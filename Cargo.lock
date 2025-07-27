@@ -1969,6 +1969,7 @@ dependencies = [
  "klaver-modules",
  "klaver-timers",
  "klaver-util",
+ "klaver-worker",
  "rquickjs",
  "tokio",
 ]

@@ -46,11 +46,11 @@ impl<'js> Exportable<'js> for WinterCG {
     where
         T: klaver_base::ExportTarget<'js>,
     {
-        klaver_base::BaseModule::export(ctx, registry, target)?;
+        // klaver_base::BaseModule::export(ctx, registry, target)?;
         // klaver_worker::WebWorker::export(ctx, registry, target)?;
 
         // EventTarget
-        crate::event_target::export(ctx, target)?;
+        // crate::event_target::export(ctx, target)?;
 
         // // Timers
 
@@ -60,6 +60,8 @@ impl<'js> Exportable<'js> for WinterCG {
         // Console
         let console = Console::new_with(StdConsoleWriter::default());
         target.set(ctx, "console", console)?;
+
+        klaver_worker::WorkerModule::export(ctx, registry, target)?;
 
         Ok(())
     }

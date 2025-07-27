@@ -21,3 +21,13 @@ impl ModuleDef for WorkerModule {
         Ok(())
     }
 }
+
+impl<'js> Exportable<'js> for WorkerModule {
+    fn export<T>(ctx: &rquickjs::Ctx<'js>, registry: &Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: klaver_base::ExportTarget<'js>,
+    {
+        WebWorker::export(ctx, registry, target)?;
+        Ok(())
+    }
+}

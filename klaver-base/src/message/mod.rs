@@ -4,7 +4,7 @@ mod port;
 
 use crate::{ExportTarget, Exportable};
 
-pub use self::{channel::MessageChannel, event::MessageEvent, port::MessagePort};
+pub use self::{channel::MessageChannel, event::MessageEvent, port::Channel, port::MessagePort};
 
 use rquickjs::{Ctx, class::JsClass};
 

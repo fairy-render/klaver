@@ -1,5 +1,5 @@
 use futures::future::LocalBoxFuture;
-use klaver_base::{Registry, TransObject};
+use klaver_base::{Channel, MessagePort, Registry, TransObject};
 use klaver_runner::{Runner, Runnerable};
 use klaver_util::RuntimeError;
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module, Value};
@@ -13,12 +13,7 @@ fn post_message<'js>(ctx: Ctx<'js>, msg: Value<'js>) -> rquickjs::Result<()> {
     Ok(())
 }
 
-pub fn work(
-    path: &str,
-    registry: Registry,
-    rx: flume::Receiver<Message>,
-    sx: flume::Sender<TransObject>,
-) -> Result<(), RuntimeError> {
+pub fn work(path: &str, registry: Registry, channel: Channel) -> Result<(), RuntimeError> {
     futures::executor::block_on(async move {
         let runtime = AsyncRuntime::new()?;
         let context = AsyncContext::full(&runtime).await?;
@@ -26,20 +21,10 @@ pub fn work(
         context
             .with(move |ctx| {
                 ctx.store_userdata(registry.clone())?;
-                ctx.globals().set(
-                    "postMessage",
-                    rquickjs::prelude::Func::from(rquickjs::function::MutFn::new(
-                        move |ctx: Ctx, msg: Value| {
-                            // let sx = sx.clone();
-                            // let trans_object =
-                            //     Registry::get(&ctx)?.serialize(&ctx, &msg, &Default::default())?;
-                            // ctx.spawn(async move {
-                            //     sx.send_async(trans_object).await.ok();
-                            // });
-                            rquickjs::Result::Ok(())
-                        },
-                    )),
-                )
+
+                let port = MessagePort::new(ctx.clone())?;
+
+                ctx.globals().set("port", port)
             })
             .await?;
 
@@ -47,9 +32,10 @@ pub fn work(
             &context,
             Work {
                 path: path.to_string(),
-                rx,
             },
-        );
+        )
+        .run()
+        .await?;
 
         Ok(())
     })
@@ -57,7 +43,6 @@ pub fn work(
 
 struct Work {
     path: std::string::String,
-    rx: flume::Receiver<Message>,
 }
 
 impl Runnerable for Work {
@@ -65,38 +50,38 @@ impl Runnerable for Work {
 
     fn call<'js>(self, ctx: Ctx<'js>, worker: klaver_runner::Workers) -> Self::Future<'js> {
         Box::pin(async move {
-            worker.push(ctx.clone(), |ctx, mut shutdown| async move {
-                //
+            // worker.push(ctx.clone(), |ctx, mut shutdown| async move {
+            //     //
 
-                let trigger = ctx
-                    .globals()
-                    .get::<_, Function>("__triggerMessage")
-                    .catch(&ctx)?;
+            //     let trigger = ctx
+            //         .globals()
+            //         .get::<_, Function>("__triggerMessage")
+            //         .catch(&ctx)?;
 
-                loop {
-                    futures::select! {
-                        _ = shutdown => {
-                            break
-                        }
-                        val = self.rx.recv_async() => {
-                            let Ok(val) = val else {
-                                break;
-                            };
+            //     loop {
+            //         futures::select! {
+            //             _ = shutdown => {
+            //                 break
+            //             }
+            //             val = self.rx.recv_async() => {
+            //                 let Ok(val) = val else {
+            //                     break;
+            //                 };
 
-                            match val {
-                                Message::Event(val) => {
-                                    trigger.call::<_, ()>((val,)).catch(&ctx)?;
-                                }
-                                Message::Kill => {
-                                    break
-                                }
-                            }
-                        }
-                    }
-                }
+            //                 match val {
+            //                     Message::Event(val) => {
+            //                         trigger.call::<_, ()>((val,)).catch(&ctx)?;
+            //                     }
+            //                     Message::Kill => {
+            //                         break
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
 
-                Ok(())
-            });
+            //     Ok(())
+            // });
 
             Module::import(&ctx, self.path)
                 .catch(&ctx)?

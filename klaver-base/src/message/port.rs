@@ -15,7 +15,7 @@ use rquickjs::{
 };
 
 pub struct Message {
-    message: TransObject,
+    pub message: TransObject,
 }
 
 #[derive(Clone)]
@@ -44,6 +44,10 @@ impl<'js> MessagePort<'js> {
             kill: None,
         }
     }
+
+    pub fn from_channel(channel: Channel) -> MessagePort<'js> {
+        MessagePort { listener: Default::default(), channel: Some(channel), onmessage: None, kill: None }
+    }
 }
 
 impl<'js> Trace<'js> for MessagePort<'js> {
@@ -57,52 +61,9 @@ unsafe impl<'js> JsLifetime<'js> for MessagePort<'js> {
     type Changed<'to> = MessagePort<'to>;
 }
 
-#[rquickjs::methods]
 impl<'js> MessagePort<'js> {
-    #[qjs(constructor)]
-    pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<MessagePort<'js>> {
-        throw!(ctx, "MessagePort cannot be constructed directly")
-    }
+    pub fn start_native(ctx: &Ctx<'js>, this: Class<'js, MessagePort<'js>>) -> rquickjs::Result<()> {
 
-    #[qjs(rename = "postMessage")]
-    pub fn post_message(
-        &self,
-        ctx: Ctx<'js>,
-        msg: Value<'js>,
-        opts: Opt<SerializationOptions<'js>>,
-    ) -> rquickjs::Result<()> {
-        let Some(channel) = &self.channel else {
-            throw!(ctx, "MessagePort is detached")
-        };
-
-        let opts = opts.0.unwrap_or_default();
-
-        let message = Registry::get(&ctx)?.serialize(&ctx, &msg, &opts)?;
-
-        channel.remote.send(Message { message });
-
-        Ok(())
-    }
-
-    #[qjs(set, rename = "onmessage")]
-    pub fn set_onmessage(
-        &mut self,
-        ctx: Ctx<'js>,
-        func: Option<Function<'js>>,
-    ) -> rquickjs::Result<()> {
-        self.onmessage = func;
-
-        if self.onmessage.is_some() {}
-
-        Ok(())
-    }
-
-    #[qjs(get, rename = "onmessage")]
-    pub fn get_onmessage(&mut self) -> rquickjs::Result<Value<'js>> {
-        todo!()
-    }
-
-    pub fn start(This(this): This<Class<'js, Self>>, ctx: Ctx<'js>) -> rquickjs::Result<()> {
         if this.borrow().kill.is_some() {
             return Ok(());
         }
@@ -151,6 +112,56 @@ impl<'js> MessagePort<'js> {
 
         Ok(())
     }
+}
+
+#[rquickjs::methods]
+impl<'js> MessagePort<'js> {
+    #[qjs(constructor)]
+    pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<MessagePort<'js>> {
+        throw!(ctx, "MessagePort cannot be constructed directly")
+    }
+
+    #[qjs(rename = "postMessage")]
+    pub fn post_message(
+        &self,
+        ctx: Ctx<'js>,
+        msg: Value<'js>,
+        opts: Opt<SerializationOptions<'js>>,
+    ) -> rquickjs::Result<()> {
+        let Some(channel) = &self.channel else {
+            throw!(ctx, "MessagePort is detached")
+        };
+
+        let opts = opts.0.unwrap_or_default();
+
+        let message = Registry::get(&ctx)?.serialize(&ctx, &msg, &opts)?;
+
+        channel.remote.send(Message { message }).ok();
+
+        Ok(())
+    }
+
+    #[qjs(set, rename = "onmessage")]
+    pub fn set_onmessage(
+        &mut self,
+        ctx: Ctx<'js>,
+        func: Option<Function<'js>>,
+    ) -> rquickjs::Result<()> {
+        self.onmessage = func;
+
+        if self.onmessage.is_some() {}
+
+        Ok(())
+    }
+
+    #[qjs(get, rename = "onmessage")]
+    pub fn get_onmessage(&mut self) -> rquickjs::Result<Value<'js>> {
+        todo!()
+    }
+
+    pub fn start(This(this): This<Class<'js, Self>>, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+        Self::start_native(&ctx, this)
+    }
 
     pub fn close(&mut self) {
         if let Some(sx) = self.kill.take() {
@@ -158,6 +169,17 @@ impl<'js> MessagePort<'js> {
         }
     }
 }
+
+impl<'js> MessagePort<'js> {
+    pub fn detach(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<Channel> {
+        let Some(channel) = self.channel.take() else {
+            throw!(ctx, "MessagePort already detached")
+        };
+
+        Ok(channel)
+    }
+}
+
 
 impl<'js> Emitter<'js> for MessagePort<'js> {
     fn get_listeners(&self) -> &EventList<'js> {
@@ -175,7 +197,7 @@ impl<'js> Emitter<'js> for MessagePort<'js> {
             };
             
 
-            // cb.defer((event,))?;
+            cb.defer((event,))?;
         }
         Ok(())
     }
@@ -237,10 +259,7 @@ impl StructuredClone for MessagePortCloner {
             throw!(ctx, "Move")
         }
 
-        let Some(channel) = value.borrow_mut().channel.take() else {
-            todo!()
-        };
-
+       let channel = value.borrow_mut().detach(ctx.ctx())?;
         let data = NativeData {
             instance: Box::new(channel),
             id: 1

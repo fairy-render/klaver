@@ -22,7 +22,11 @@ members = [
   "klaver-wintercg",
   "klaver",
   "klaver-os",
-  "klaver-util", "klaver-crypto", "klaver-intl", "klaver-cli", "klaver-test",
+  "klaver-util",
+  "klaver-crypto",
+  "klaver-intl",
+  "klaver-cli",
+  "klaver-test",
   # "klaver-http",
 ]
 

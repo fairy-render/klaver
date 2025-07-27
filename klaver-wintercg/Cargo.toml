@@ -4,12 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
+default = ["worker"]
 # default = ["fetch", "crypto", "intl"]
 module = ["klaver-modules"]
 fetch = ["klaver-fetch"]
 crypto = ["klaver-crypto"]
 intl = ["klaver-intl"]
 intl-backed = ["intl", "klaver-intl/compiled"]
+
+worker = ["klaver-worker"]
 
 tokio = ["dep:tokio", "klaver-fetch/reqwest"]
 
@@ -29,7 +32,7 @@ klaver-fetch = { path = "../klaver-fetch", features = [
 klaver-intl = { path = "../klaver-intl", features = [
     "module",
 ], optional = true }
-
+klaver-worker = { path = "../klaver-worker", optional = true }
 rquickjs.workspace = true
 
 tokio = { version = "1", features = ["time"], optional = true }
