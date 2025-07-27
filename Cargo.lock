@@ -1910,6 +1910,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-task"
+version = "0.1.0"
+dependencies = [
+ "event-listener",
+ "flume",
+ "futures",
+ "klaver-util",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "klaver-test"
 version = "0.1.0"
 dependencies = [

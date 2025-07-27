@@ -1,0 +1,12 @@
+[package]
+name = "klaver-task"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+klaver-util = { path = "../klaver-util" }
+
+event-listener = { workspace = true }
+pin-project-lite = { workspace = true }
+futures = { workspace = true }
+flume.workspace = true

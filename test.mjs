@@ -1,9 +1,15 @@
+import { createHook, executionAsyncId, triggerAsyncId } from 'node:async_hooks';
 
-const channel = new MessageChannel
+console.log(executionAsyncId(), triggerAsyncId())
 
-channel.port1.addEventListener("message", handleMessage, false);
-function handleMessage(e) {
-  console.log(e)
-}
+createHook({
+  init: (asyncId, type, triggerId, resource) => {
+    console.log(`asyncID ${asyncId}, type: ${type}, triggerAsyncId ${triggerId}, exectionId ${executionAsyncId()} triggerAsyncId ${triggerAsyncId()}`)
+  }
+}).enable()
 
-channel.port1.start();
+
+
+setTimeout(() => {
+  console.log('hello')
+},200)
