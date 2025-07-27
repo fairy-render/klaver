@@ -1,0 +1,27 @@
+[package]
+name = "klaver-cli"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["swc"]
+swc = ["klaver-modules/swc-transform"]
+
+[dependencies]
+rquickjs.workspace = true
+klaver-wintercg = { path = "../klaver-wintercg", features = [
+  "fetch",
+  # "intl",
+  "crypto",
+  "module",
+  "tokio",
+] }
+klaver-util = { path = "../klaver-util" }
+klaver-vm = { path = "../klaver-vm" }
+klaver-modules = { path = "../klaver-modules" }
+
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["net", "rt", "macros"] }
+color-eyre = { version = "0.6" }
+
+reedline = { version = "0.41" }

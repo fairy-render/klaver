@@ -1,0 +1,8 @@
+[package]
+name = "klaver-test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+klaver-util = { path = "../klaver-util" }
+futures.workspace = true

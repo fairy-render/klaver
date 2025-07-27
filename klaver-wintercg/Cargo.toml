@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["fetch", "crypto", "intl"]
+# default = ["fetch", "crypto", "intl"]
 module = ["klaver-modules"]
 fetch = ["klaver-fetch"]
 crypto = ["klaver-crypto"]

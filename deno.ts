@@ -1,10 +1,7 @@
-// Deno.serve((_req) => {
-//   return new Response("Hello, World!");
-// });
+import {Vm} from 'klaver:vm';
 
-setTimeout(() => {
-  throw new Error("dsdsds");
-  console.log("on time");
-}, 1000);
 
-console.log("heja");
+const vm = await Vm.open();
+
+const ans = await vm.eval("42")
+console.log(ans)
