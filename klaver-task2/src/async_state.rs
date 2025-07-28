@@ -1,9 +1,14 @@
+use std::rc::Rc;
+
+use futures::{FutureExt, pin_mut};
 use klaver_util::{
-    rquickjs::{self, Ctx, JsLifetime, String},
-    throw_if,
+    CaugthException,
+    rquickjs::{self, CatchResultExt, Ctx, JsLifetime, String},
+    throw, throw_if,
 };
 
 use crate::{
+    cell::ObservableRefCell,
     exec_state::ExecState,
     resource::{Resource, TaskCtx},
 };
@@ -11,12 +16,14 @@ use crate::{
 #[derive(Clone)]
 pub struct AsyncState {
     pub(crate) exec: ExecState,
+    pub(crate) exception: Rc<ObservableRefCell<Option<CaugthException>>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for AsyncState {
     type Changed<'to> = AsyncState;
 }
 
+impl AsyncState {}
 impl AsyncState {
     pub fn get(ctx: &Ctx<'_>) -> rquickjs::Result<AsyncState> {
         match ctx.userdata::<Self>() {
@@ -25,13 +32,18 @@ impl AsyncState {
                 let _ = throw_if!(
                     ctx,
                     ctx.store_userdata(AsyncState {
-                        exec: Default::default()
+                        exec: Default::default(),
+                        exception: Rc::new(ObservableRefCell::new(None))
                     })
                 );
 
                 Ok(ctx.userdata::<Self>().unwrap().clone())
             }
         }
+    }
+
+    pub fn dump(&self) {
+        self.exec.dump();
     }
 
     pub fn push<'js, T: Resource<'js> + 'js>(
@@ -49,20 +61,41 @@ impl AsyncState {
         let exec = self.exec.clone();
 
         let task_ctx = TaskCtx::new(ctx.clone(), exec.clone(), ty, id)?;
+        let exception = self.exception.clone();
+
+        if exception.borrow().is_some() {
+            return Ok(());
+        }
 
         ctx.spawn(async move {
-            task_ctx.init(parent_id);
-
-            let ret = resource.run(task_ctx).await;
-
-            loop {
-                println!("Wait on child id({id:?}): {}", exec.child_count(id));
-                if exec.child_count(id) == 0 {
-                    break;
-                }
-
-                exec.listen().await
+            if exception.borrow().is_some() {
+                exec.destroy_task(id);
+                return;
             }
+
+            if let Err(err) = task_ctx.init(parent_id).catch(&task_ctx.ctx) {
+                exception.update(move |mut m| *m = Some(err.into()));
+                exec.destroy_task(id);
+                return;
+            }
+
+            let ctx = task_ctx.ctx.clone();
+
+            let future = resource.run(task_ctx);
+
+            futures::select! {
+                ret = future.fuse() => {
+                    if let Err(err) = ret.catch(&ctx) {
+                        exception.update(|mut m| *m = Some(err.into()));
+                    } else {
+
+                    }
+                }
+                _ = exception.subscribe().fuse() => {
+                }
+            }
+
+            exec.wait_children(id).await;
 
             exec.destroy_task(id);
         });
@@ -72,25 +105,69 @@ impl AsyncState {
 }
 
 impl AsyncState {
-    pub async fn run<'js, T, U, R>(&self, ctx: Ctx<'js>, func: T) -> rquickjs::Result<R>
+    pub(crate) async fn run<'js, T, U, R>(&self, ctx: Ctx<'js>, func: T) -> rquickjs::Result<R>
     where
         T: FnOnce(TaskCtx<'js>) -> U,
         U: Future<Output = rquickjs::Result<R>>,
     {
         let id = self.exec.create_task(None);
 
-        let ctx = ctx.clone();
-
         let ty = String::from_str(ctx.clone(), "entry")?;
-
         let task_ctx = TaskCtx::new(ctx.clone(), self.exec.clone(), ty, id)?;
 
-        let ret = self.exec.enter(id, || func(task_ctx)).await;
+        // let ret = self
+        //     .exec
+        //     .enter_async(id, || func(task_ctx))
+        //     .await
+        //     .catch(&ctx);
 
-        self.exec.shutdown(id).await?;
+        // match ret {
+        //     Ok(ret) => {
+        //         self.exec.shutdown(id).await?;
 
-        self.exec.destroy_task(id);
+        //         self.exec.destroy_task(id);
+        //         if let Some(err) = &*self.exception.borrow() {
+        //             throw!(ctx, err)
+        //         }
 
-        ret
+        //         Ok(ret)
+        //     }
+        //     Err(err) => {
+        //         let err: CaugthException = err.into();
+        //         self.exception.update(|mut m| *m = Some(err.clone()));
+        //         throw!(ctx, err)
+        //     }
+        // }
+
+        let ret = self.exec.enter_async(id, || func(task_ctx));
+
+        futures::select! {
+            ret = ret.fuse() => {
+                match ret.catch(&ctx) {
+                    Ok(ret) => {
+                        self.exec.shutdown(id).await?;
+
+                        self.exec.destroy_task(id);
+                        if let Some(err) = &*self.exception.borrow() {
+                            throw!(ctx, err)
+                        }
+
+                        Ok(ret)
+                    }
+                    Err(err) => {
+                        let err: CaugthException = err.into();
+                        self.exception.update(|mut m| *m = Some(err.clone()));
+                        throw!(ctx, err)
+                    }
+                }
+            }
+            err = self.exception.subscribe().fuse() => {
+                if let Some(err) = &*self.exception.borrow() {
+                    throw!(ctx, err);
+                } else {
+                    throw!(ctx, "Work did not finalize")
+                }
+            }
+        }
     }
 }

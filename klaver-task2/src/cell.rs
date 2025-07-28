@@ -24,7 +24,7 @@ impl<T> ObservableRefCell<T> {
         self.cell.borrow()
     }
 
-    pub fn update<F: FnMut(RefMut<'_, T>) -> U, U>(&self, mut func: F) -> U {
+    pub fn update<F: FnOnce(RefMut<'_, T>) -> U, U>(&self, func: F) -> U {
         let ret = func(self.cell.borrow_mut());
         self.event.notify(usize::MAX);
         ret

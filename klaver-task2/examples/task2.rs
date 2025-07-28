@@ -3,19 +3,18 @@ use klaver_util::{
     RuntimeError,
     rquickjs::{
         self, AsyncContext, AsyncRuntime, Ctx, Function, Module, Value,
-        prelude::{Func, Rest},
+        prelude::{Func, Opt, Rest},
     },
 };
 
-fn main() -> Result<(), RuntimeError> {
-    futures::executor::block_on(async move {
-        let runtime = AsyncRuntime::new()?;
-        let context = AsyncContext::full(&runtime).await?;
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), RuntimeError> {
+    let runtime = AsyncRuntime::new()?;
+    let context = AsyncContext::full(&runtime).await?;
 
-        EventLoop::new(TestRunner).run(&context).await?;
+    EventLoop::new(TestRunner).run(&context).await?;
 
-        Ok(())
-    })
+    Ok(())
 }
 
 pub struct TestRunner;
@@ -57,14 +56,33 @@ impl<'js> Runner<'js> for TestRunner {
             }),
         )?;
 
+        ctx.ctx.globals().set(
+            "setTimeout",
+            Func::new(|ctx: Ctx<'js>, cb: Function<'js>, timeout: Opt<u64>| {
+                //
+
+                let tasks = AsyncState::get(&ctx)?;
+
+                tasks.push(
+                    &ctx,
+                    TimeResource {
+                        callback: cb,
+                        timeout: timeout.unwrap_or_default(),
+                    },
+                )?;
+
+                rquickjs::Result::Ok(())
+            }),
+        )?;
+
         Module::declare_def::<klaver_task2::TaskModule, _>(ctx.ctx.clone(), "node:async_hooks")?;
 
-        Module::evaluate(ctx.ctx.clone(), "main", include_str!("./test.js"))?
+        let ret = Module::evaluate(ctx.ctx.clone(), "main", include_str!("./test.js"))?
             .into_future::<()>()
-            .await?;
+            .await;
 
         println!("Run");
-        Ok(())
+        ret
     }
 }
 
@@ -78,7 +96,27 @@ impl<'js> Resource<'js> for TestResource<'js> {
     }
     fn run(&self, ctx: klaver_task2::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
         async move {
-            println!("Running!");
+            ctx.invoke_callback::<_, ()>(self.callback.clone(), ())?;
+            ctx.wait_shutdown().await?;
+
+            Ok(())
+        }
+    }
+}
+
+struct TimeResource<'js> {
+    callback: Function<'js>,
+    timeout: u64,
+}
+
+impl<'js> Resource<'js> for TimeResource<'js> {
+    fn ty(&self) -> &str {
+        "Timeout"
+    }
+    fn run(&self, ctx: klaver_task2::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
+        async move {
+            tokio::time::sleep(tokio::time::Duration::from_millis(self.timeout)).await;
+
             ctx.invoke_callback::<_, ()>(self.callback.clone(), ())?;
 
             Ok(())

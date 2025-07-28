@@ -7,3 +7,6 @@ edition = "2024"
 klaver-util = { path = "../klaver-util" }
 event-listener = { workspace = true }
 futures.workspace = true
+
+[dev-dependencies]
+tokio = { version = "1", features = ["time", "macros", "rt"] }

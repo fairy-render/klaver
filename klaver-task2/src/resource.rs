@@ -1,9 +1,9 @@
 use klaver_util::rquickjs::{self, Class, Ctx, FromJs, Function, String, prelude::IntoArgs};
 
 use crate::{
-    ExecState,
     async_state::AsyncState,
     exec_state::AsyncId,
+    exec_state::ExecState,
     listener::{HookListeners, get_listeners},
 };
 
@@ -45,16 +45,18 @@ impl<'js> TaskCtx<'js> {
         A: IntoArgs<'js>,
         R: FromJs<'js>,
     {
-        AsyncState::get(&self.ctx)?.exec.enter(self.id, || {
-            self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
+        self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
+        let ret = AsyncState::get(&self.ctx)?.exec.enter(self.id, || {
             let ret = cb.call(args);
-            self.hook_list.borrow().after(&self.ctx, self.id.clone())?;
-
             ret
-        })
+        });
+        self.hook_list.borrow().after(&self.ctx, self.id.clone())?;
+        ret
     }
 
-    pub fn listen_shutdown(&self) {}
+    pub async fn wait_shutdown(&self) -> rquickjs::Result<()> {
+        self.exec.wait_shutdown(self.id).await
+    }
 }
 
 pub trait Resource<'js>: Sized {

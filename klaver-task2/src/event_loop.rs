@@ -31,6 +31,7 @@ impl<T> EventLoop<T> {
                 self.runner.run(ctx)
             }).await.catch(&ctx)?;
 
+
             Result::<_, RuntimeError>::Ok(ret)
         });
 

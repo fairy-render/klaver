@@ -7,6 +7,5 @@ mod module;
 mod resource;
 
 pub use self::{
-    async_state::AsyncState, event_loop::*, exec_state::*, listener::*, module::TaskModule,
-    resource::*,
+    async_state::AsyncState, event_loop::*, listener::*, module::TaskModule, resource::*,
 };
