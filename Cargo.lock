@@ -1921,6 +1921,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-task2"
+version = "0.1.0"
+dependencies = [
+ "event-listener",
+ "futures",
+ "klaver-util",
+]
+
+[[package]]
 name = "klaver-test"
 version = "0.1.0"
 dependencies = [

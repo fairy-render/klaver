@@ -1,0 +1,9 @@
+[package]
+name = "klaver-task2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+klaver-util = { path = "../klaver-util" }
+event-listener = { workspace = true }
+futures.workspace = true
