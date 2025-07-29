@@ -60,7 +60,6 @@ impl<'js> TaskCtx<'js> {
         self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
 
         self.exec.set_current(self.id);
-
         let ret = cb.call(args);
 
         self.hook_list.borrow().after(&self.ctx, self.id.clone())?;

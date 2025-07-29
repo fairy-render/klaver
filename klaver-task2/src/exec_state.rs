@@ -56,7 +56,8 @@ impl fmt::Debug for Task {
 #[derive(Debug)]
 struct Inner {
     next_id: usize,
-    current_id: AsyncId,
+    trigger_id: AsyncId,
+    execution_id: AsyncId,
     tasks: HashMap<AsyncId, Task>,
     event: Rc<Event>,
 }
@@ -90,7 +91,8 @@ impl Default for ExecState {
             // tasks,
             tasks: Default::default(),
             next_id: 1,
-            current_id: AsyncId(0),
+            trigger_id: AsyncId(0),
+            execution_id: AsyncId::root(),
             event: Rc::new(Event::new()),
         })))
     }
@@ -102,7 +104,14 @@ impl ExecState {
     }
 
     pub fn set_current(&self, current: AsyncId) {
-        self.0.borrow_mut().current_id = current;
+        let mut this = self.0.borrow_mut();
+        let current_id = this.trigger_id;
+        this.trigger_id = current;
+        if let Some(task) = this.tasks.get(&current) {
+            this.execution_id = task.parent
+        } else {
+            this.execution_id = AsyncId::root();
+        }
     }
 
     pub fn listen(&self) -> EventListener {
@@ -167,7 +176,7 @@ impl ExecState {
                     task.children += 1;
                     return Some(parent);
                 }
-                parent = task.parent;
+                parent = task.attached_to.unwrap_or_else(|| task.parent);
             } else {
                 return None;
             }
@@ -179,7 +188,14 @@ impl ExecState {
         self.0.borrow_mut().next_id += 1;
         let id = AsyncId(id);
 
-        let resolve_parent = parent.unwrap_or_else(|| self.0.borrow().current_id);
+        let resolve_parent = parent.unwrap_or_else(|| {
+            let borrow = self.0.borrow();
+            if borrow.execution_id != AsyncId::root() {
+                borrow.execution_id
+            } else {
+                borrow.trigger_id
+            }
+        });
 
         let shutdown = if let Some(parent) = self.0.borrow().tasks.get(&resolve_parent) {
             parent.shutdown.get()
@@ -206,7 +222,7 @@ impl ExecState {
         self.0.borrow_mut().tasks.insert(
             id,
             Task {
-                parent: parent,
+                parent: resolve_parent,
                 children: 0,
                 shutdown: Rc::new(ObservableCell::new(shutdown)),
                 kind,
@@ -243,17 +259,11 @@ impl ExecState {
     }
 
     pub fn trigger_async_id(&self) -> AsyncId {
-        self.0.borrow().current_id
+        self.0.borrow().execution_id
     }
 
     pub fn exectution_trigger_id(&self) -> AsyncId {
-        let current_id = self.trigger_async_id();
-        self.0
-            .borrow()
-            .tasks
-            .get(&current_id)
-            .map(|m| m.parent)
-            .unwrap_or(AsyncId(0))
+        self.0.borrow().trigger_id
     }
 
     pub fn parent_id(&self, id: AsyncId) -> AsyncId {

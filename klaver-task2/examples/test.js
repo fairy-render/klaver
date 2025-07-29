@@ -2,11 +2,20 @@ import { triggerAsyncId, executionAsyncId, createHook, executionAsyncResource } 
 
 
 createHook({
-    init(asyncId, type, triggerAsyncId, resource) {
+    init(aid, ty, tid, resource) {
         const cr = executionAsyncResource();
         if (cr) {
             resource["test"] = cr["test"];
         }
+        // print('Init', {
+        //     id: aid,
+        //     type: ty,
+        //     triggerId: tid,
+        //     resource: resource,
+        //     executionAsyncId: executionAsyncId(),
+        //     triggerAsyncId: triggerAsyncId(),
+
+        // })
     },
 })
 
@@ -18,6 +27,24 @@ setTimeout(() => {
     setTimeout(() => {
         print("Eis", executionAsyncId())
         print(executionAsyncResource())
+        setTimeout(() => {
+            print("Eis", executionAsyncId())
+            print(executionAsyncResource())
+        })
+    })
+})
+
+
+setTimeout(() => {
+    executionAsyncResource()['test'] = 43;
+    print("Eis2", executionAsyncId())
+    setTimeout(() => {
+        print("Eis2", executionAsyncId())
+        print(executionAsyncResource())
+        setTimeout(() => {
+            print("Eis2", executionAsyncId())
+            print(executionAsyncResource())
+        })
     })
 })
 
@@ -34,15 +61,15 @@ setTimeout(() => {
 //     init(aid, ty, tid, resource) {
 //         resource["seen"] = executionAsyncResource();
 
-//         print('Init', {
-//             id: aid,
-//             type: ty,
-//             triggerId: tid,
-//             resource: resource,
-//             executionAsyncId: executionAsyncId(),
-//             triggerAsyncId: triggerAsyncId(),
+        // print('Init', {
+        //     id: aid,
+        //     type: ty,
+        //     triggerId: tid,
+        //     resource: resource,
+        //     executionAsyncId: executionAsyncId(),
+        //     triggerAsyncId: triggerAsyncId(),
 
-//         })
+        // })
 //     },
 //     // before(aid) {
 //     //     print("Before", aid)
@@ -67,18 +94,18 @@ setTimeout(() => {
 // //     return new Promise((res) => setTimeout(res, ms))
 // // }
 
-// testAsync(() => {
-//     // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
-//     testAsync(() => {
-//         print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
-//         // throw new Error('dsds')
-//     })
+testAsync(() => {
+    // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
+    testAsync(() => {
+        print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
+        // throw new Error('dsds')
+    })
 
-//     testAsync(() => {
-//         print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
-//         // throw new Error('dsds')
-//     })
-// })
+    testAsync(() => {
+        print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
+        // throw new Error('dsds')
+    })
+})
 
 // async function test() {
 //     // print("Test", executionAsyncId(), triggerAsyncId())

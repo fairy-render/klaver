@@ -1,18 +1,29 @@
 import { createHook, executionAsyncId, triggerAsyncId } from 'node:async_hooks';
 
-// console.log(executionAsyncId(), triggerAsyncId())
+console.log(executionAsyncId(), triggerAsyncId())
 
-createHook({
-    init: (asyncId, type, triggerId, resource) => {
-        console.log(`asyncID ${asyncId}, type: ${type}, triggerAsyncId ${triggerId}, exectionId ${executionAsyncId()} triggerAsyncId ${triggerAsyncId()}`)
-    }
-}).enable()
 
+// createHook({
+//     init(aid, ty, tid) {
+//         console.log(aid, ty, tid)
+//     }
+// }).enable()
 
 
 setTimeout(() => {
     console.log('hello')
-}, 200)
+    console.log(executionAsyncId(), triggerAsyncId())
+    setTimeout(() => {
+        console.log(executionAsyncId(), triggerAsyncId())
+    },0)
+
+    setTimeout(() => {
+        console.log(executionAsyncId(), triggerAsyncId())
+        setTimeout(() => {
+            console.log(executionAsyncId(), triggerAsyncId())
+        },0)
+    },0)
+}, 0)
 
 
 // setTimeout(() => {
