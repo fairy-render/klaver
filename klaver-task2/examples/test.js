@@ -19,6 +19,8 @@ createHook({
     },
 })
 
+
+
 print("Eis", executionAsyncId())
 
 setTimeout(() => {
@@ -32,6 +34,13 @@ setTimeout(() => {
             print(executionAsyncResource())
         })
     })
+
+    new Promise((res) => {
+        print("Promise", executionAsyncId(), triggerAsyncId());
+        print(executionAsyncResource())
+        res()
+    })
+    
 })
 
 
@@ -47,6 +56,20 @@ setTimeout(() => {
         })
     })
 })
+setTimeout(() => {
+    print('hello')
+    print(executionAsyncId(), triggerAsyncId())
+    setTimeout(() => {
+        print(executionAsyncId(), triggerAsyncId())
+    },0)
+
+    setTimeout(() => {
+        print(executionAsyncId(), triggerAsyncId())
+        setTimeout(() => {
+            print(executionAsyncId(), triggerAsyncId())
+        },0)
+    },0)
+}, 0)
 
 
 
@@ -94,18 +117,18 @@ setTimeout(() => {
 // //     return new Promise((res) => setTimeout(res, ms))
 // // }
 
-testAsync(() => {
-    // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
-    testAsync(() => {
-        print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
-        // throw new Error('dsds')
-    })
+// testAsync(() => {
+//     // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
+//     testAsync(() => {
+//         print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
+//         // throw new Error('dsds')
+//     })
 
-    testAsync(() => {
-        print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
-        // throw new Error('dsds')
-    })
-})
+//     testAsync(() => {
+//         print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
+//         // throw new Error('dsds')
+//     })
+// })
 
 // async function test() {
 //     // print("Test", executionAsyncId(), triggerAsyncId())
@@ -153,3 +176,5 @@ testAsync(() => {
 
 
 // await timeout(1000)
+
+

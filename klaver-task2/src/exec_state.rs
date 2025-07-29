@@ -105,12 +105,11 @@ impl ExecState {
 
     pub fn set_current(&self, current: AsyncId) {
         let mut this = self.0.borrow_mut();
-        let current_id = this.trigger_id;
-        this.trigger_id = current;
+        this.execution_id = current;
         if let Some(task) = this.tasks.get(&current) {
-            this.execution_id = task.parent
+            this.trigger_id = task.parent
         } else {
-            this.execution_id = AsyncId::root();
+            this.trigger_id = AsyncId::root();
         }
     }
 
@@ -259,11 +258,11 @@ impl ExecState {
     }
 
     pub fn trigger_async_id(&self) -> AsyncId {
-        self.0.borrow().execution_id
+        self.0.borrow().trigger_id
     }
 
     pub fn exectution_trigger_id(&self) -> AsyncId {
-        self.0.borrow().trigger_id
+        self.0.borrow().execution_id
     }
 
     pub fn parent_id(&self, id: AsyncId) -> AsyncId {
