@@ -7,6 +7,7 @@ use klaver_util::{
 use std::rc::Rc;
 
 use crate::{
+    ResourceKind,
     cell::ObservableRefCell,
     exec_state::ExecState,
     resource::{Resource, TaskCtx},
@@ -51,7 +52,7 @@ impl AsyncState {
         resource: T,
     ) -> rquickjs::Result<()> {
         // let parent_id = self.exec.trigger_async_id();
-        let id = self.exec.create_task(None, false);
+        let id = self.exec.create_task(None, ResourceKind::Native);
 
         let ctx = ctx.clone();
 
@@ -68,19 +69,18 @@ impl AsyncState {
 
         if let Err(err) = task_ctx.init().catch(&task_ctx.ctx) {
             exception.update(move |mut m| *m = Some(err.into()));
-            exec.destroy_task(id, false);
-            return Ok(());
+            return task_ctx.destroy();
         }
 
         ctx.spawn(async move {
             if exception.borrow().is_some() {
-                exec.destroy_task(id, false);
+                task_ctx.destroy().ok();
                 return;
             }
 
             let ctx = task_ctx.ctx.clone();
 
-            let future = resource.run(task_ctx);
+            let future = resource.run(task_ctx.clone());
 
             futures::select! {
                 ret = future.fuse() => {
@@ -96,7 +96,7 @@ impl AsyncState {
 
             exec.wait_children(id).await;
 
-            exec.destroy_task(id, false);
+            task_ctx.destroy().ok();
         });
 
         Ok(())
@@ -109,14 +109,10 @@ impl AsyncState {
         T: FnOnce(TaskCtx<'js>) -> U,
         U: Future<Output = rquickjs::Result<R>>,
     {
-        let id = self.exec.create_task(None, false);
+        let id = self.exec.create_task(None, ResourceKind::Native);
 
         let ty = String::from_str(ctx.clone(), "entry")?;
         let task_ctx = TaskCtx::new(ctx.clone(), self.exec.clone(), ty, id)?;
-
-        // let current_id = self.exec.trigger_async_id();
-
-        println!("ROOT {:?}", id);
 
         self.exec.set_current(id);
 
@@ -127,14 +123,10 @@ impl AsyncState {
                 match ret.catch(&ctx) {
                     Ok(ret) => {
 
-                         self.dump();
 
                         self.exec.shutdown(id).await?;
 
-                        self.exec.destroy_task(id, false);
-
-                         self.dump();
-
+                        self.exec.destroy_task(id);
 
                         if let Some(err) = &*self.exception.borrow() {
                             throw!(ctx, err)

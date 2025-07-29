@@ -3,7 +3,7 @@ use event_listener::{Event, EventListener};
 use klaver_util::rquickjs::{self, FromJs, IntoJs, Value, class::Trace};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
 
-use crate::cell::ObservableCell;
+use crate::{ResourceKind, cell::ObservableCell};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AsyncId(usize);
@@ -37,6 +37,8 @@ pub struct Task {
     parent: AsyncId,
     children: usize,
     shutdown: Rc<ObservableCell<bool>>,
+    kind: ResourceKind,
+    attached_to: Option<AsyncId>,
 }
 
 impl fmt::Debug for Task {
@@ -45,6 +47,8 @@ impl fmt::Debug for Task {
             .field("parent", &self.parent)
             .field("children", &self.children)
             .field("shutdown", &self.shutdown.get())
+            .field("kind", &self.kind)
+            .field("parent_resource", &self.attached_to)
             .finish()
     }
 }
@@ -64,7 +68,7 @@ impl Inner {
         };
 
         for (id, task) in &self.tasks {
-            if task.parent == parent {
+            if task.attached_to == Some(parent) {
                 self.notify_shutdown(*id)?;
             }
         }
@@ -209,7 +213,21 @@ impl ExecState {
         }
     }
 
-    pub fn create_task(&self, parent: Option<AsyncId>, managed: bool) -> AsyncId {
+    fn attach_to_parent_native(&self, mut parent: AsyncId) -> Option<AsyncId> {
+        loop {
+            if let Some(task) = self.0.borrow_mut().tasks.get_mut(&parent) {
+                if task.kind == ResourceKind::Native {
+                    task.children += 1;
+                    return Some(parent);
+                }
+                parent = task.parent;
+            } else {
+                return None;
+            }
+        }
+    }
+
+    pub fn create_task(&self, parent: Option<AsyncId>, kind: ResourceKind) -> AsyncId {
         let id = self.0.borrow().next_id;
         self.0.borrow_mut().next_id += 1;
         let id = AsyncId(id);
@@ -222,13 +240,11 @@ impl ExecState {
             false
         };
 
-        if !managed {
-            // We wanna track the dependency graph,
-            // The task isnt managed by garbagecollector
-            if let Some(task) = self.0.borrow_mut().tasks.get_mut(&parent) {
-                task.children += 1;
-            }
-        }
+        let attached_to = if kind == ResourceKind::Native {
+            self.attach_to_parent_native(parent)
+        } else {
+            None
+        };
 
         self.0.borrow_mut().tasks.insert(
             id,
@@ -236,6 +252,8 @@ impl ExecState {
                 parent: parent,
                 children: 0,
                 shutdown: Rc::new(ObservableCell::new(shutdown)),
+                kind,
+                attached_to,
             },
         );
 
@@ -253,17 +271,22 @@ impl ExecState {
             .unwrap_or_default()
     }
 
-    pub fn destroy_task(&self, id: AsyncId, managed: bool) {
+    pub fn destroy_task(&self, id: AsyncId) {
         let Some(task) = self.0.borrow_mut().tasks.remove(&id) else {
             return;
         };
 
-        if !managed {
-            // Managed tasks (by the vm) should not count towards child resource kind
-            if let Some(parent) = self.0.borrow_mut().tasks.get_mut(&task.parent) {
+        if let Some(attached_to) = task.attached_to {
+            if let Some(parent) = self.0.borrow_mut().tasks.get_mut(&attached_to) {
                 parent.children -= 1;
             }
         }
+        // if task.kind == ResourceKind::Native {
+        //     // Managed tasks (by the vm) should not count towards child resource kind
+        //     if let Some(parent) = self.0.borrow_mut().tasks.get_mut(&task.parent) {
+        //         parent.children -= 1;
+        //     }
+        // }
 
         self.0.borrow().event.notify(usize::MAX);
     }

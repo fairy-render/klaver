@@ -22,6 +22,9 @@ createHook({
     // },
     destroy(aid) {
         print("Destroy", aid)
+    },
+    promiseResolve: (id) => {
+        print("Promise resolve", id)
     }
 })
 
@@ -32,18 +35,18 @@ function timeout(ms) {
     return new Promise((res) => setTimeout(res, ms))
 }
 
-// testAsync(() => {
-//     // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
-//     testAsync(() => {
-//         print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
-//         // throw new Error('dsds')
-//     })
+testAsync(() => {
+    // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
+    testAsync(() => {
+        print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
+        // throw new Error('dsds')
+    })
 
-//     testAsync(() => {
-//         print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
-//         // throw new Error('dsds')
-//     })
-// })
+    testAsync(() => {
+        print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
+        // throw new Error('dsds')
+    })
+})
 
 async function test() {
     // print("Test", executionAsyncId(), triggerAsyncId())
@@ -90,4 +93,4 @@ async function test() {
 // test();
 
 
-await timeout(3000)
+await timeout(1000)

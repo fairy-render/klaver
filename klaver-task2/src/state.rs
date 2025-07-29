@@ -30,7 +30,7 @@ impl<'js> FinalizationRegistry<'js> {
 
                 hooks.borrow_mut().destroy(&ctx, id)?;
 
-                state.exec.destroy_task(id, true);
+                state.exec.destroy_task(id);
 
                 // state.dump();
 
