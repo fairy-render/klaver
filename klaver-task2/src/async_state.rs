@@ -4,10 +4,15 @@ use klaver_util::{
     rquickjs::{self, CatchResultExt, Ctx, JsLifetime, String},
     throw, throw_if,
 };
-use std::rc::Rc;
+use std::{
+    any::TypeId,
+    cell::{Cell, RefCell},
+    collections::HashMap,
+    rc::Rc,
+};
 
 use crate::{
-    ResourceKind,
+    NEXT_ID, ResourceKind,
     cell::ObservableRefCell,
     exec_state::ExecState,
     resource::{Resource, TaskCtx},
@@ -17,6 +22,8 @@ use crate::{
 pub struct AsyncState {
     pub(crate) exec: ExecState,
     pub(crate) exception: Rc<ObservableRefCell<Option<CaugthException>>>,
+    pub(crate) id_map: Rc<RefCell<HashMap<TypeId, ResourceKind>>>,
+    pub(crate) next_id: Rc<Cell<u32>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for AsyncState {
@@ -33,7 +40,9 @@ impl AsyncState {
                     ctx,
                     ctx.store_userdata(AsyncState {
                         exec: Default::default(),
-                        exception: Rc::new(ObservableRefCell::new(None))
+                        exception: Rc::new(ObservableRefCell::new(None)),
+                        id_map: Default::default(),
+                        next_id: Rc::new(Cell::new(NEXT_ID))
                     })
                 );
 
@@ -51,16 +60,24 @@ impl AsyncState {
         ctx: &Ctx<'js>,
         resource: T,
     ) -> rquickjs::Result<()> {
-        // let parent_id = self.exec.trigger_async_id();
-        let id = self.exec.create_task(None, ResourceKind::Native);
+        let type_id = TypeId::of::<T::Id>();
+
+        let kind = if let Some(id) = self.id_map.borrow().get(&type_id) {
+            *id
+        } else {
+            let kind = self.next_id.get();
+            self.next_id.update(|id| id + 1);
+            self.id_map.borrow_mut().insert(type_id, ResourceKind(kind));
+            ResourceKind(kind)
+        };
+
+        let id = self.exec.create_task(None, kind);
 
         let ctx = ctx.clone();
 
-        let ty = String::from_str(ctx.clone(), resource.ty())?;
-
         let exec = self.exec.clone();
 
-        let task_ctx = TaskCtx::new(ctx.clone(), exec.clone(), ty, id)?;
+        let task_ctx = TaskCtx::new(ctx.clone(), exec.clone(), kind, id)?;
         let exception = self.exception.clone();
 
         if exception.borrow().is_some() {
@@ -109,10 +126,9 @@ impl AsyncState {
         T: FnOnce(TaskCtx<'js>) -> U,
         U: Future<Output = rquickjs::Result<R>>,
     {
-        let id = self.exec.create_task(None, ResourceKind::Native);
+        let id = self.exec.create_task(None, ResourceKind::Root);
 
-        let ty = String::from_str(ctx.clone(), "entry")?;
-        let task_ctx = TaskCtx::new(ctx.clone(), self.exec.clone(), ty, id)?;
+        let task_ctx = TaskCtx::new(ctx.clone(), self.exec.clone(), ResourceKind::Root, id)?;
 
         self.exec.set_current(id);
 

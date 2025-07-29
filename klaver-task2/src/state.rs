@@ -1,11 +1,11 @@
 use klaver_util::{
-    FunctionExt, ObjectExt,
+    FunctionExt, ObjectExt, TypedMap,
     rquickjs::{
         self, Class, Ctx, Function, IntoJs, JsLifetime, Object, Value, class::Trace, prelude::Func,
     },
 };
 
-use crate::{AsyncState, HookListeners, exec_state::AsyncId};
+use crate::{AsyncState, HandleMap, HookListeners, ResourceHandle, exec_state::AsyncId};
 
 pub struct FinalizationRegistry<'js> {
     obj: Object<'js>,
@@ -56,6 +56,7 @@ impl<'js> FinalizationRegistry<'js> {
 pub struct HookState<'js> {
     pub registry: FinalizationRegistry<'js>,
     pub hooks: Class<'js, HookListeners<'js>>,
+    pub resources: HandleMap<'js>,
 }
 
 impl<'js> HookState<'js> {
@@ -71,10 +72,20 @@ impl<'js> HookState<'js> {
     }
 
     fn new(ctx: Ctx<'js>) -> rquickjs::Result<HookState<'js>> {
-        let hooks = Class::instance(ctx.clone(), HookListeners::new())?;
+        let resources = HandleMap {
+            handles: TypedMap::new(ctx.clone())?,
+        };
+        let hooks = Class::instance(
+            ctx.clone(),
+            HookListeners::new(ctx.clone(), resources.clone())?,
+        )?;
         let registry = FinalizationRegistry::new(ctx, hooks.clone())?;
 
-        Ok(HookState { registry, hooks })
+        Ok(HookState {
+            registry,
+            hooks,
+            resources,
+        })
     }
 }
 
@@ -82,6 +93,7 @@ impl<'js> Trace<'js> for HookState<'js> {
     fn trace<'a>(&self, tracer: klaver_util::rquickjs::class::Tracer<'a, 'js>) {
         self.registry.trace(tracer);
         self.hooks.trace(tracer);
+        self.resources.trace(tracer);
     }
 }
 

@@ -1,6 +1,4 @@
-use klaver_util::rquickjs::{
-    self, AsyncRuntime, Ctx, String, Symbol, Value, promise::PromiseHookType,
-};
+use klaver_util::rquickjs::{self, AsyncRuntime, Ctx, String, Value, promise::PromiseHookType};
 
 use crate::{AsyncState, ResourceKind, exec_state::AsyncId, state::HookState};
 
@@ -17,8 +15,6 @@ fn promise_hook<'js>(
 
     let hook_state = HookState::get(&ctx)?;
 
-    // println!("HOOK {:?}", hook);
-
     let Some(promise) = promise.as_object() else {
         // Promise an object
         println!("Promise not a project");
@@ -28,8 +24,6 @@ fn promise_hook<'js>(
     let parent_id = parent
         .as_object()
         .and_then(|m| m.get::<_, AsyncId>("$aid").ok());
-
-    // println!("PARENT {:?} {:?}", parent_id, parent);
 
     match hook {
         PromiseHookType::Init => {
@@ -41,12 +35,10 @@ fn promise_hook<'js>(
                 .registry
                 .register(promise.clone().into_value(), id)?;
 
-            let ty = String::from_str(ctx.clone(), "PROMISE")?;
-
             hook_state.borrow().hooks.borrow_mut().init(
                 &ctx,
                 id,
-                ty,
+                ResourceKind::Promise,
                 Some(parent_id.unwrap_or_else(|| state.exec.trigger_async_id())),
             )?;
 
@@ -54,6 +46,7 @@ fn promise_hook<'js>(
         }
         PromiseHookType::Resolve => {
             let id: AsyncId = promise.get("$aid")?;
+
             hook_state
                 .borrow()
                 .hooks

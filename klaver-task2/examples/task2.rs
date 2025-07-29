@@ -99,14 +99,14 @@ struct TestResource<'js> {
     callback: Function<'js>,
 }
 
+pub struct ResourceKey;
+
 impl<'js> Resource<'js> for TestResource<'js> {
-    fn ty(&self) -> &str {
-        "Test"
-    }
+    type Id = ResourceKey;
     fn run(&self, ctx: klaver_task2::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
         async move {
             ctx.invoke_callback::<_, ()>(self.callback.clone(), ())?;
-            ctx.wait_shutdown().await?;
+            // ctx.wait_shutdown().await?;
 
             Ok(())
         }
@@ -118,10 +118,10 @@ struct TimeResource<'js> {
     timeout: u64,
 }
 
+pub struct TimeoutKey;
+
 impl<'js> Resource<'js> for TimeResource<'js> {
-    fn ty(&self) -> &str {
-        "Timeout"
-    }
+    type Id = TimeoutKey;
     fn run(&self, ctx: klaver_task2::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
         async move {
             tokio::time::sleep(tokio::time::Duration::from_millis(self.timeout)).await;

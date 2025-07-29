@@ -1,97 +1,128 @@
-import { triggerAsyncId, executionAsyncId, createHook } from 'node:async_hooks'
+import { triggerAsyncId, executionAsyncId, createHook, executionAsyncResource } from 'node:async_hooks'
 
-
-print({
-    triggerAsyncId: triggerAsyncId(),
-    executionAsyncId: executionAsyncId(),
-    hooks: globalThis.__$hooks
-})
 
 createHook({
-    init(aid, ty, tid) {
-        print('Init', {
-            id: aid,
-            type: ty,
-            triggerId: tid
-        })
+    init(asyncId, type, triggerAsyncId, resource) {
+        const cr = executionAsyncResource();
+        if (cr) {
+            resource["test"] = cr["test"];
+        }
     },
-    // before(aid) {
-    //     print("Before", aid)
-    // },
-    // after(aid) {
-    //     print("After", aid)
-    // },
-    destroy(aid) {
-        print("Destroy", aid)
-    },
-    promiseResolve: (id) => {
-        print("Promise resolve", id)
-    }
 })
 
-// print("Test", executionAsyncId(), triggerAsyncId())
+print("Eis", executionAsyncId())
 
-
-function timeout(ms) {
-    return new Promise((res) => setTimeout(res, ms))
-}
-
-testAsync(() => {
-    // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
-    testAsync(() => {
-        print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
-        // throw new Error('dsds')
-    })
-
-    testAsync(() => {
-        print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
-        // throw new Error('dsds')
+setTimeout(() => {
+    executionAsyncResource()['test'] = 42;
+    print("Eis", executionAsyncId())
+    setTimeout(() => {
+        print("Eis", executionAsyncId())
+        print(executionAsyncResource())
     })
 })
 
-async function test() {
-    // print("Test", executionAsyncId(), triggerAsyncId())
-    // await timeout(1000)
-    // print("After timeout", executionAsyncId(), triggerAsyncId())
-}
 
-// setTimeout(() => {
-//     print("Timeout", executionAsyncId(), triggerAsyncId())
-//     setTimeout(() => {
-//         print("Timeout2", executionAsyncId(), triggerAsyncId())
-//     }, 500)
-// }, 200)
 
-// await test()
-
-// const registry = new FinalizationRegistry((value) => {
-//     print('FinalizationRegistry called for', value);
+// print({
+//     triggerAsyncId: triggerAsyncId(),
+//     executionAsyncId: executionAsyncId(),
+//     hooks: globalThis.$__hooks
 // })
 
-// function test() {
-//     print("Enter", executionAsyncId(), triggerAsyncId())
-//     const future = new Promise((resolve, reject) => {
-//         print("Test", executionAsyncId(), triggerAsyncId())
-//         // setTimeout(() => {
-//         //     print("Timeout", executionAsyncId(), triggerAsyncId())
-//         //     resolve()
-//         // }, 1000)
+
+// createHook({
+//     init(aid, ty, tid, resource) {
+//         resource["seen"] = executionAsyncResource();
+
+//         print('Init', {
+//             id: aid,
+//             type: ty,
+//             triggerId: tid,
+//             resource: resource,
+//             executionAsyncId: executionAsyncId(),
+//             triggerAsyncId: triggerAsyncId(),
+
+//         })
+//     },
+//     // before(aid) {
+//     //     print("Before", aid)
+//     // },
+//     // after(aid) {
+//     //     print("After", aid)
+//     // },
+//     destroy(aid) {
+//         print("Destroy", aid)
+//     },
+//     promiseResolve: (id) => {
+//         print("Promise resolve", id, triggerAsyncId(), executionAsyncId())
+//     }
+// })
+
+// // print("Test", executionAsyncId(), triggerAsyncId())
+
+
+// // function timeout(ms) {
+// //     console.log(executionAsyncId())
+
+// //     return new Promise((res) => setTimeout(res, ms))
+// // }
+
+// testAsync(() => {
+//     // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
+//     testAsync(() => {
+//         print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
+//         // throw new Error('dsds')
 //     })
 
-//     registry.register(future, 'Future Object');
+//     testAsync(() => {
+//         print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
+//         // throw new Error('dsds')
+//     })
+// })
 
-//     return future;
+// async function test() {
+//     // print("Test", executionAsyncId(), triggerAsyncId())
+//     // await timeout(1000)
+//     // print("After timeout", executionAsyncId(), triggerAsyncId())
 // }
 
+// // setTimeout(() => {
+// //     print("Timeout", executionAsyncId(), triggerAsyncId())
+// //     setTimeout(() => {
+// //         print("Timeout2", executionAsyncId(), triggerAsyncId())
+// //     }, 500)
+// // }, 200)
+
+// // await test()
+
+// // const registry = new FinalizationRegistry((value) => {
+// //     print('FinalizationRegistry called for', value);
+// // })
+
+// // function test() {
+// //     print("Enter", executionAsyncId(), triggerAsyncId())
+// //     const future = new Promise((resolve, reject) => {
+// //         print("Test", executionAsyncId(), triggerAsyncId())
+// //         // setTimeout(() => {
+// //         //     print("Timeout", executionAsyncId(), triggerAsyncId())
+// //         //     resolve()
+// //         // }, 1000)
+// //     })
+
+// //     registry.register(future, 'Future Object');
+
+// //     return future;
+// // }
 
 
-// async function rapper() {
-//     await test()
 
-// }
+// // async function rapper() {
+// //     await test()
 
-
-// test();
+// // }
 
 
-await timeout(1000)
+// // test();
+
+
+// await timeout(1000)

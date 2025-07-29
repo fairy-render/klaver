@@ -1,4 +1,6 @@
-use klaver_util::rquickjs::{self, Class, Ctx, FromJs, Function, String, prelude::IntoArgs};
+use klaver_util::rquickjs::{
+    self, Class, Ctx, FromJs, Function, IntoJs, String, prelude::IntoArgs,
+};
 
 use crate::{
     async_state::AsyncState,
@@ -11,7 +13,7 @@ use crate::{
 pub struct TaskCtx<'js> {
     pub ctx: Ctx<'js>,
     pub id: AsyncId,
-    pub ty: String<'js>,
+    pub kind: ResourceKind,
     pub hook_list: Class<'js, HookListeners<'js>>,
     pub exec: ExecState,
 }
@@ -20,7 +22,7 @@ impl<'js> TaskCtx<'js> {
     pub(crate) fn new(
         ctx: Ctx<'js>,
         exec: ExecState,
-        ty: String<'js>,
+        kind: ResourceKind,
         id: AsyncId,
     ) -> rquickjs::Result<TaskCtx<'js>> {
         let hook_list = HookState::get(&ctx)?.borrow().hooks.clone();
@@ -29,7 +31,7 @@ impl<'js> TaskCtx<'js> {
             exec,
             id,
             hook_list,
-            ty,
+            kind,
         })
     }
 
@@ -38,7 +40,7 @@ impl<'js> TaskCtx<'js> {
 
         self.hook_list
             .borrow_mut()
-            .init(&self.ctx, self.id, self.ty.clone(), Some(parent_id))
+            .init(&self.ctx, self.id, self.kind, Some(parent_id))
     }
 
     pub(crate) fn destroy(self) -> rquickjs::Result<()> {
@@ -71,14 +73,27 @@ impl<'js> TaskCtx<'js> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ResourceKind(u32);
+pub struct ResourceKind(pub(crate) u32);
 
 impl ResourceKind {
     pub const Promise: ResourceKind = ResourceKind(1);
-    pub const Native: ResourceKind = ResourceKind(2);
+    pub const Script: ResourceKind = ResourceKind(2);
+    pub const Root: ResourceKind = ResourceKind(3);
+
+    pub fn is_native(&self) -> bool {
+        self.0 >= 2
+    }
 }
 
+impl<'js> IntoJs<'js> for ResourceKind {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
+        self.0.into_js(ctx)
+    }
+}
+
+pub(crate) const NEXT_ID: u32 = 4;
+
 pub trait Resource<'js>: Sized {
-    fn ty(&self) -> &str;
+    type Id: std::any::Any;
     fn run(&self, ctx: TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>>;
 }

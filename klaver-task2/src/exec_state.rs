@@ -28,7 +28,7 @@ impl<'js> IntoJs<'js> for AsyncId {
 }
 
 impl<'js> FromJs<'js> for AsyncId {
-    fn from_js(ctx: &rquickjs::Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+    fn from_js(_ctx: &rquickjs::Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         Ok(AsyncId(value.get()?))
     }
 }
@@ -105,59 +105,6 @@ impl ExecState {
         self.0.borrow_mut().current_id = current;
     }
 
-    /*pub fn enter<T, R>(&self, id: AsyncId, func: T) -> R
-    where
-        T: FnOnce() -> R,
-    {
-        {
-            let mut inner = self.0.borrow_mut();
-            if let Some(task) = inner.tasks.get(&id) {
-                if let Some(parent) = task.parent {
-                    inner.execution_id.push(parent);
-                } else {
-                    inner.execution_id.push(AsyncId::root());
-                }
-            } else if let Some(current) = inner.current_id.last().copied() {
-                inner.execution_id.push(current);
-            } else {
-                inner.execution_id.push(AsyncId::root());
-            }
-            inner.current_id.push(id);
-        }
-        let ret = func();
-        self.0.borrow_mut().current_id.pop();
-        self.0.borrow_mut().execution_id.pop();
-        ret
-    }
-
-    pub async fn enter_async<T, U, R>(&self, id: AsyncId, func: T) -> R
-    where
-        T: FnOnce() -> U,
-        U: Future<Output = R>,
-    {
-        {
-            let mut inner = self.0.borrow_mut();
-            if let Some(current) = inner.current_id.last().copied() {
-                inner.execution_id.push(current);
-            } else if let Some(task) = inner.tasks.get(&id) {
-                if let Some(parent) = task.parent {
-                    inner.execution_id.push(parent);
-                } else {
-                    inner.execution_id.push(AsyncId::root());
-                }
-            } else {
-                inner.execution_id.push(AsyncId::root());
-            }
-            inner.current_id.push(id);
-        }
-
-        let ret = func().await;
-
-        self.0.borrow_mut().current_id.pop();
-        self.0.borrow_mut().execution_id.pop();
-        ret
-    }*/
-
     pub fn listen(&self) -> EventListener {
         self.0.borrow().event.listen()
     }
@@ -216,7 +163,7 @@ impl ExecState {
     fn attach_to_parent_native(&self, mut parent: AsyncId) -> Option<AsyncId> {
         loop {
             if let Some(task) = self.0.borrow_mut().tasks.get_mut(&parent) {
-                if task.kind == ResourceKind::Native {
+                if task.kind.is_native() {
                     task.children += 1;
                     return Some(parent);
                 }
@@ -232,19 +179,29 @@ impl ExecState {
         self.0.borrow_mut().next_id += 1;
         let id = AsyncId(id);
 
-        let parent = parent.unwrap_or_else(|| self.0.borrow().current_id);
+        let resolve_parent = parent.unwrap_or_else(|| self.0.borrow().current_id);
 
-        let shutdown = if let Some(parent) = self.0.borrow().tasks.get(&parent) {
+        let shutdown = if let Some(parent) = self.0.borrow().tasks.get(&resolve_parent) {
             parent.shutdown.get()
         } else {
             false
         };
 
-        let attached_to = if kind == ResourceKind::Native {
-            self.attach_to_parent_native(parent)
+        let attached_to = if kind.is_native() {
+            self.attach_to_parent_native(resolve_parent)
         } else {
             None
         };
+
+        // if self.exectution_trigger_id()
+
+        // let parent = self.exectution_trigger_id();
+
+        // let parent = if let Some(parent) = parent {
+        //     parent
+        // } else {
+        //     self.exectution_trigger_id()
+        // };
 
         self.0.borrow_mut().tasks.insert(
             id,
@@ -281,12 +238,6 @@ impl ExecState {
                 parent.children -= 1;
             }
         }
-        // if task.kind == ResourceKind::Native {
-        //     // Managed tasks (by the vm) should not count towards child resource kind
-        //     if let Some(parent) = self.0.borrow_mut().tasks.get_mut(&task.parent) {
-        //         parent.children -= 1;
-        //     }
-        // }
 
         self.0.borrow().event.notify(usize::MAX);
     }
@@ -295,9 +246,14 @@ impl ExecState {
         self.0.borrow().current_id
     }
 
-    pub fn exectution_trigger_id(&self) -> Option<AsyncId> {
+    pub fn exectution_trigger_id(&self) -> AsyncId {
         let current_id = self.trigger_async_id();
-        self.0.borrow().tasks.get(&current_id).map(|m| m.parent)
+        self.0
+            .borrow()
+            .tasks
+            .get(&current_id)
+            .map(|m| m.parent)
+            .unwrap_or(AsyncId(0))
     }
 
     pub fn parent_id(&self, id: AsyncId) -> AsyncId {

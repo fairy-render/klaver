@@ -11,6 +11,7 @@ impl ModuleDef for TaskModule {
         decl.declare("triggerAsyncId")?;
         decl.declare("executionAsyncId")?;
         decl.declare("createHook")?;
+        decl.declare("executionAsyncResource")?;
         Ok(())
     }
 
@@ -32,11 +33,7 @@ impl ModuleDef for TaskModule {
             Func::new(|ctx: Ctx<'js>| {
                 let state = AsyncState::get(&ctx)?;
 
-                let Some(id) = state.exec.exectution_trigger_id() else {
-                    return Ok(AsyncId::root());
-                };
-
-                rquickjs::Result::Ok(id)
+                rquickjs::Result::Ok(state.exec.exectution_trigger_id())
             }),
         )?;
 
@@ -52,6 +49,22 @@ impl ModuleDef for TaskModule {
                     .add_listener(Hook::Script(hook));
 
                 rquickjs::Result::Ok(())
+            }),
+        )?;
+
+        exports.export(
+            "executionAsyncResource",
+            Func::new(|ctx: Ctx<'js>| {
+                let state = AsyncState::get(&ctx)?;
+                let hooks = HookState::get(&ctx)?;
+
+                let resource = hooks
+                    .borrow()
+                    .resources
+                    .get_handle(&ctx, state.exec.exectution_trigger_id())?;
+
+                rquickjs::Result::Ok(resource)
+                // rquickjs::Result::Ok(())
             }),
         )?;
 

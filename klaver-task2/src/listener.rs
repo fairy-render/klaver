@@ -1,31 +1,11 @@
 use std::collections::HashMap;
 
-use klaver_util::rquickjs::{
-    self, Class, Ctx, FromJs, Function, JsLifetime, Object, String, class::Trace,
+use klaver_util::{
+    TypedMap,
+    rquickjs::{self, Class, Ctx, FromJs, Function, JsLifetime, Object, String, class::Trace},
 };
 
-use crate::exec_state::AsyncId;
-
-// pub fn get_listeners<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, HookListeners<'js>>> {
-//     if let Ok(hooks) = ctx
-//         .globals()
-//         .get::<_, Class<'js, HookListeners<'js>>>("$__hooks")
-//     {
-//         return Ok(hooks);
-//     } else {
-//         let hooks = Class::instance(
-//             ctx.clone(),
-//             HookListeners {
-//                 listeners: Default::default(),
-//                 handles: Default::default(),
-//             },
-//         )?;
-
-//         ctx.globals().set("$__hooks", hooks.clone())?;
-
-//         Ok(hooks)
-//     }
-// }
+use crate::{ResourceKind, exec_state::AsyncId};
 
 pub type ResourceHandle<'js> = rquickjs::Object<'js>;
 
@@ -34,7 +14,7 @@ pub trait NativeListener<'js>: Trace<'js> {
         &self,
         ctx: &Ctx<'js>,
         id: AsyncId,
-        ty: String<'js>,
+        ty: ResourceKind,
         trigger: Option<AsyncId>,
         resource: &ResourceHandle<'js>,
     ) -> rquickjs::Result<()>;
@@ -90,7 +70,7 @@ impl<'js> Hook<'js> {
         &self,
         ctx: &Ctx<'js>,
         id: AsyncId,
-        ty: String<'js>,
+        ty: ResourceKind,
         trigger: Option<AsyncId>,
         resource: &ResourceHandle<'js>,
     ) -> rquickjs::Result<()> {
@@ -163,18 +143,41 @@ impl<'js> Trace<'js> for Hook<'js> {
     }
 }
 
+#[derive(Clone)]
+pub struct HandleMap<'js> {
+    pub handles: TypedMap<'js, AsyncId, ResourceHandle<'js>>,
+}
+
+impl<'js> Trace<'js> for HandleMap<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.handles.trace(tracer);
+    }
+}
+
+impl<'js> HandleMap<'js> {
+    pub fn get_handle(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<ResourceHandle<'js>> {
+        if let Some(handle) = self.handles.get(id)? {
+            Ok(handle)
+        } else {
+            let handle = Object::new(ctx.clone())?;
+            self.handles.set(id, handle.clone())?;
+            Ok(handle)
+        }
+    }
+}
+
 #[rquickjs::class(crate = "rquickjs")]
 pub struct HookListeners<'js> {
     listeners: Vec<Hook<'js>>,
-    handles: HashMap<AsyncId, ResourceHandle<'js>>,
+    handles: HandleMap<'js>,
 }
 
 impl<'js> HookListeners<'js> {
-    pub fn new() -> HookListeners<'js> {
-        HookListeners {
+    pub fn new(ctx: Ctx<'js>, handles: HandleMap<'js>) -> rquickjs::Result<HookListeners<'js>> {
+        Ok(HookListeners {
             listeners: Default::default(),
-            handles: Default::default(),
-        }
+            handles,
+        })
     }
 }
 
@@ -195,15 +198,13 @@ impl<'js> HookListeners<'js> {
     }
 
     pub fn init(
-        &mut self,
+        &self,
         ctx: &Ctx<'js>,
         id: AsyncId,
-        ty: String<'js>,
+        ty: ResourceKind,
         trigger: Option<AsyncId>,
     ) -> rquickjs::Result<()> {
-        let handle = Object::new(ctx.clone())?;
-
-        self.handles.insert(id, handle.clone());
+        let handle = self.handles.get_handle(ctx, id)?;
         for hook in &self.listeners {
             hook.init(ctx, id, ty.clone(), trigger, &handle)?;
         }
@@ -225,8 +226,8 @@ impl<'js> HookListeners<'js> {
         Ok(())
     }
 
-    pub fn destroy(&mut self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()> {
-        let _ = self.handles.remove(&id);
+    pub fn destroy(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()> {
+        let _ = self.handles.handles.del(id)?;
         for hook in &self.listeners {
             hook.destroy(ctx, id)?;
         }
