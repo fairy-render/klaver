@@ -29,7 +29,8 @@ impl<'js> FinalizationRegistry<'js> {
                 let state = AsyncState::get(&ctx)?;
 
                 hooks.borrow_mut().destroy(&ctx, id)?;
-                state.exec.destroy_task(id, true);
+
+                state.exec.destroy_task(id);
 
                 rquickjs::Result::Ok(())
             },

@@ -7,6 +7,7 @@ use crate::{
     state::HookState,
 };
 
+#[derive(Clone)]
 pub struct TaskCtx<'js> {
     pub ctx: Ctx<'js>,
     pub id: AsyncId,
@@ -39,6 +40,13 @@ impl<'js> TaskCtx<'js> {
             .borrow_mut()
             .init(&self.ctx, self.id, self.ty.clone(), Some(parent_id))
     }
+
+    pub(crate) fn destroy(self) -> rquickjs::Result<()> {
+        self.hook_list.borrow_mut().destroy(&self.ctx, self.id)?;
+        self.exec.destroy_task(self.id);
+
+        Ok(())
+    }
 }
 
 impl<'js> TaskCtx<'js> {
@@ -48,7 +56,6 @@ impl<'js> TaskCtx<'js> {
         R: FromJs<'js>,
     {
         self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
-        let current_id = self.exec.trigger_async_id();
 
         self.exec.set_current(self.id);
 
@@ -61,6 +68,14 @@ impl<'js> TaskCtx<'js> {
     pub async fn wait_shutdown(&self) -> rquickjs::Result<()> {
         self.exec.wait_shutdown(self.id).await
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ResourceKind(u32);
+
+impl ResourceKind {
+    pub const Promise: ResourceKind = ResourceKind(1);
+    pub const Native: ResourceKind = ResourceKind(2);
 }
 
 pub trait Resource<'js>: Sized {

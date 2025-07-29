@@ -44,6 +44,8 @@ pub trait NativeListener<'js>: Trace<'js> {
     fn after(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()>;
 
     fn destroy(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()>;
+
+    fn promise_resolve(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()>;
 }
 
 pub struct ScriptHook<'js> {
@@ -51,6 +53,7 @@ pub struct ScriptHook<'js> {
     before: Option<Function<'js>>,
     after: Option<Function<'js>>,
     destroy: Option<Function<'js>>,
+    promise_resolve: Option<Function<'js>>,
 }
 
 impl<'js> Trace<'js> for ScriptHook<'js> {
@@ -59,6 +62,7 @@ impl<'js> Trace<'js> for ScriptHook<'js> {
         self.before.trace(tracer);
         self.after.trace(tracer);
         self.destroy.trace(tracer);
+        self.promise_resolve.trace(tracer);
     }
 }
 
@@ -71,6 +75,7 @@ impl<'js> FromJs<'js> for ScriptHook<'js> {
             before: obj.get("before")?,
             after: obj.get("after")?,
             destroy: obj.get("destroy")?,
+            promise_resolve: obj.get("promiseResolve")?,
         })
     }
 }
@@ -132,6 +137,18 @@ impl<'js> Hook<'js> {
                     return Ok(());
                 };
                 destroy.call((id,))
+            }
+        }
+    }
+
+    fn promise_resolve(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()> {
+        match self {
+            Self::Native(native) => native.promise_resolve(ctx, id),
+            Self::Script(script) => {
+                let Some(promise_resolve) = &script.promise_resolve else {
+                    return Ok(());
+                };
+                promise_resolve.call((id,))
             }
         }
     }
@@ -213,6 +230,14 @@ impl<'js> HookListeners<'js> {
         for hook in &self.listeners {
             hook.destroy(ctx, id)?;
         }
+        Ok(())
+    }
+
+    pub fn promise_resolve(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()> {
+        for hook in &self.listeners {
+            hook.promise_resolve(ctx, id)?;
+        }
+
         Ok(())
     }
 }
