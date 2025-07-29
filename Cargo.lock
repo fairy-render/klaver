@@ -526,9 +526,9 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.6.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -962,7 +962,7 @@ name = "geenie"
 version = "0.1.0"
 source = "git+https://github.com/fairy-render/geenie.git#90fbcdaace6c1824f96b11ca877d52575bd20972"
 dependencies = [
- "relative-path 2.0.1",
+ "relative-path",
  "spurgt",
  "thiserror",
 ]
@@ -1876,7 +1876,7 @@ dependencies = [
  "oxc_resolver",
  "par-core",
  "parking_lot",
- "relative-path 2.0.1",
+ "relative-path",
  "rquickjs",
  "swc_common",
  "swc_ecma_ast",
@@ -2920,11 +2920,10 @@ dependencies = [
 
 [[package]]
 name = "proc-macro-crate"
-version = "1.3.1"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f4c021e1093a56626774e81216a4ce732a735e5bad4868a03f3ed65ca0c3919"
+checksum = "edce586971a4dfaa28950c6f18ed55e0406c1ab88bbce2c6f6293a7aaba73d35"
 dependencies = [
- "once_cell",
  "toml_edit",
 ]
 
@@ -3094,12 +3093,6 @@ dependencies = [
 
 [[package]]
 name = "relative-path"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba39f3699c378cd8970968dcbff9c43159ea4cfbd88d43c00b22f2ef10a435d2"
-
-[[package]]
-name = "relative-path"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bca40a312222d8ba74837cb474edef44b37f561da5f773981007a10bbaa992b0"
@@ -3173,9 +3166,8 @@ dependencies = [
 
 [[package]]
 name = "rquickjs"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d16661bff09e9ed8e01094a188b463de45ec0693ade55b92ed54027d7ba7c40c"
+version = "0.9.0"
+source = "git+https://github.com/DelSkayn/rquickjs.git#40135a495ab27f58f0867006e0b94b33519f9713"
 dependencies = [
  "rquickjs-core",
  "rquickjs-macro",
@@ -3183,20 +3175,19 @@ dependencies = [
 
 [[package]]
 name = "rquickjs-core"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8db6379e204ef84c0811e90e7cc3e3e4d7688701db68a00d14a6db6849087b"
+version = "0.9.0"
+source = "git+https://github.com/DelSkayn/rquickjs.git#40135a495ab27f58f0867006e0b94b33519f9713"
 dependencies = [
  "async-lock",
- "relative-path 1.9.3",
+ "hashbrown 0.15.4",
+ "relative-path",
  "rquickjs-sys",
 ]
 
 [[package]]
 name = "rquickjs-macro"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6041104330c019fcd936026ae05e2446f5e8a2abef329d924f25424b7052a2f3"
+version = "0.9.0"
+source = "git+https://github.com/DelSkayn/rquickjs.git#40135a495ab27f58f0867006e0b94b33519f9713"
 dependencies = [
  "convert_case",
  "fnv",
@@ -3211,9 +3202,8 @@ dependencies = [
 
 [[package]]
 name = "rquickjs-sys"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bc352c6b663604c3c186c000cfcc6c271f4b50bc135a285dd6d4f2a42f9790a"
+version = "0.9.0"
+source = "git+https://github.com/DelSkayn/rquickjs.git#40135a495ab27f58f0867006e0b94b33519f9713"
 dependencies = [
  "cc",
 ]
@@ -4608,15 +4598,15 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.8"
+version = "0.6.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
+checksum = "22cddaf88f4fbc13c51aebbf5f8eceb5c7c5a9da2ac40a13519eb5b0a0e8f11c"
 
 [[package]]
 name = "toml_edit"
-version = "0.19.15"
+version = "0.22.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
+checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
 dependencies = [
  "indexmap",
  "toml_datetime",
@@ -5250,9 +5240,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.5.40"
+version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f593a95398737aeed53e489c785df13f3618e41dbcd6718c6addbf1395aa6876"
+checksum = "f3edebf492c8125044983378ecb5766203ad3b4c2f7a922bd7dd207f6d443e95"
 dependencies = [
  "memchr",
 ]

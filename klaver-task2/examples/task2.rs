@@ -1,4 +1,4 @@
-use klaver_task2::{AsyncState, EventLoop, Resource, Runner};
+use klaver_task2::{AsyncState, EventLoop, Resource, Runner, set_promise_hook};
 use klaver_util::{
     RuntimeError,
     rquickjs::{
@@ -11,6 +11,8 @@ use klaver_util::{
 async fn main() -> Result<(), RuntimeError> {
     let runtime = AsyncRuntime::new()?;
     let context = AsyncContext::full(&runtime).await?;
+
+    set_promise_hook(&runtime).await;
 
     EventLoop::new(TestRunner).run(&context).await?;
 
@@ -40,6 +42,13 @@ impl<'js> Runner<'js> for TestRunner {
                 println!("{output}");
 
                 rquickjs::Result::Ok(())
+            }),
+        )?;
+
+        ctx.ctx.globals().set(
+            "gc",
+            Func::new(|ctx: Ctx<'js>| {
+                ctx.run_gc();
             }),
         )?;
 

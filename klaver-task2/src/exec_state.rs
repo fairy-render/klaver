@@ -93,6 +93,10 @@ impl ExecState {
         println!("{:#?}", &*self.0.borrow());
     }
 
+    pub fn set_current(&self, current: AsyncId) {
+        self.0.borrow_mut().current_id.push(current);
+    }
+
     pub fn enter<T, R>(&self, id: AsyncId, func: T) -> R
     where
         T: FnOnce() -> R,
