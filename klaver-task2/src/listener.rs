@@ -6,26 +6,26 @@ use klaver_util::rquickjs::{
 
 use crate::exec_state::AsyncId;
 
-pub fn get_listeners<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, HookListeners<'js>>> {
-    if let Ok(hooks) = ctx
-        .globals()
-        .get::<_, Class<'js, HookListeners<'js>>>("$__hooks")
-    {
-        return Ok(hooks);
-    } else {
-        let hooks = Class::instance(
-            ctx.clone(),
-            HookListeners {
-                listeners: Default::default(),
-                handles: Default::default(),
-            },
-        )?;
+// pub fn get_listeners<'js>(ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, HookListeners<'js>>> {
+//     if let Ok(hooks) = ctx
+//         .globals()
+//         .get::<_, Class<'js, HookListeners<'js>>>("$__hooks")
+//     {
+//         return Ok(hooks);
+//     } else {
+//         let hooks = Class::instance(
+//             ctx.clone(),
+//             HookListeners {
+//                 listeners: Default::default(),
+//                 handles: Default::default(),
+//             },
+//         )?;
 
-        ctx.globals().set("$__hooks", hooks.clone())?;
+//         ctx.globals().set("$__hooks", hooks.clone())?;
 
-        Ok(hooks)
-    }
-}
+//         Ok(hooks)
+//     }
+// }
 
 pub type ResourceHandle<'js> = rquickjs::Object<'js>;
 
@@ -150,6 +150,15 @@ impl<'js> Trace<'js> for Hook<'js> {
 pub struct HookListeners<'js> {
     listeners: Vec<Hook<'js>>,
     handles: HashMap<AsyncId, ResourceHandle<'js>>,
+}
+
+impl<'js> HookListeners<'js> {
+    pub fn new() -> HookListeners<'js> {
+        HookListeners {
+            listeners: Default::default(),
+            handles: Default::default(),
+        }
+    }
 }
 
 impl<'js> Trace<'js> for HookListeners<'js> {

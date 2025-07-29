@@ -6,6 +6,7 @@ mod listener;
 mod module;
 mod promise_hook;
 mod resource;
+mod state;
 
 pub use self::{
     async_state::AsyncState, event_loop::*, listener::*, module::TaskModule,

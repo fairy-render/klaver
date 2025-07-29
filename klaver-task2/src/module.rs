@@ -1,6 +1,6 @@
 use klaver_util::rquickjs::{self, Ctx, module::ModuleDef, prelude::Func};
 
-use crate::{AsyncState, Hook, ScriptHook, exec_state::AsyncId, get_listeners};
+use crate::{AsyncState, Hook, ScriptHook, exec_state::AsyncId, state::HookState};
 
 pub struct TaskModule;
 
@@ -23,11 +23,7 @@ impl ModuleDef for TaskModule {
             Func::new(|ctx: Ctx<'js>| {
                 let state = AsyncState::get(&ctx)?;
 
-                let Some(id) = state.exec.trigger_async_id() else {
-                    return Ok(AsyncId::root());
-                };
-
-                rquickjs::Result::Ok(id)
+                rquickjs::Result::Ok(state.exec.trigger_async_id())
             }),
         )?;
 
@@ -47,9 +43,13 @@ impl ModuleDef for TaskModule {
         exports.export(
             "createHook",
             Func::new(|ctx: Ctx<'js>, hook: ScriptHook<'js>| {
-                let listeners = get_listeners(&ctx)?;
+                let listeners = HookState::get(&ctx)?;
 
-                listeners.borrow_mut().add_listener(Hook::Script(hook));
+                listeners
+                    .borrow()
+                    .hooks
+                    .borrow_mut()
+                    .add_listener(Hook::Script(hook));
 
                 rquickjs::Result::Ok(())
             }),

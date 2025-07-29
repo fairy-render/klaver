@@ -1,20 +1,29 @@
 import { triggerAsyncId, executionAsyncId, createHook } from 'node:async_hooks'
 
 
-// createHook({
-//     init(aid, ty, tid) {
-//        print(`${aid}, ${ty}, ${tid}`, executionAsyncId())
-//     },
-//     before(aid) {
-//         print("Before", aid)
-//     },
-//     after(aid) {
-//         print("After", aid)
-//     },
-//     destroy(aid) {
-//         print("Destroy", aid)
-//     }
-// })
+print({
+    triggerAsyncId: triggerAsyncId(),
+    executionAsyncId: executionAsyncId()
+})
+
+createHook({
+    init(aid, ty, tid) {
+        print('Init', {
+            id: aid,
+            type: ty,
+            triggerId: tid
+        })
+    },
+    // before(aid) {
+    //     print("Before", aid)
+    // },
+    // after(aid) {
+    //     print("After", aid)
+    // },
+    destroy(aid) {
+        print("Destroy", aid)
+    }
+})
 
 // print("Test", executionAsyncId(), triggerAsyncId())
 
@@ -24,17 +33,23 @@ function timeout(ms) {
 }
 
 // testAsync(() => {
-//     print('Hello, World! ' + executionAsyncId() + ' ' + triggerAsyncId())
+//     // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
 //     testAsync(() => {
-//         print('Hello, World! ' + executionAsyncId() + ' ' + triggerAsyncId())
+//         print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
 //         // throw new Error('dsds')
 //     })
 
 //     testAsync(() => {
-//         print('Hello, World! ' + executionAsyncId() + ' ' + triggerAsyncId())
+//         print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
 //         // throw new Error('dsds')
 //     })
 // })
+
+async function test() {
+    // print("Test", executionAsyncId(), triggerAsyncId())
+    // await timeout(1000)
+    // print("After timeout", executionAsyncId(), triggerAsyncId())
+}
 
 // setTimeout(() => {
 //     print("Timeout", executionAsyncId(), triggerAsyncId())
@@ -43,36 +58,36 @@ function timeout(ms) {
 //     }, 500)
 // }, 200)
 
-// await timeout(1000)
+// await test()
 
-const registry = new FinalizationRegistry((value) => {
-    print('FinalizationRegistry called for', value);
-})
+// const registry = new FinalizationRegistry((value) => {
+//     print('FinalizationRegistry called for', value);
+// })
 
-function test() {
-    print("Enter", executionAsyncId(), triggerAsyncId())
-    const future = new Promise((resolve, reject) => {
-        print("Test", executionAsyncId(), triggerAsyncId())
-        // setTimeout(() => {
-        //     print("Timeout", executionAsyncId(), triggerAsyncId())
-        //     resolve()
-        // }, 1000)
-    })
+// function test() {
+//     print("Enter", executionAsyncId(), triggerAsyncId())
+//     const future = new Promise((resolve, reject) => {
+//         print("Test", executionAsyncId(), triggerAsyncId())
+//         // setTimeout(() => {
+//         //     print("Timeout", executionAsyncId(), triggerAsyncId())
+//         //     resolve()
+//         // }, 1000)
+//     })
 
-    registry.register(future, 'Future Object');
+//     registry.register(future, 'Future Object');
 
-    return future;
-}
-
-
-
-async function rapper() {
-    await test()
-
-}
+//     return future;
+// }
 
 
-test();
+
+// async function rapper() {
+//     await test()
+
+// }
 
 
-// await timeout(3000)
+// test();
+
+
+await timeout(3000)

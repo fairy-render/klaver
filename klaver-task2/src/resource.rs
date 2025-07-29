@@ -2,9 +2,9 @@ use klaver_util::rquickjs::{self, Class, Ctx, FromJs, Function, String, prelude:
 
 use crate::{
     async_state::AsyncState,
-    exec_state::AsyncId,
-    exec_state::ExecState,
-    listener::{HookListeners, get_listeners},
+    exec_state::{AsyncId, ExecState},
+    listener::HookListeners,
+    state::HookState,
 };
 
 pub struct TaskCtx<'js> {
@@ -22,7 +22,7 @@ impl<'js> TaskCtx<'js> {
         ty: String<'js>,
         id: AsyncId,
     ) -> rquickjs::Result<TaskCtx<'js>> {
-        let hook_list = get_listeners(&ctx)?;
+        let hook_list = HookState::get(&ctx)?.borrow().hooks.clone();
         Ok(TaskCtx {
             ctx,
             exec,
@@ -32,10 +32,12 @@ impl<'js> TaskCtx<'js> {
         })
     }
 
-    pub(crate) fn init(&self, parent_id: Option<AsyncId>) -> rquickjs::Result<()> {
+    pub(crate) fn init(&self) -> rquickjs::Result<()> {
+        let parent_id = self.exec.parent_id(self.id);
+
         self.hook_list
             .borrow_mut()
-            .init(&self.ctx, self.id, self.ty.clone(), parent_id)
+            .init(&self.ctx, self.id, self.ty.clone(), Some(parent_id))
     }
 }
 
@@ -46,10 +48,12 @@ impl<'js> TaskCtx<'js> {
         R: FromJs<'js>,
     {
         self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
-        let ret = AsyncState::get(&self.ctx)?.exec.enter(self.id, || {
-            let ret = cb.call(args);
-            ret
-        });
+        let current_id = self.exec.trigger_async_id();
+
+        self.exec.set_current(self.id);
+
+        let ret = cb.call(args);
+
         self.hook_list.borrow().after(&self.ctx, self.id.clone())?;
         ret
     }

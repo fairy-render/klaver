@@ -1,6 +1,6 @@
 use core::fmt;
 use event_listener::{Event, EventListener};
-use klaver_util::rquickjs::{self, IntoJs, Value, class::Trace};
+use klaver_util::rquickjs::{self, FromJs, IntoJs, Value, class::Trace};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
 
 use crate::cell::ObservableCell;
@@ -27,8 +27,14 @@ impl<'js> IntoJs<'js> for AsyncId {
     }
 }
 
+impl<'js> FromJs<'js> for AsyncId {
+    fn from_js(ctx: &rquickjs::Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+        Ok(AsyncId(value.get()?))
+    }
+}
+
 pub struct Task {
-    parent: Option<AsyncId>,
+    parent: AsyncId,
     children: usize,
     shutdown: Rc<ObservableCell<bool>>,
 }
@@ -46,8 +52,7 @@ impl fmt::Debug for Task {
 #[derive(Debug)]
 struct Inner {
     next_id: usize,
-    current_id: Vec<AsyncId>,
-    execution_id: Vec<AsyncId>,
+    current_id: AsyncId,
     tasks: HashMap<AsyncId, Task>,
     event: Rc<Event>,
 }
@@ -59,7 +64,7 @@ impl Inner {
         };
 
         for (id, task) in &self.tasks {
-            if task.parent == Some(parent) {
+            if task.parent == parent {
                 self.notify_shutdown(*id)?;
             }
         }
@@ -80,9 +85,8 @@ impl Default for ExecState {
             // execution_id: vec![AsyncId(0)],
             // tasks,
             tasks: Default::default(),
-            next_id: 0,
-            current_id: Default::default(),
-            execution_id: Default::default(),
+            next_id: 1,
+            current_id: AsyncId(0),
             event: Rc::new(Event::new()),
         })))
     }
@@ -94,10 +98,10 @@ impl ExecState {
     }
 
     pub fn set_current(&self, current: AsyncId) {
-        self.0.borrow_mut().current_id.push(current);
+        self.0.borrow_mut().current_id = current;
     }
 
-    pub fn enter<T, R>(&self, id: AsyncId, func: T) -> R
+    /*pub fn enter<T, R>(&self, id: AsyncId, func: T) -> R
     where
         T: FnOnce() -> R,
     {
@@ -148,7 +152,7 @@ impl ExecState {
         self.0.borrow_mut().current_id.pop();
         self.0.borrow_mut().execution_id.pop();
         ret
-    }
+    }*/
 
     pub fn listen(&self) -> EventListener {
         self.0.borrow().event.listen()
@@ -205,23 +209,26 @@ impl ExecState {
         }
     }
 
-    pub fn create_task(&self, parent: Option<AsyncId>) -> AsyncId {
+    pub fn create_task(&self, parent: Option<AsyncId>, managed: bool) -> AsyncId {
         let id = self.0.borrow().next_id;
         self.0.borrow_mut().next_id += 1;
         let id = AsyncId(id);
 
-        let shutdown = if let Some(parent) = parent {
-            let shutdown = if let Some(parent) = self.0.borrow().tasks.get(&parent) {
-                parent.shutdown.get()
-            } else {
-                false
-            };
+        let parent = parent.unwrap_or_else(|| self.0.borrow().current_id);
 
-            self.0.borrow_mut().tasks.get_mut(&parent).unwrap().children += 1;
-            shutdown
+        let shutdown = if let Some(parent) = self.0.borrow().tasks.get(&parent) {
+            parent.shutdown.get()
         } else {
             false
         };
+
+        if !managed {
+            // We wanna track the dependency graph,
+            // The task isnt managed by garbagecollector
+            if let Some(task) = self.0.borrow_mut().tasks.get_mut(&parent) {
+                task.children += 1;
+            }
+        }
 
         self.0.borrow_mut().tasks.insert(
             id,
@@ -246,13 +253,14 @@ impl ExecState {
             .unwrap_or_default()
     }
 
-    pub fn destroy_task(&self, id: AsyncId) {
+    pub fn destroy_task(&self, id: AsyncId, managed: bool) {
         let Some(task) = self.0.borrow_mut().tasks.remove(&id) else {
             return;
         };
 
-        if let Some(parent) = task.parent {
-            if let Some(parent) = self.0.borrow_mut().tasks.get_mut(&parent) {
+        if !managed {
+            // Managed tasks (by the vm) should not count towards child resource kind
+            if let Some(parent) = self.0.borrow_mut().tasks.get_mut(&task.parent) {
                 parent.children -= 1;
             }
         }
@@ -260,11 +268,21 @@ impl ExecState {
         self.0.borrow().event.notify(usize::MAX);
     }
 
-    pub fn trigger_async_id(&self) -> Option<AsyncId> {
-        self.0.borrow().current_id.last().copied()
+    pub fn trigger_async_id(&self) -> AsyncId {
+        self.0.borrow().current_id
     }
 
     pub fn exectution_trigger_id(&self) -> Option<AsyncId> {
-        self.0.borrow().execution_id.last().copied()
+        let current_id = self.trigger_async_id();
+        self.0.borrow().tasks.get(&current_id).map(|m| m.parent)
+    }
+
+    pub fn parent_id(&self, id: AsyncId) -> AsyncId {
+        self.0
+            .borrow()
+            .tasks
+            .get(&id)
+            .map(|m| m.parent)
+            .unwrap_or(AsyncId(0))
     }
 }
