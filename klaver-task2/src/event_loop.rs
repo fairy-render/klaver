@@ -1,7 +1,6 @@
-use futures::{FutureExt, pin_mut};
 use klaver_util::{
     RuntimeError,
-    rquickjs::{self, AsyncContext, CatchResultExt, Ctx, FromJs},
+    rquickjs::{self, AsyncContext, CatchResultExt, FromJs},
 };
 
 use crate::{async_state::AsyncState, resource::TaskCtx};
@@ -20,10 +19,6 @@ impl<T> EventLoop<T> {
         T: for<'js> Runner<'js, Output = R>,
         R: 'static,
     {
-        let state = context
-            .with(|ctx| Result::<_, RuntimeError>::Ok(AsyncState::get(&ctx).catch(&ctx)?.clone()))
-            .await?;
-
         let work = rquickjs::async_with!(context => |ctx| {
             let state = AsyncState::get(&ctx).catch(&ctx)?;
 

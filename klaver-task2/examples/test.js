@@ -1,20 +1,20 @@
-import { triggerAsyncId, executionAsyncId,createHook } from 'node:async_hooks'
+import { triggerAsyncId, executionAsyncId, createHook } from 'node:async_hooks'
 
 
-createHook({
-    init(aid, ty, tid) {
-       print(`${aid}, ${ty}, ${tid}`, executionAsyncId())
-    },
-    before(aid) {
-        print("Before", aid)
-    },
-    after(aid) {
-        print("After", aid)
-    },
-    destroy(aid) {
-        print("Destroy", aid)
-    }
-})
+// createHook({
+//     init(aid, ty, tid) {
+//        print(`${aid}, ${ty}, ${tid}`, executionAsyncId())
+//     },
+//     before(aid) {
+//         print("Before", aid)
+//     },
+//     after(aid) {
+//         print("After", aid)
+//     },
+//     destroy(aid) {
+//         print("Destroy", aid)
+//     }
+// })
 
 // print("Test", executionAsyncId(), triggerAsyncId())
 
@@ -39,7 +39,7 @@ setTimeout(() => {
     print("Timeout", executionAsyncId(), triggerAsyncId())
     setTimeout(() => {
         print("Timeout2", executionAsyncId(), triggerAsyncId())
-    },500)
+    }, 500)
 }, 200)
 
 await timeout(1000)

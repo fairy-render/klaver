@@ -1,8 +1,7 @@
 use core::fmt;
-use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
-
-use event_listener::{Event, EventListener, IntoNotification, listener};
+use event_listener::{Event, EventListener};
 use klaver_util::rquickjs::{self, IntoJs, Value, class::Trace};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
 
 use crate::cell::ObservableCell;
 

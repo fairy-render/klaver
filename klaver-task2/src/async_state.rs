@@ -1,11 +1,10 @@
-use std::rc::Rc;
-
-use futures::{FutureExt, pin_mut};
+use futures::FutureExt;
 use klaver_util::{
     CaugthException,
     rquickjs::{self, CatchResultExt, Ctx, JsLifetime, String},
     throw, throw_if,
 };
+use std::rc::Rc;
 
 use crate::{
     cell::ObservableRefCell,
@@ -115,30 +114,6 @@ impl AsyncState {
         let ty = String::from_str(ctx.clone(), "entry")?;
         let task_ctx = TaskCtx::new(ctx.clone(), self.exec.clone(), ty, id)?;
 
-        // let ret = self
-        //     .exec
-        //     .enter_async(id, || func(task_ctx))
-        //     .await
-        //     .catch(&ctx);
-
-        // match ret {
-        //     Ok(ret) => {
-        //         self.exec.shutdown(id).await?;
-
-        //         self.exec.destroy_task(id);
-        //         if let Some(err) = &*self.exception.borrow() {
-        //             throw!(ctx, err)
-        //         }
-
-        //         Ok(ret)
-        //     }
-        //     Err(err) => {
-        //         let err: CaugthException = err.into();
-        //         self.exception.update(|mut m| *m = Some(err.clone()));
-        //         throw!(ctx, err)
-        //     }
-        // }
-
         let ret = self.exec.enter_async(id, || func(task_ctx));
 
         futures::select! {
@@ -161,7 +136,7 @@ impl AsyncState {
                     }
                 }
             }
-            err = self.exception.subscribe().fuse() => {
+            _ = self.exception.subscribe().fuse() => {
                 if let Some(err) = &*self.exception.borrow() {
                     throw!(ctx, err);
                 } else {

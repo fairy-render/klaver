@@ -1,7 +1,4 @@
-use klaver_util::{
-    rquickjs::{self, Ctx, module::ModuleDef, prelude::Func},
-    throw,
-};
+use klaver_util::rquickjs::{self, Ctx, module::ModuleDef, prelude::Func};
 
 use crate::{AsyncState, Hook, ScriptHook, exec_state::AsyncId, get_listeners};
 
