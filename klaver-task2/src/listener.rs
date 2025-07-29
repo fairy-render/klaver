@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use klaver_util::{
     TypedMap,
     rquickjs::{self, Ctx, FromJs, Function, JsLifetime, Object, class::Trace},
@@ -26,6 +28,7 @@ pub trait NativeListener<'js>: Trace<'js> {
     fn promise_resolve(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()>;
 }
 
+#[derive(Clone)]
 pub struct ScriptHook<'js> {
     init: Option<Function<'js>>,
     before: Option<Function<'js>>,
@@ -58,8 +61,9 @@ impl<'js> FromJs<'js> for ScriptHook<'js> {
     }
 }
 
+#[derive(Clone)]
 pub enum Hook<'js> {
-    Native(Box<dyn NativeListener<'js> + 'js>),
+    Native(Rc<dyn NativeListener<'js> + 'js>),
     Script(ScriptHook<'js>),
 }
 
@@ -166,7 +170,7 @@ impl<'js> HandleMap<'js> {
 
 #[rquickjs::class(crate = "rquickjs")]
 pub struct HookListeners<'js> {
-    listeners: Vec<Hook<'js>>,
+    listeners: slotmap::SlotMap<slotmap::DefaultKey, Hook<'js>>,
     handles: HandleMap<'js>,
 }
 
@@ -181,7 +185,9 @@ impl<'js> HookListeners<'js> {
 
 impl<'js> Trace<'js> for HookListeners<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.listeners.trace(tracer);
+        for value in self.listeners.values() {
+            value.trace(tracer);
+        }
         self.handles.trace(tracer);
     }
 }
@@ -191,8 +197,13 @@ unsafe impl<'js> JsLifetime<'js> for HookListeners<'js> {
 }
 
 impl<'js> HookListeners<'js> {
-    pub fn add_listener(&mut self, listener: Hook<'js>) {
-        self.listeners.push(listener);
+    pub fn add_listener(&mut self, listener: Hook<'js>) -> slotmap::DefaultKey {
+        let key = self.listeners.insert(listener);
+        key
+    }
+
+    pub fn remove_listener(&mut self, key: slotmap::DefaultKey) {
+        self.listeners.remove(key);
     }
 
     pub fn init(
@@ -203,7 +214,7 @@ impl<'js> HookListeners<'js> {
         trigger: Option<AsyncId>,
     ) -> rquickjs::Result<()> {
         let handle = self.handles.get_handle(ctx, id)?;
-        for hook in &self.listeners {
+        for hook in self.listeners.values() {
             hook.init(ctx, id, ty.clone(), trigger, &handle)?;
         }
 
@@ -211,14 +222,14 @@ impl<'js> HookListeners<'js> {
     }
 
     pub fn before(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()> {
-        for hook in &self.listeners {
+        for hook in self.listeners.values() {
             hook.before(ctx, id)?;
         }
         Ok(())
     }
 
     pub fn after(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()> {
-        for hook in &self.listeners {
+        for hook in self.listeners.values() {
             hook.after(ctx, id)?;
         }
         Ok(())
@@ -226,14 +237,14 @@ impl<'js> HookListeners<'js> {
 
     pub fn destroy(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()> {
         let _ = self.handles.handles.del(id)?;
-        for hook in &self.listeners {
+        for hook in self.listeners.values() {
             hook.destroy(ctx, id)?;
         }
         Ok(())
     }
 
     pub fn promise_resolve(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<()> {
-        for hook in &self.listeners {
+        for hook in self.listeners.values() {
             hook.promise_resolve(ctx, id)?;
         }
 
