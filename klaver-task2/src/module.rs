@@ -1,6 +1,6 @@
 use klaver_util::rquickjs::{self, Ctx, module::ModuleDef, prelude::Func};
 
-use crate::{AsyncState, Hook, ScriptHook, exec_state::AsyncId, state::HookState};
+use crate::{AsyncState, Hook, ScriptHook, state::HookState};
 
 pub struct TaskModule;
 

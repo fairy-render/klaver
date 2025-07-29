@@ -1,4 +1,4 @@
-use klaver_util::rquickjs::{self, AsyncRuntime, Ctx, String, Value, promise::PromiseHookType};
+use klaver_util::rquickjs::{self, AsyncRuntime, Ctx, Value, promise::PromiseHookType};
 
 use crate::{AsyncState, ResourceKind, exec_state::AsyncId, state::HookState};
 
@@ -25,10 +25,12 @@ fn promise_hook<'js>(
         .as_object()
         .and_then(|m| m.get::<_, AsyncId>("$aid").ok());
 
+    let symbol = hook_state.borrow().promise_symbol.clone();
+
     match hook {
         PromiseHookType::Init => {
             let id = state.exec.create_task(parent_id, ResourceKind::Promise);
-            promise.set("$aid", id)?;
+            promise.set(symbol, id)?;
 
             hook_state
                 .borrow()
@@ -45,7 +47,7 @@ fn promise_hook<'js>(
             state.exec.set_current(id);
         }
         PromiseHookType::Resolve => {
-            let id: AsyncId = promise.get("$aid")?;
+            let id: AsyncId = promise.get(symbol)?;
 
             hook_state
                 .borrow()

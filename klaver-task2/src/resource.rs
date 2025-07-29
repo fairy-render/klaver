@@ -1,9 +1,6 @@
-use klaver_util::rquickjs::{
-    self, Class, Ctx, FromJs, Function, IntoJs, String, prelude::IntoArgs,
-};
+use klaver_util::rquickjs::{self, Class, Ctx, FromJs, Function, IntoJs, prelude::IntoArgs};
 
 use crate::{
-    async_state::AsyncState,
     exec_state::{AsyncId, ExecState},
     listener::HookListeners,
     state::HookState,

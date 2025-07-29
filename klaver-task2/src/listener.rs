@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use klaver_util::{
     TypedMap,
-    rquickjs::{self, Class, Ctx, FromJs, Function, JsLifetime, Object, String, class::Trace},
+    rquickjs::{self, Ctx, FromJs, Function, JsLifetime, Object, class::Trace},
 };
 
 use crate::{ResourceKind, exec_state::AsyncId};

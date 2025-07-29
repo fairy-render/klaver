@@ -1,7 +1,7 @@
 use futures::FutureExt;
 use klaver_util::{
     CaugthException,
-    rquickjs::{self, CatchResultExt, Ctx, JsLifetime, String},
+    rquickjs::{self, CatchResultExt, Ctx, JsLifetime},
     throw, throw_if,
 };
 use std::{
@@ -138,10 +138,7 @@ impl AsyncState {
             ret = ret.fuse() => {
                 match ret.catch(&ctx) {
                     Ok(ret) => {
-
-
                         self.exec.shutdown(id).await?;
-
                         self.exec.destroy_task(id);
 
                         if let Some(err) = &*self.exception.borrow() {

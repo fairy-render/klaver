@@ -1,7 +1,8 @@
 use klaver_util::{
     FunctionExt, ObjectExt, TypedMap,
     rquickjs::{
-        self, Class, Ctx, Function, IntoJs, JsLifetime, Object, Value, class::Trace, prelude::Func,
+        self, Class, Ctx, Function, IntoJs, JsLifetime, Object, Symbol, Value, class::Trace,
+        prelude::Func,
     },
 };
 
@@ -57,6 +58,7 @@ pub struct HookState<'js> {
     pub registry: FinalizationRegistry<'js>,
     pub hooks: Class<'js, HookListeners<'js>>,
     pub resources: HandleMap<'js>,
+    pub promise_symbol: Symbol<'js>,
 }
 
 impl<'js> HookState<'js> {
@@ -79,12 +81,15 @@ impl<'js> HookState<'js> {
             ctx.clone(),
             HookListeners::new(ctx.clone(), resources.clone())?,
         )?;
-        let registry = FinalizationRegistry::new(ctx, hooks.clone())?;
+        let registry = FinalizationRegistry::new(ctx.clone(), hooks.clone())?;
+
+        let promise_symbol = ctx.eval("Symbol()")?;
 
         Ok(HookState {
             registry,
             hooks,
             resources,
+            promise_symbol,
         })
     }
 }
@@ -94,6 +99,7 @@ impl<'js> Trace<'js> for HookState<'js> {
         self.registry.trace(tracer);
         self.hooks.trace(tracer);
         self.resources.trace(tracer);
+        self.promise_symbol.trace(tracer);
     }
 }
 
