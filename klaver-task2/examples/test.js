@@ -3,7 +3,8 @@ import { triggerAsyncId, executionAsyncId, createHook } from 'node:async_hooks'
 
 print({
     triggerAsyncId: triggerAsyncId(),
-    executionAsyncId: executionAsyncId()
+    executionAsyncId: executionAsyncId(),
+    hooks: globalThis.__$hooks
 })
 
 createHook({
