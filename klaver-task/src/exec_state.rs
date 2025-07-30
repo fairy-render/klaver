@@ -4,7 +4,11 @@ use klaver_util::rquickjs::{self, FromJs, IntoJs, Value, class::Trace};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
 use tracing::trace;
 
-use crate::{ResourceKind, cell::ObservableCell};
+use crate::{
+    ResourceKind,
+    cell::ObservableCell,
+    task::{Task, TaskStatus},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AsyncId(usize);
@@ -40,29 +44,29 @@ impl<'js> FromJs<'js> for AsyncId {
     }
 }
 
-pub struct Task {
-    /// The parent task responsible of spawning this tasks
-    parent: AsyncId,
-    /// Number of subtask spawned by this task
-    children: usize,
-    shutdown: Rc<ObservableCell<bool>>,
-    /// Kind of resource
-    kind: ResourceKind,
-    /// Nearest native ancester this tasks is attached to
-    attached_to: Option<AsyncId>,
-}
+// pub struct Task {
+//     /// The parent task responsible of spawning this tasks
+//     parent: AsyncId,
+//     /// Number of subtask spawned by this task
+//     children: usize,
+//     shutdown: Rc<ObservableCell<bool>>,
+//     /// Kind of resource
+//     kind: ResourceKind,
+//     /// Nearest native ancester this tasks is attached to
+//     attached_to: Option<AsyncId>,
+// }
 
-impl fmt::Debug for Task {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Task")
-            .field("parent", &self.parent)
-            .field("children", &self.children)
-            .field("shutdown", &self.shutdown.get())
-            .field("kind", &self.kind)
-            .field("attached_to", &self.attached_to)
-            .finish()
-    }
-}
+// impl fmt::Debug for Task {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         f.debug_struct("Task")
+//             .field("parent", &self.parent)
+//             .field("children", &self.children)
+//             .field("shutdown", &self.shutdown.get())
+//             .field("kind", &self.kind)
+//             .field("attached_to", &self.attached_to)
+//             .finish()
+//     }
+// }
 
 #[derive(Debug)]
 struct Inner {
@@ -74,21 +78,21 @@ struct Inner {
 }
 
 impl Inner {
-    /// Notify all sub task that they should shutdown
-    fn notify_shutdown(&self, parent: AsyncId) -> rquickjs::Result<()> {
-        let Some(task) = self.tasks.get(&parent) else {
-            return Ok(());
-        };
+    // Notify all sub task that they should shutdown
+    // fn notify_shutdown(&self, parent: AsyncId) -> rquickjs::Result<()> {
+    //     let Some(task) = self.tasks.get(&parent) else {
+    //         return Ok(());
+    //     };
 
-        for (id, task) in &self.tasks {
-            if task.attached_to == Some(parent) {
-                self.notify_shutdown(*id)?;
-            }
-        }
-        task.shutdown.set(true);
+    //     for (id, task) in &self.tasks {
+    //         if task.attached_to == Some(parent) {
+    //             self.notify_shutdown(*id)?;
+    //         }
+    //     }
+    //     task.shutdown.set(true);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 #[derive(Clone)]
@@ -151,56 +155,56 @@ impl ExecState {
         );
     }
 
-    /// Shutdown a task and all it's subtasks
-    /// It will not stop the tasks, only signal
-    pub async fn shutdown(&self, id: AsyncId) -> rquickjs::Result<()> {
-        if self.child_count(id) == 0 {
-            return Ok(());
-        }
+    // /// Shutdown a task and all it's subtasks
+    // /// It will not stop the tasks, only signal
+    // pub async fn shutdown(&self, id: AsyncId) -> rquickjs::Result<()> {
+    //     if self.child_count(id) == 0 {
+    //         return Ok(());
+    //     }
 
-        self.0.borrow().notify_shutdown(id)?;
+    //     self.0.borrow().notify_shutdown(id)?;
 
-        loop {
-            trace!(id = %id, "Waiting: {}", self.child_count(id));
-            if self.child_count(id) == 0 {
-                break;
-            }
+    //     loop {
+    //         trace!(id = %id, "Waiting: {}", self.child_count(id));
+    //         if self.child_count(id) == 0 {
+    //             break;
+    //         }
 
-            let listener = self.0.borrow().event.listen();
+    //         let listener = self.0.borrow().event.listen();
 
-            listener.await;
-        }
+    //         listener.await;
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    // Wait until the task has shutdown status
-    pub async fn wait_shutdown(&self, id: AsyncId) -> rquickjs::Result<()> {
-        let cell = if let Some(task) = self.0.borrow().tasks.get(&id) {
-            task.shutdown.clone()
-        } else {
-            return Ok(());
-        };
+    // // Wait until the task has shutdown status
+    // pub async fn wait_shutdown(&self, id: AsyncId) -> rquickjs::Result<()> {
+    //     let cell = if let Some(task) = self.0.borrow().tasks.get(&id) {
+    //         task.shutdown.clone()
+    //     } else {
+    //         return Ok(());
+    //     };
 
-        loop {
-            if cell.get() {
-                break;
-            }
+    //     loop {
+    //         if cell.get() {
+    //             break;
+    //         }
 
-            cell.subscribe().await;
-        }
+    //         cell.subscribe().await;
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    pub fn is_shutdown(&self, id: AsyncId) -> bool {
-        self.0
-            .borrow()
-            .tasks
-            .get(&id)
-            .map(|m| m.shutdown.get())
-            .unwrap_or(true)
-    }
+    // pub fn is_shutdown(&self, id: AsyncId) -> bool {
+    //     self.0
+    //         .borrow()
+    //         .tasks
+    //         .get(&id)
+    //         .map(|m| m.shutdown.get())
+    //         .unwrap_or(true)
+    // }
 
     /// Wait for all subtasks to be destroyed
     pub async fn wait_children(&self, id: AsyncId) {
@@ -208,6 +212,8 @@ impl ExecState {
             if self.child_count(id) == 0 {
                 break;
             }
+
+            trace!(id = %id, "Waiting: {}", self.child_count(id));
 
             let listener = self.0.borrow().event.listen();
 
@@ -229,26 +235,20 @@ impl ExecState {
             }
         });
 
-        let shutdown = if let Some(parent) = self.0.borrow().tasks.get(&resolve_parent) {
-            parent.shutdown.get()
-        } else {
-            false
-        };
-
         let attached_to = if kind.is_native() {
             self.attach_to_parent_native(resolve_parent)
         } else {
             None
         };
 
-        trace!(id = %id, kind = %kind, parent = %resolve_parent, shutdown = shutdown, attached_to = ?attached_to, "Create task");
+        trace!(id = %id, kind = %kind, parent = %resolve_parent, attached_to = ?attached_to, "Create task");
 
         self.0.borrow_mut().tasks.insert(
             id,
             Task {
                 parent: resolve_parent,
                 children: 0,
-                shutdown: Rc::new(ObservableCell::new(shutdown)),
+                state: Rc::new(ObservableCell::new(TaskStatus::Working)),
                 kind,
                 attached_to,
             },
@@ -257,6 +257,10 @@ impl ExecState {
         self.0.borrow().event.notify(usize::MAX);
 
         id
+    }
+
+    pub fn task_status(&self, id: AsyncId) -> Option<Rc<ObservableCell<TaskStatus>>> {
+        self.0.borrow().tasks.get(&id).map(|m| m.state.clone())
     }
 
     pub fn child_count(&self, id: AsyncId) -> usize {
@@ -280,7 +284,7 @@ impl ExecState {
             }
         }
 
-        trace!(id = %id, kind = %task.kind, children = %task.children, attached_to = ?task.attached_to, "Destroy task");
+        trace!(id = %id, kind = %task.kind, children = %task.children, attached_to = ?task.attached_to, state = ?task.state.get(), "Destroy task");
 
         self.0.borrow().event.notify(usize::MAX);
     }

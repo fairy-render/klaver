@@ -4,7 +4,7 @@ import { triggerAsyncId, executionAsyncId, createHook, executionAsyncResource, r
 
 createHook({
     init(aid, ty, tid, resource) {
-        print("Name", resourceName(ty))
+        print("Name", aid, resourceName(ty))
         const cr = executionAsyncResource();
         if (cr) {
             resource["test"] = cr["test"];
@@ -27,15 +27,15 @@ print("Eis", executionAsyncId())
 
 setTimeout(() => {
     executionAsyncResource()['test'] = 42;
-    print("Eis", executionAsyncId())
+    print("Eis 1", executionAsyncId())
     setTimeout(() => {
-        print("Eis", executionAsyncId())
+        print("Eis 2 ", executionAsyncId())
         print(executionAsyncResource())
         setTimeout(() => {
-            print("Eis", executionAsyncId())
+            print("Eis 3", executionAsyncId())
             print(executionAsyncResource())
         })
-    })
+    },300)
 
     new Promise((res) => {
         print("Promise", executionAsyncId(), triggerAsyncId());
@@ -119,18 +119,18 @@ setTimeout(() => {
 // //     return new Promise((res) => setTimeout(res, ms))
 // // }
 
-// testAsync(() => {
-//     // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
-//     testAsync(() => {
-//         print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
-//         // throw new Error('dsds')
-//     })
+testAsync(() => {
+    // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
+    testAsync(() => {
+        print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
+        // throw new Error('dsds')
+    })
 
-//     testAsync(() => {
-//         print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
-//         // throw new Error('dsds')
-//     })
-// })
+    testAsync(() => {
+        print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
+        // throw new Error('dsds')
+    })
+})
 
 // async function test() {
 //     // print("Test", executionAsyncId(), triggerAsyncId())

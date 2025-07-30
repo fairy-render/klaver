@@ -1,16 +1,26 @@
-use futures::FutureExt;
+use futures::{
+    FutureExt,
+    future::{Either, pending},
+};
 use klaver_util::{
     CaugthException,
     rquickjs::{self, CatchResultExt, Ctx, JsLifetime},
     throw, throw_if,
 };
-use std::{cell::RefCell, rc::Rc};
+use pin_project_lite::pin_project;
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    task::{Poll, ready},
+};
 
 use crate::{
     ResourceId, ResourceKind,
     cell::{ObservableCell, ObservableRefCell},
     exec_state::{AsyncId, ExecState},
     resource::{Resource, ResourceMap, TaskCtx},
+    state,
+    task::TaskStatus,
 };
 
 #[derive(Clone)]
@@ -70,6 +80,13 @@ impl AsyncState {
 
         let cell = kill.clone();
 
+        let parent_id = this.exec.parent_id(id);
+        let parent_state = if T::SCOPED {
+            this.exec.task_status(parent_id)
+        } else {
+            None
+        };
+
         ctx.spawn(async move {
             if exception.borrow().is_some() {
                 task_ctx.destroy().ok();
@@ -78,17 +95,39 @@ impl AsyncState {
 
             let ctx = task_ctx.ctx().clone();
 
+            let idle = if let Some(ob) = parent_state {
+                Either::Left(WaitIdle {
+                    state: WaitIdleState::Init,
+                    cell: ob.clone(),
+                })
+            } else {
+                Either::Right(pending::<()>())
+            };
+
             let future = resource.run(task_ctx.clone());
 
             // Wait for either the task to finish or a uncaught exception
             futures::select! {
                 ret = future.fuse() => {
                     if let Err(err) = ret.catch(&ctx) {
+                        this.exec.task_status(id).as_mut().map(|m| {
+                            m.set(TaskStatus::Failed)
+                        });
                         exception.update(|mut m| *m = Some(err.into()));
                     } else {
+                        this.exec.task_status(id).as_mut().map(|m| {
+                            m.set(TaskStatus::Idle)
+                        });
                         this.exec.wait_children(id).await;
                     }
 
+                }
+                _ = idle.fuse() => {
+                    this.exec.task_status(id).as_mut().map(|m| {
+                        m.set(TaskStatus::Idle)
+                    });
+
+                    // this.exec.wait_children(id).await;
                 }
                 _ = kill.subscribe().fuse() => {}
                 _ = exception.subscribe().fuse() => { }
@@ -126,7 +165,8 @@ impl AsyncState {
 
                 match ret.catch(&ctx) {
                     Ok(ret) => {
-                        self.exec.shutdown(id).await?;
+                        self.exec.task_status(id).unwrap().set(TaskStatus::Idle);
+                        self.exec.wait_children(id).await;
                         self.exec.destroy_task(id);
 
                         if let Some(err) = &*self.exception.borrow() {
@@ -174,5 +214,52 @@ impl TaskHandle {
 
     pub fn is_running(&self) -> bool {
         self.cell.get()
+    }
+}
+
+pin_project! {
+    #[project = WaitIdleStateProj]
+    enum WaitIdleState {
+        Init,
+        Waiting {
+            #[pin]
+            future: event_listener::EventListener
+        }
+    }
+}
+
+pin_project! {
+    struct WaitIdle {
+        #[pin]
+        state: WaitIdleState,
+        cell: Rc<ObservableCell<TaskStatus>>,
+    }
+}
+
+impl Future for WaitIdle {
+    type Output = ();
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        loop {
+            let mut this = self.as_mut().project();
+
+            if this.cell.get() == TaskStatus::Idle {
+                return Poll::Ready(());
+            }
+
+            match this.state.as_mut().project() {
+                WaitIdleStateProj::Init => {
+                    let future = this.cell.subscribe();
+                    this.state.set(WaitIdleState::Waiting { future });
+                }
+                WaitIdleStateProj::Waiting { future } => {
+                    ready!(future.poll(cx));
+                    this.state.set(WaitIdleState::Init);
+                }
+            }
+        }
     }
 }

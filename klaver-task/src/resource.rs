@@ -94,18 +94,18 @@ impl<'js> TaskCtx<'js> {
         self.kind
     }
 
-    /// Wait for this task to get the shutdown signal
-    ///
-    /// This just mean that the task this task is attached to is shut down
-    /// The resource does not have to shutdown it self.
-    /// Eg. timers should not shut down
-    pub async fn wait_shutdown(&self) -> rquickjs::Result<()> {
-        self.exec.wait_shutdown(self.id).await
-    }
+    // /// Wait for this task to get the shutdown signal
+    // ///
+    // /// This just mean that the task this task is attached to is shut down
+    // /// The resource does not have to shutdown it self.
+    // /// Eg. timers should not shut down
+    // pub async fn wait_shutdown(&self) -> rquickjs::Result<()> {
+    //     self.exec.wait_shutdown(self.id).await
+    // }
 
-    pub fn is_shutdown(&self) -> bool {
-        self.exec.is_shutdown(self.id)
-    }
+    // pub fn is_shutdown(&self) -> bool {
+    //     self.exec.is_shutdown(self.id)
+    // }
 
     pub fn ctx(&self) -> &Ctx<'js> {
         &self.ctx
@@ -207,5 +207,6 @@ pub trait ResourceId: Any {
 pub trait Resource<'js>: Sized {
     type Id: ResourceId;
     const INTERNAL: bool = false;
+    const SCOPED: bool = false;
     fn run(self, ctx: TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>>;
 }

@@ -195,11 +195,10 @@ struct WritableStreamResource<'js> {
 
 impl<'js> Resource<'js> for WritableStreamResource<'js> {
     type Id = WritableStreamResourceKey;
+    const INTERNAL: bool = true;
+    const SCOPED: bool = true;
 
     async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
-        if ctx.is_shutdown() {
-            return Ok(());
-        }
         if let Err(err) = self.sink.start(self.ctrl.clone()).await {
             if err.is_exception() {
                 let failure = ctx.catch();
@@ -230,20 +229,9 @@ impl<'js> Resource<'js> for WritableStreamResource<'js> {
             let Some(chunk) = self.data.borrow_mut().pop() else {
                 let notify = self.data.borrow().wait.clone();
                 listener!(notify => listener);
-                futures::select! {
-                    _ = listener.fuse() => {
-                        continue
-                    }
-                    _ = ctx.wait_shutdown().fuse() => {
-
-                    }
-                };
+                listener.await;
                 continue;
             };
-
-            if ctx.is_shutdown() {
-                return Ok(());
-            }
 
             if let Err(err) = self.sink.write(chunk.chunk, self.ctrl.clone()).await {
                 if err.is_exception() {

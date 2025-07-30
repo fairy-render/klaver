@@ -9,6 +9,7 @@ mod module;
 mod promise_hook;
 mod resource;
 mod state;
+mod task;
 
 pub use self::{
     async_state::{AsyncState, TaskHandle},

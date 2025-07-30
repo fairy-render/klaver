@@ -10,9 +10,9 @@ use tracing::level_filters::LevelFilter;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), RuntimeError> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::level_filters::LevelFilter::TRACE)
-        .init();
+    // tracing_subscriber::fmt()
+    //     .with_max_level(tracing::level_filters::LevelFilter::TRACE)
+    //     .init();
     let runtime = AsyncRuntime::new()?;
     let context = AsyncContext::full(&runtime).await?;
 
@@ -114,6 +114,7 @@ impl ResourceId for ResourceKey {
 
 impl<'js> Resource<'js> for TestResource<'js> {
     type Id = ResourceKey;
+    const SCOPED: bool = true;
     fn run(self, ctx: klaver_task::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
         async move {
             ctx.invoke_callback::<_, ()>(self.callback.clone(), ())?;
@@ -139,6 +140,7 @@ impl ResourceId for TimeoutKey {
 
 impl<'js> Resource<'js> for TimeResource<'js> {
     type Id = TimeoutKey;
+    const SCOPED: bool = false;
     fn run(self, ctx: klaver_task::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
         async move {
             tokio::time::sleep(tokio::time::Duration::from_millis(self.timeout)).await;

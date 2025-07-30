@@ -1895,6 +1895,7 @@ dependencies = [
  "event-listener",
  "futures",
  "klaver-util",
+ "pin-project-lite",
  "slotmap",
  "tokio",
  "tracing",

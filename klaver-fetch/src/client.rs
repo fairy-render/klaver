@@ -179,19 +179,10 @@ struct ClientResource<'js> {
 impl<'js> Resource<'js> for ClientResource<'js> {
     type Id = ClientResourceId;
 
+    const INTERNAL: bool = true;
+    const SCOPED: bool = true;
+
     async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
-        if ctx.is_shutdown() {
-            return Ok(());
-        }
-
-        futures::select! {
-          ret = self.body.fuse() => {
-
-            return ret
-          }
-          _ = ctx.wait_shutdown().fuse() => {}
-        }
-
-        Ok(())
+        self.body.await
     }
 }
