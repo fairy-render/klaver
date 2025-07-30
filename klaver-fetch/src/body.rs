@@ -109,13 +109,13 @@ impl<'js> BodyMixin<'js> {
         let Some(body) = self.body(ctx)? else {
             throw!(ctx, "Body already ready")
         };
-
         body.borrow().to_bytes(ctx.clone()).await
     }
 
     pub async fn to_text(&self, ctx: &Ctx<'js>) -> rquickjs::Result<String<'js>> {
         let bytes = self.to_bytes(ctx).await?;
         let string = throw_if!(ctx, std::string::String::from_utf8(bytes));
+
         String::from_str(ctx.clone(), &string)
     }
 

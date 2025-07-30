@@ -53,7 +53,7 @@ impl<'js> WritableStream<'js> {
         // });
         AsyncState::push(
             &ctx,
-            ReadableStreamResource {
+            WritableStreamResource {
                 sink: UnderlyingSink::Quick(sink),
                 ctrl,
                 data: state_clone,
@@ -179,22 +179,22 @@ impl<'js> WritableStream<'js> {
 
 create_export!(WritableStream<'js>);
 
-struct ReadableStreamResourceKey;
+struct WritableStreamResourceKey;
 
-impl ResourceId for ReadableStreamResourceKey {
+impl ResourceId for WritableStreamResourceKey {
     fn name() -> &'static str {
-        "ReadableStream"
+        "WritabeStream"
     }
 }
 
-struct ReadableStreamResource<'js> {
+struct WritableStreamResource<'js> {
     sink: UnderlyingSink<'js>,
     ctrl: Class<'js, WritableStreamDefaultController<'js>>,
     data: Class<'js, StreamData<'js>>,
 }
 
-impl<'js> Resource<'js> for ReadableStreamResource<'js> {
-    type Id = ReadableStreamResourceKey;
+impl<'js> Resource<'js> for WritableStreamResource<'js> {
+    type Id = WritableStreamResourceKey;
 
     async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
         if ctx.is_shutdown() {

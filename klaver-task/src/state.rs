@@ -38,11 +38,13 @@ impl<'js> HookState<'js> {
 
         let handler = Func::new(
             |ctx: Ctx<'js>, hooks: Class<'js, HookListeners<'js>>, id: AsyncId| {
-                let state = AsyncState::get(&ctx)?;
+                let state = AsyncState::instance(&ctx)?;
 
                 hooks.borrow_mut().destroy(&ctx, id)?;
 
                 state.exec.destroy_task(id);
+
+                // state.exec.dump();
 
                 rquickjs::Result::Ok(())
             },

@@ -1,4 +1,6 @@
 use clap::Parser;
+use klaver_task::AsyncState;
+use klaver_util::BasePrimordials;
 
 use crate::{repl::ReplCmd, run};
 
@@ -39,6 +41,8 @@ impl Cli {
         let vm = builder.build().await?;
 
         vm.with(|ctx| {
+            let _ = BasePrimordials::get(&ctx)?;
+            let _ = AsyncState::instance(&ctx)?;
             klaver_wintercg::backend::Tokio::default().set_runtime(&ctx)?;
             Ok(())
         })

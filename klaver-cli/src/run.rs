@@ -38,7 +38,7 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result
                     .await;
 
                     if let Err(err) = ret {
-                        eprintln!("{err}");
+                        eprintln!("{err:?}");
                     }
                     // println!("We processed: {}", buffer);
                 }

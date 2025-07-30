@@ -8,7 +8,7 @@ fn promise_hook<'js>(
     promise: Value<'js>,
     parent: Value<'js>,
 ) -> rquickjs::Result<()> {
-    let Ok(state) = AsyncState::get(&ctx) else {
+    let Ok(state) = AsyncState::instance(&ctx) else {
         println!("Could noy uptain state");
         return Ok(());
     };
@@ -56,8 +56,8 @@ fn promise_hook<'js>(
                 .borrow_mut()
                 .promise_resolve(&ctx, id)?;
         }
-        _ => {
-            println!("Unknown");
+        hook => {
+            println!("Unknown {:?}", hook);
         }
     }
     Ok(())

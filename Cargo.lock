@@ -1789,6 +1789,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "klaver-modules",
+ "klaver-task",
  "klaver-util",
  "klaver-vm",
  "klaver-wintercg",

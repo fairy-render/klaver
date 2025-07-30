@@ -1,3 +1,4 @@
+use futures::FutureExt;
 use klaver_util::{
     RuntimeError,
     rquickjs::{self, AsyncContext, CatchResultExt, FromJs},
@@ -20,17 +21,26 @@ impl<T> EventLoop<T> {
         R: 'static,
     {
         let work = rquickjs::async_with!(context => |ctx| {
-            let state = AsyncState::get(&ctx).catch(&ctx)?;
+            let state = AsyncState::instance(&ctx).catch(&ctx)?;
 
             let ret = state.run(ctx.clone(), |ctx| {
                 self.runner.run(ctx)
             }).await.catch(&ctx)?;
 
 
+
+
             Result::<_, RuntimeError>::Ok(ret)
         });
 
-        work.await
+        futures::select! {
+            ret = work.fuse() => {
+                ret
+            }
+            _ = context.runtime().drive().fuse() => {
+                panic!()
+            }
+        }
     }
 }
 

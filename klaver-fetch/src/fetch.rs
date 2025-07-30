@@ -83,11 +83,13 @@ pub async fn fetch<'js>(
                 }
             }
             _ = rx.next().fuse() => {
+
                 throw!(ctx, "Aborted")
             }
         }
     } else {
         let resp = future.await?;
+
         Response::from_native(&ctx, resp)
     }
 }

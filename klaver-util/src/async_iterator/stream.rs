@@ -4,7 +4,7 @@ use futures::{Stream, StreamExt, TryStream, TryStreamExt, stream::LocalBoxStream
 use pin_project_lite::pin_project;
 use rquickjs::{Ctx, IntoJs, class::Trace};
 
-use crate::{async_iterator::native::NativeAsyncIteratorInterface, throw, throw_if};
+use crate::{async_iterator::native::NativeAsyncIteratorInterface, throw_if};
 
 pin_project! {
   pub struct AsyncIteratorStream<'js, T>

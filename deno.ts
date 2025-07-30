@@ -1,7 +1,14 @@
-import {Vm} from 'klaver:vm';
 
+export { }
 
-const vm = await Vm.open();
+console.log('HEj');
+const ret = await fetch('https://google.com').then(async res => {
+    try {
+        return await res.text();
+    } catch (e) {
+        console.log('Got error: ', e)
+        return ""
+    }
 
-const ans = await vm.eval("42")
-console.log(ans)
+});
+console.log('return', ret);

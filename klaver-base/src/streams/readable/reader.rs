@@ -1,4 +1,4 @@
-use crate::streams::data::{StreamData, WaitDone, WaitReadReady};
+use crate::streams::data::{StreamData, WaitDone, WaitReadReady, WaitWriteReady};
 use klaver_util::throw;
 use rquickjs::{
     Class, Ctx, FromJs, IntoJs, JsLifetime, Object, String, Value, atom::PredefinedAtom,

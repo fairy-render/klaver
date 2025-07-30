@@ -25,7 +25,7 @@ unsafe impl<'js> JsLifetime<'js> for AsyncState {
 }
 
 impl AsyncState {
-    pub(crate) fn get(ctx: &Ctx<'_>) -> rquickjs::Result<AsyncState> {
+    pub fn instance(ctx: &Ctx<'_>) -> rquickjs::Result<AsyncState> {
         match ctx.userdata::<Self>() {
             Some(ret) => Ok(ret.clone()),
             None => {
@@ -48,7 +48,7 @@ impl AsyncState {
         ctx: &Ctx<'js>,
         resource: T,
     ) -> rquickjs::Result<Option<TaskHandle>> {
-        let this = Self::get(ctx)?;
+        let this = Self::instance(ctx)?;
 
         let exception = this.exception.clone();
         if exception.borrow().is_some() {

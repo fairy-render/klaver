@@ -126,6 +126,8 @@ impl Client {
             //     Ok(())
             // });
 
+            println!("GER!!");
+
             shared.send(&ctx, req).await
         } else {
             throw!(ctx, "Could not find any Http client")
@@ -185,8 +187,9 @@ impl<'js> Resource<'js> for ClientResource<'js> {
         }
 
         futures::select! {
-          err = self.body.fuse() => {
-            return err
+          ret = self.body.fuse() => {
+
+            return ret
           }
           _ = ctx.wait_shutdown().fuse() => {}
         }

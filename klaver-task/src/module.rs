@@ -22,7 +22,7 @@ impl ModuleDef for TaskModule {
         exports.export(
             "triggerAsyncId",
             Func::new(|ctx: Ctx<'js>| {
-                let state = AsyncState::get(&ctx)?;
+                let state = AsyncState::instance(&ctx)?;
 
                 rquickjs::Result::Ok(state.exec.trigger_async_id())
             }),
@@ -31,7 +31,7 @@ impl ModuleDef for TaskModule {
         exports.export(
             "executionAsyncId",
             Func::new(|ctx: Ctx<'js>| {
-                let state = AsyncState::get(&ctx)?;
+                let state = AsyncState::instance(&ctx)?;
 
                 rquickjs::Result::Ok(state.exec.exectution_trigger_id())
             }),
@@ -51,7 +51,7 @@ impl ModuleDef for TaskModule {
         exports.export(
             "executionAsyncResource",
             Func::new(|ctx: Ctx<'js>| {
-                let state = AsyncState::get(&ctx)?;
+                let state = AsyncState::instance(&ctx)?;
                 let hooks = HookState::get(&ctx)?;
 
                 let resource = hooks
@@ -66,7 +66,7 @@ impl ModuleDef for TaskModule {
         exports.export(
             "resourceName",
             Func::new(|ctx: Ctx<'js>, resource: ResourceKind| {
-                let state = AsyncState::get(&ctx)?;
+                let state = AsyncState::instance(&ctx)?;
 
                 if let Some(name) = state.resource_map.borrow().name(resource) {
                     rquickjs::Result::Ok(String::from_str(ctx, name)?.into_value())

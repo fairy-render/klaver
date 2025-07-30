@@ -286,6 +286,7 @@ fn pull<'js>(
             }
 
             if data.borrow().is_read_ready() {
+                // println!("Waiting");
                 WaitReadReady::new(data.clone()).await.ok();
             }
 
