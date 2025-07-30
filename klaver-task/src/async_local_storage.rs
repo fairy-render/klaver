@@ -25,6 +25,7 @@ impl<'js> AsyncLocalStorage<'js> {
             self.state.exec.clone(),
             ResourceKind::SCRIPT,
             id,
+            false,
         )?;
         task_ctx.init()?;
 

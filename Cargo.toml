@@ -43,6 +43,7 @@ futures = { version = "0.3" }
 event-listener = { version = "5" }
 pin-project-lite = { version = "0.2" }
 flume = { version = "0.11" }
+tracing = { version = "0.1" }
 
 [profile.release]
 lto = "fat"

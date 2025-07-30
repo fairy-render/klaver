@@ -126,8 +126,6 @@ impl Client {
             //     Ok(())
             // });
 
-            println!("GER!!");
-
             shared.send(&ctx, req).await
         } else {
             throw!(ctx, "Could not find any Http client")

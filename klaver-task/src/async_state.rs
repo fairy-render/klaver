@@ -58,7 +58,7 @@ impl AsyncState {
         let kind = this.resource_map.borrow_mut().register::<T>();
         let id = this.exec.create_task(None, kind);
 
-        let task_ctx = TaskCtx::new(ctx.clone(), this.exec.clone(), kind, id)?;
+        let task_ctx = TaskCtx::new(ctx.clone(), this.exec.clone(), kind, id, T::INTERNAL)?;
 
         if let Err(err) = task_ctx.init().catch(&task_ctx) {
             exception.update(move |mut m| *m = Some(err.into()));
@@ -109,7 +109,13 @@ impl AsyncState {
     {
         let id = self.exec.create_task(None, ResourceKind::ROOT);
 
-        let task_ctx = TaskCtx::new(ctx.clone(), self.exec.clone(), ResourceKind::ROOT, id)?;
+        let task_ctx = TaskCtx::new(
+            ctx.clone(),
+            self.exec.clone(),
+            ResourceKind::ROOT,
+            id,
+            false,
+        )?;
 
         self.exec.set_current(id);
 

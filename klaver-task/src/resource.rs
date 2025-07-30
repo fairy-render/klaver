@@ -1,9 +1,13 @@
+use core::fmt;
 use std::{
     any::{Any, TypeId},
     collections::BTreeMap,
 };
 
-use klaver_util::rquickjs::{self, Class, Ctx, FromJs, Function, IntoJs, prelude::IntoArgs};
+use klaver_util::{
+    rquickjs::{self, Class, Ctx, FromJs, Function, IntoJs, prelude::IntoArgs},
+    throw,
+};
 
 use crate::{
     exec_state::{AsyncId, ExecState},
@@ -18,6 +22,7 @@ pub struct TaskCtx<'js> {
     kind: ResourceKind,
     hook_list: Class<'js, HookListeners<'js>>,
     exec: ExecState,
+    internal: bool,
 }
 
 impl<'js> TaskCtx<'js> {
@@ -26,6 +31,7 @@ impl<'js> TaskCtx<'js> {
         exec: ExecState,
         kind: ResourceKind,
         id: AsyncId,
+        internal: bool,
     ) -> rquickjs::Result<TaskCtx<'js>> {
         let hook_list = HookState::get(&ctx)?.borrow().hooks.clone();
         Ok(TaskCtx {
@@ -34,19 +40,27 @@ impl<'js> TaskCtx<'js> {
             id,
             hook_list,
             kind,
+            internal,
         })
     }
 
     pub(crate) fn init(&self) -> rquickjs::Result<()> {
         let parent_id = self.exec.parent_id(self.id);
 
-        self.hook_list
-            .borrow_mut()
-            .init(&self.ctx, self.id, self.kind, Some(parent_id))
+        if !self.internal {
+            self.hook_list
+                .borrow_mut()
+                .init(&self.ctx, self.id, self.kind, Some(parent_id))?;
+        }
+
+        Ok(())
     }
 
     pub(crate) fn destroy(self) -> rquickjs::Result<()> {
-        self.hook_list.borrow_mut().destroy(&self.ctx, self.id)?;
+        if !self.internal {
+            self.hook_list.borrow_mut().destroy(&self.ctx, self.id)?;
+        }
+
         self.exec.destroy_task(self.id);
 
         Ok(())
@@ -59,6 +73,10 @@ impl<'js> TaskCtx<'js> {
         A: IntoArgs<'js>,
         R: FromJs<'js>,
     {
+        if self.internal {
+            throw!(@internal self.ctx, "Internal resource cannot have children");
+        };
+
         self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
 
         self.exec.set_current(self.id);
@@ -111,6 +129,12 @@ impl ResourceKind {
 
     pub fn is_native(&self) -> bool {
         self.0 > 2
+    }
+}
+
+impl fmt::Display for ResourceKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -182,5 +206,6 @@ pub trait ResourceId: Any {
 
 pub trait Resource<'js>: Sized {
     type Id: ResourceId;
+    const INTERNAL: bool = false;
     fn run(self, ctx: TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>>;
 }

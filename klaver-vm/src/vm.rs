@@ -30,7 +30,7 @@ impl Vm {
 
         env.init(&context).await?;
 
-        klaver_task::set_promise_hook(&runtime).await;
+        // klaver_task::set_promise_hook(&runtime).await;
 
         Ok(Vm {
             context: Context {

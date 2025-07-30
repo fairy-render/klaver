@@ -6,9 +6,13 @@ use klaver_util::{
         prelude::{Func, Opt, Rest},
     },
 };
+use tracing::level_filters::LevelFilter;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), RuntimeError> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::level_filters::LevelFilter::TRACE)
+        .init();
     let runtime = AsyncRuntime::new()?;
     let context = AsyncContext::full(&runtime).await?;
 

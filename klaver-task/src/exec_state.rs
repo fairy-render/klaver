@@ -2,6 +2,7 @@ use core::fmt;
 use event_listener::Event;
 use klaver_util::rquickjs::{self, FromJs, IntoJs, Value, class::Trace};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
+use tracing::trace;
 
 use crate::{ResourceKind, cell::ObservableCell};
 
@@ -11,6 +12,12 @@ pub struct AsyncId(usize);
 impl AsyncId {
     pub fn root() -> AsyncId {
         AsyncId(0)
+    }
+}
+
+impl fmt::Display for AsyncId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -123,12 +130,25 @@ impl ExecState {
     /// Set current execution scope
     pub fn set_current(&self, current: AsyncId) {
         let mut this = self.0.borrow_mut();
+
+        trace!(
+            id = ?this.execution_id,
+            parent = ?this.trigger_id,
+            "Leaving async context"
+        );
+
         this.execution_id = current;
         if let Some(task) = this.tasks.get(&current) {
             this.trigger_id = task.parent
         } else {
             this.trigger_id = AsyncId::root();
         }
+
+        trace!(
+            id = ?this.execution_id,
+            parent = ?this.trigger_id,
+            "Enter async context"
+        );
     }
 
     /// Shutdown a task and all it's subtasks
@@ -141,6 +161,7 @@ impl ExecState {
         self.0.borrow().notify_shutdown(id)?;
 
         loop {
+            trace!(id = %id, "Waiting: {}", self.child_count(id));
             if self.child_count(id) == 0 {
                 break;
             }
@@ -220,6 +241,8 @@ impl ExecState {
             None
         };
 
+        trace!(id = %id, kind = %kind, parent = %resolve_parent, shutdown = shutdown, attached_to = ?attached_to, "Create task");
+
         self.0.borrow_mut().tasks.insert(
             id,
             Task {
@@ -256,6 +279,8 @@ impl ExecState {
                 parent.children -= 1;
             }
         }
+
+        trace!(id = %id, kind = %task.kind, children = %task.children, attached_to = ?task.attached_to, "Destroy task");
 
         self.0.borrow().event.notify(usize::MAX);
     }
