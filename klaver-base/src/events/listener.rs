@@ -42,11 +42,11 @@ pub trait NativeListener<'js> {
     fn on_event(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()>;
 }
 
-impl<'js> NativeListener<'js> for async_channel::Sender<DynEvent<'js>> {
+impl<'js> NativeListener<'js> for flume::Sender<DynEvent<'js>> {
     fn on_event(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
         let this = self.clone();
         ctx.spawn(async move {
-            this.send(event).await.ok();
+            this.send_async(event).await.ok();
         });
 
         Ok(())

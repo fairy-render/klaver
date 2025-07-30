@@ -168,6 +168,15 @@ impl ExecState {
         Ok(())
     }
 
+    pub fn is_shutdown(&self, id: AsyncId) -> bool {
+        self.0
+            .borrow()
+            .tasks
+            .get(&id)
+            .map(|m| m.shutdown.get())
+            .unwrap_or(true)
+    }
+
     /// Wait for all subtasks to be destroyed
     pub async fn wait_children(&self, id: AsyncId) {
         loop {

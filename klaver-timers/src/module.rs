@@ -34,7 +34,7 @@ impl klaver_modules::Global for TimeModule {
 
         let set_timeout = Func::new(
             |ctx: Ctx<'js>,
-             timers: Class<'js, Timers<'js>>,
+             timers: Class<'js, Timers>,
              repeat: bool,
              callback: Function<'js>,
              timeout: Opt<u64>| {
@@ -46,7 +46,7 @@ impl klaver_modules::Global for TimeModule {
         .into_js(&ctx)?
         .get::<Function>()?;
 
-        let clear_timeout = Func::new(|timers: Class<'js, Timers<'js>>, time: TimeId| {
+        let clear_timeout = Func::new(|timers: Class<'js, Timers>, time: TimeId| {
             timers.borrow_mut().clear_timeout(time)
         })
         .into_js(&ctx)?

@@ -36,5 +36,5 @@ impl<T> EventLoop<T> {
 
 pub trait Runner<'js> {
     type Output: FromJs<'js>;
-    fn run(&self, ctx: TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<Self::Output>>;
+    fn run(self, ctx: TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<Self::Output>>;
 }

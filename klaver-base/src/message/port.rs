@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use crate::{
-    message::{event::MessageEventOptions, MessageEvent}, Clonable, Emitter, EventList, EventTarget, Exportable, NativeData, NativeObject, Registry, SerializationOptions, StructuredClone, Tag, TransObject, TransferData
+    Clonable, Emitter, EventList, EventTarget, Exportable, NativeData, NativeObject, Registry,
+    SerializationOptions, StructuredClone, Tag, TransObject, TransferData,
+    message::{MessageEvent, event::MessageEventOptions},
 };
 use flume::{Receiver, Sender};
 use futures::channel::{self, oneshot};
-use klaver_runner::Workers;
+use klaver_task::{AsyncState, Resource, ResourceId};
 use klaver_util::{RuntimeError, Subclass, throw};
 use rquickjs::{
     CatchResultExt, Class, Ctx, Function, JsLifetime, String, Value,
@@ -46,7 +48,12 @@ impl<'js> MessagePort<'js> {
     }
 
     pub fn from_channel(channel: Channel) -> MessagePort<'js> {
-        MessagePort { listener: Default::default(), channel: Some(channel), onmessage: None, kill: None }
+        MessagePort {
+            listener: Default::default(),
+            channel: Some(channel),
+            onmessage: None,
+            kill: None,
+        }
     }
 }
 
@@ -62,13 +69,13 @@ unsafe impl<'js> JsLifetime<'js> for MessagePort<'js> {
 }
 
 impl<'js> MessagePort<'js> {
-    pub fn start_native(ctx: &Ctx<'js>, this: Class<'js, MessagePort<'js>>) -> rquickjs::Result<()> {
-
+    pub fn start_native(
+        ctx: &Ctx<'js>,
+        this: Class<'js, MessagePort<'js>>,
+    ) -> rquickjs::Result<()> {
         if this.borrow().kill.is_some() {
             return Ok(());
         }
-
-        let workers = Workers::from_ctx(&ctx)?;
 
         let Some(channel) = this.borrow().channel.as_ref().cloned() else {
             throw!(ctx, "Port is detached")
@@ -79,36 +86,15 @@ impl<'js> MessagePort<'js> {
 
         this.borrow_mut().kill = Some(sx);
 
-        workers.push(ctx.clone(), |ctx, _| async move {
-            loop {
-
-
-                futures::select! {
-                    next = channel.rx.recv_async() => {
-                        let Ok(next) = next else {
-                            break;
-                        };
-        
-                        let data = registry.deserialize(&ctx, next.message).catch(&ctx)?;
-        
-                        let msg = String::from_str(ctx.clone(), "message").catch(&ctx)?;
-        
-                        let event =
-                            MessageEvent::new(msg, Opt(Some(MessageEventOptions { data: Some(data) })))
-                                .catch(&ctx)?;
-        
-                        this.borrow_mut().dispatch_native(&ctx, event).catch(&ctx)?;
-                    }
-                    _ = &mut rx => {
-                        break;
-                    }
-                }
-               
-            }
-
-            Ok(())
-        });
-
+        AsyncState::push(
+            &ctx,
+            MessagePortResource {
+                registry,
+                channel,
+                message_port: this,
+                kill: rx,
+            },
+        );
 
         Ok(())
     }
@@ -180,7 +166,6 @@ impl<'js> MessagePort<'js> {
     }
 }
 
-
 impl<'js> Emitter<'js> for MessagePort<'js> {
     fn get_listeners(&self) -> &EventList<'js> {
         &self.listener
@@ -195,7 +180,6 @@ impl<'js> Emitter<'js> for MessagePort<'js> {
             let Some(cb) = &self.onmessage else {
                 return Ok(());
             };
-            
 
             cb.defer((event,))?;
         }
@@ -210,8 +194,6 @@ impl<'js> Exportable<'js> for MessagePort<'js> {
     where
         T: crate::ExportTarget<'js>,
     {
-        
-
         target.set(
             ctx,
             MessagePort::NAME,
@@ -229,7 +211,6 @@ impl<'js> Exportable<'js> for MessagePort<'js> {
 impl<'js> Clonable for MessagePort<'js> {
     type Cloner = MessagePortCloner;
 }
-
 
 pub struct MessagePortCloner;
 
@@ -254,16 +235,60 @@ impl StructuredClone for MessagePortCloner {
         ctx: &mut crate::SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<crate::TransferData> {
-
         if !ctx.should_move(value.as_value()) {
             throw!(ctx, "Move")
         }
 
-       let channel = value.borrow_mut().detach(ctx.ctx())?;
+        let channel = value.borrow_mut().detach(ctx.ctx())?;
         let data = NativeData {
             instance: Box::new(channel),
-            id: 1
+            id: 1,
         };
         Ok(TransferData::NativeObject(data))
+    }
+}
+
+struct MessagePortResourceKey;
+
+impl ResourceId for MessagePortResourceKey {
+    fn name() -> &'static str {
+        "MessagePort"
+    }
+}
+
+struct MessagePortResource<'js> {
+    registry: Registry,
+    channel: Channel,
+    message_port: Class<'js, MessagePort<'js>>,
+    kill: oneshot::Receiver<()>,
+}
+
+impl<'js> Resource<'js> for MessagePortResource<'js> {
+    type Id = MessagePortResourceKey;
+
+    async fn run(mut self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
+        loop {
+            futures::select! {
+                next = self.channel.rx.recv_async() => {
+                    let Ok(next) = next else {
+                        break;
+                    };
+
+                    let data = self.registry.deserialize(&ctx, next.message)?;
+
+                    let msg = String::from_str(ctx.ctx().clone(), "message")?;
+
+                    let event =
+                        MessageEvent::new(msg, Opt(Some(MessageEventOptions { data: Some(data) })))?;
+
+                    self.message_port.borrow_mut().dispatch_native(&ctx, event)?;
+                }
+                _ = &mut self.kill => {
+                    break;
+                }
+            }
+        }
+
+        Ok(())
     }
 }

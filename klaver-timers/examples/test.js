@@ -7,9 +7,13 @@ timer.createTimeout(() => {
 }, 100, false)
 
 
-const id = timer.createTimeout(() => {
+timer.createTimeout(() => {
     print("World")
 }, 800, false)
+
+const id = timer.createTimeout(() => {
+    print("Butt")
+}, 700, false)
 
 timer.createTimeout(() => {
     timer.clearTimeout(id)
@@ -17,7 +21,7 @@ timer.createTimeout(() => {
 
 print("Hello")
 
-setTimeout(() => {
-    throw new Error("Ger")
-    print("Timeout!")
-}, 2000)
+// setTimeout(() => {
+//     throw new Error("Ger")
+//     print("Timeout!")
+// }, 2000)

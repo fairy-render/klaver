@@ -16,7 +16,7 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result
             } else {
                 source.to_string()
             };
-            vm.run_module(&path, ()).await?;
+            vm.run_module(&path).await?;
         }
     } else {
         let mut prompt = DefaultPrompt::default();

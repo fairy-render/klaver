@@ -1,9 +1,11 @@
-use futures::future::{BoxFuture, LocalBoxFuture};
+use std::marker::PhantomData;
+
+use futures::future::BoxFuture;
 use klaver_modules::Environ;
-use klaver_runner::{Runner, Runnerable};
+use klaver_task::{EventLoop, Runner};
 use klaver_util::RuntimeError;
 use rquickjs::{
-    AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module, Object, Value,
+    AsyncContext, AsyncRuntime, Ctx, FromJs, Function, Module, Object, Value,
     markers::ParallelSend, prelude::IntoArgs,
 };
 
@@ -45,9 +47,13 @@ impl Context {
             .map_err(|err| update_locations(&self.env, err))
     }
 
-    pub async fn run<T: Runnerable + 'static>(&self, task: T) -> Result<(), RuntimeError> {
-        Runner::new(&self.context, task)
-            .run()
+    pub async fn run<T, R>(&self, task: T) -> Result<R, RuntimeError>
+    where
+        T: for<'js> Runner<'js, Output = R>,
+        R: 'static,
+    {
+        EventLoop::new(task)
+            .run(&self.context)
             .await
             .map_err(|err| update_locations(&self.env, err))
     }
@@ -56,49 +62,76 @@ impl Context {
         self.runtime().idle().await;
     }
 
-    pub async fn run_module<A: 'static>(&self, module: &str, args: A) -> Result<(), RuntimeError>
-    where
-        A: for<'js> IntoArgs<'js>,
-    {
+    pub async fn run_module(&self, module: &str) -> Result<(), RuntimeError> {
         self.run(ModuleRunner {
             module: module.to_string(),
-            args,
-            func: Default::default(),
         })
         .await?;
 
         Ok(())
     }
+
+    pub async fn call_export<A, R: 'static>(
+        &self,
+        module: &str,
+        export: &str,
+        args: A,
+    ) -> Result<R, RuntimeError>
+    where
+        A: for<'js> IntoArgs<'js>,
+        R: for<'js> FromJs<'js>,
+    {
+        let export = CallExport::<A, R> {
+            module: module.to_string(),
+            export: export.to_string(),
+            args,
+            ret: PhantomData,
+        };
+
+        self.run(export).await
+    }
 }
 
-struct ModuleRunner<A> {
+struct ModuleRunner {
+    module: String,
+}
+
+impl<'js> Runner<'js> for ModuleRunner {
+    type Output = ();
+
+    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<Self::Output> {
+        let promise = Module::import(&ctx, self.module)?;
+        let _ = promise.into_future::<()>().await?;
+
+        Ok(())
+    }
+}
+
+struct CallExport<A, R> {
     module: String,
     args: A,
-    func: Option<String>,
+    export: String,
+    ret: PhantomData<fn() -> R>,
 }
 
-impl<A> Runnerable for ModuleRunner<A>
+impl<'js, A, R> Runner<'js> for CallExport<A, R>
 where
-    A: for<'js> IntoArgs<'js>,
-    A: 'static,
+    A: IntoArgs<'js>,
+    R: FromJs<'js>,
 {
-    type Future<'js> = LocalBoxFuture<'js, Result<(), RuntimeError>>;
+    type Output = R;
 
-    fn call<'js>(self, ctx: Ctx<'js>, _worker: klaver_runner::Workers) -> Self::Future<'js> {
-        Box::pin(async move {
-            let promise = Module::import(&ctx, self.module).catch(&ctx)?;
-            let module = promise.into_future::<Object>().await.catch(&ctx)?;
+    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<Self::Output> {
+        let promise = Module::import(&ctx, self.module)?;
+        let module = promise.into_future::<Object>().await?;
 
-            if let Some(fun) = self.func {
-                let func = module.get::<_, Function>(&fun).catch(&ctx)?;
+        let func = module.get::<_, Function>(&self.export)?;
 
-                let ret = func.call::<_, Value>(self.args).catch(&ctx)?;
-                if let Some(future) = ret.into_promise() {
-                    future.into_future::<()>().await?;
-                }
-            }
+        let mut ret = func.call::<_, Value>(self.args)?;
+        if let Some(future) = ret.clone().into_promise() {
+            ret = future.into_future().await?;
+        }
 
-            Ok(())
-        })
+        R::from_js(&ctx, ret)
     }
 }

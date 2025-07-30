@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-klaver-runner = { path = "../klaver-runner" }
+klaver-task = { path = "../klaver-task" }
 klaver-base = { path = "../klaver-base" }
 klaver-util = { path = "../klaver-util" }
 rquickjs.workspace = true

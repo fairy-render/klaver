@@ -1,5 +1,5 @@
 use klaver_base::{AbortSignal, Emitter, EventTarget, streams::WritableStream};
-use klaver_runner::{FuncFn, Runner};
+use klaver_task::{EventLoop, Runner};
 use klaver_util::{Inheritable, RuntimeError, StringRef, Subclass, SuperClass, is_plain_object};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, Module, Value, class::JsClass,
@@ -12,52 +12,42 @@ fn main() -> Result<(), RuntimeError> {
 
         let context = AsyncContext::full(&runtime).await?;
 
-        Runner::new(
-            &context,
-            FuncFn::new(|ctx, worker| {
-                Box::pin(async move {
-                    // AbortSignal::add_event_target_prototype(&ctx)?;
-                    AbortSignal::inherit(&ctx)?;
-
-                    let signal = Class::instance(ctx.clone(), AbortSignal::new()?)?
-                        .into_value()
-                        .into_object()
-                        .unwrap();
-
-                    ctx.globals()
-                        .set(
-                            "print",
-                            Func::from(|msg: StringRef<'_>| {
-                                println!("{}", msg);
-                                rquickjs::Result::Ok(())
-                            }),
-                        )
-                        .catch(&ctx)?;
-
-                    let (_, promise) = Module::evaluate_def::<klaver_base::BaseModule, _>(
-                        ctx.clone(),
-                        "quick:base",
-                    )
-                    .catch(&ctx)?;
-
-                    promise.into_future::<()>().await.catch(&ctx)?;
-
-                    let (_, promise) =
-                        Module::declare(ctx.clone(), "main", include_str!("./test.js"))?
-                            .eval()
-                            .catch(&ctx)?;
-
-                    promise.into_future::<()>().await.catch(&ctx)?;
-
-                    Result::<_, RuntimeError>::Ok(())
-                })
-            }),
-        )
-        .run()
-        .await?;
-
-        // runtime.idle().await;
+        EventLoop::new(Base).run(&context).await?;
 
         Ok(())
     })
+}
+
+struct Base;
+
+impl<'js> Runner<'js> for Base {
+    type Output = ();
+    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<Self::Output> {
+        AbortSignal::inherit(&ctx)?;
+
+        let signal = Class::instance(ctx.ctx().clone(), AbortSignal::new()?)?
+            .into_value()
+            .into_object()
+            .unwrap();
+
+        ctx.globals().set(
+            "print",
+            Func::from(|msg: StringRef<'_>| {
+                println!("{}", msg);
+                rquickjs::Result::Ok(())
+            }),
+        )?;
+
+        let (_, promise) =
+            Module::evaluate_def::<klaver_base::BaseModule, _>(ctx.ctx().clone(), "quick:base")?;
+
+        promise.into_future::<()>().await?;
+
+        let (_, promise) =
+            Module::declare(ctx.ctx().clone(), "main", include_str!("./test.js"))?.eval()?;
+
+        promise.into_future::<()>().await?;
+
+        Ok(())
+    }
 }

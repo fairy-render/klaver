@@ -23,7 +23,7 @@ impl<'js> WritableStreamDefaultController<'js> {
     }
 
     fn error(&self, ctx: Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
-        self.data.borrow_mut().fail(ctx, error)?;
+        self.data.borrow_mut().fail(&ctx, error)?;
 
         Ok(())
     }

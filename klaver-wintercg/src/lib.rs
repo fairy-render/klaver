@@ -1,6 +1,6 @@
 pub mod backend;
-mod event_target;
-mod timers;
+// mod event_target;
+// mod timers;
 
 use klaver_base::{Console, Exportable, Registry, StdConsoleWriter};
 use rquickjs::Ctx;
@@ -61,7 +61,7 @@ impl<'js> Exportable<'js> for WinterCG {
         let console = Console::new_with(StdConsoleWriter::default());
         target.set(ctx, "console", console)?;
 
-        klaver_worker::WorkerModule::export(ctx, registry, target)?;
+        // klaver_worker::WorkerModule::export(ctx, registry, target)?;
 
         Ok(())
     }

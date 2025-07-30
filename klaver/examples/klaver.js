@@ -1,8 +1,7 @@
 
-const worker = new Worker("./klaver/examples/worrker.js");
 
-worker.addEventListener('message', (e) => {
-  console.log('callback', e)
-});
+console.log('Hello, Klaver!');
 
-worker.postMessage("Hello from parent")
+setTimeout(() => {
+  console.log('This is a timeout message!');
+}, 2000);

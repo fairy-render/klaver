@@ -9,11 +9,11 @@ module = ["klaver-modules"]
 
 [dependencies]
 klaver-modules = { path = "../klaver-modules", optional = true }
-klaver-runner = { path = "../klaver-runner" }
+klaver-task = { path = "../klaver-task" }
 klaver-util = { path = "../klaver-util" }
 rquickjs.workspace = true
 # rquickjs-util = { path = "../rquickjs-util" }
-async-channel = { version = "2" }
+# async-channel = { version = "2" }
 
 event-listener = { workspace = true }
 pin-project-lite = { workspace = true }

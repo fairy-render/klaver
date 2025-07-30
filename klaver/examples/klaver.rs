@@ -5,7 +5,7 @@ use rquickjs::CatchResultExt;
 async fn main() -> klaver_vm::Result<()> {
     let vm = Builder::default().build().await?;
 
-    vm.run_module("./klaver/examples/klaver.js", ()).await?;
+    vm.run_module("./klaver/examples/klaver.js").await?;
 
     // klaver_vm::async_with!(vm => |ctx| {
     //   ctx.eval_promise(include_str!("./klaver.js"))

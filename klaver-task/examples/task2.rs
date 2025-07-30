@@ -24,7 +24,7 @@ pub struct TestRunner;
 impl<'js> Runner<'js> for TestRunner {
     type Output = ();
     async fn run(
-        &self,
+        self,
         ctx: klaver_task::TaskCtx<'js>,
     ) -> klaver_util::rquickjs::Result<Self::Output> {
         ctx.globals().set(
@@ -110,7 +110,7 @@ impl ResourceId for ResourceKey {
 
 impl<'js> Resource<'js> for TestResource<'js> {
     type Id = ResourceKey;
-    fn run(&self, ctx: klaver_task::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
+    fn run(self, ctx: klaver_task::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
         async move {
             ctx.invoke_callback::<_, ()>(self.callback.clone(), ())?;
             // ctx.wait_shutdown().await?;
@@ -135,7 +135,7 @@ impl ResourceId for TimeoutKey {
 
 impl<'js> Resource<'js> for TimeResource<'js> {
     type Id = TimeoutKey;
-    fn run(&self, ctx: klaver_task::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
+    fn run(self, ctx: klaver_task::TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>> {
         async move {
             tokio::time::sleep(tokio::time::Duration::from_millis(self.timeout)).await;
 

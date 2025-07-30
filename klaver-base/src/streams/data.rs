@@ -51,7 +51,7 @@ impl<'js> StreamData<'js> {
         }
     }
 
-    fn throw_state(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    fn throw_state(&self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         match &self.state {
             ControllerState::Aborted(err) => match err {
                 Some(err) => {
@@ -78,9 +78,9 @@ impl<'js> StreamData<'js> {
         !self.queue.is_empty() && !(self.is_aborted() || self.is_failed())
     }
 
-    pub fn close(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    pub fn close(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
-            return self.throw_state(ctx);
+            return self.throw_state(&ctx);
         }
 
         self.state = ControllerState::Closed;
@@ -89,7 +89,7 @@ impl<'js> StreamData<'js> {
         Ok(())
     }
 
-    pub fn abort(&mut self, ctx: Ctx<'js>, reason: Option<String<'js>>) -> rquickjs::Result<()> {
+    pub fn abort(&mut self, ctx: &Ctx<'js>, reason: Option<String<'js>>) -> rquickjs::Result<()> {
         if !self.is_running() {
             return self.throw_state(ctx);
         }
@@ -101,7 +101,7 @@ impl<'js> StreamData<'js> {
         Ok(())
     }
 
-    pub fn fail(&mut self, ctx: Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
+    pub fn fail(&mut self, ctx: &Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
             return self.throw_state(ctx);
         }
@@ -125,7 +125,7 @@ impl<'js> StreamData<'js> {
         self.locked
     }
 
-    pub fn lock(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    pub fn lock(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
             return self.throw_state(ctx);
         }
@@ -235,10 +235,10 @@ impl<'js> Future for WaitDone<'js> {
                 WaiteStateProj::Idle => {
                     if this.state.borrow().is_failed() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_aborted() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_finished() {
                         return Poll::Ready(Ok(()));
                     } else {
@@ -288,10 +288,10 @@ impl<'js> Future for WaitWriteReady<'js> {
                 WaiteStateProj::Idle => {
                     if this.state.borrow().is_failed() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_aborted() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_write_ready() {
                         return Poll::Ready(Ok(()));
                     } else {
@@ -341,10 +341,10 @@ impl<'js> Future for WaitReadReady<'js> {
                 WaiteStateProj::Idle => {
                     if this.state.borrow().is_failed() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_aborted() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_read_ready() || this.state.borrow().is_closed()
                     {
                         return Poll::Ready(Ok(()));

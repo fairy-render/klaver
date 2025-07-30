@@ -149,18 +149,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-channel"
-version = "2.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89b47800b0be77592da0afd425cc03468052844aff33b84e33cc696f64e77b6a"
-dependencies = [
- "concurrent-queue",
- "event-listener-strategy",
- "futures-core",
- "pin-project-lite",
-]
-
-[[package]]
 name = "async-lock"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1763,7 +1751,7 @@ dependencies = [
  "futures",
  "klaver-base",
  "klaver-modules",
- "klaver-runner",
+ "klaver-task",
  "klaver-vm",
  "klaver-wintercg",
  "rquickjs",
@@ -1775,7 +1763,6 @@ dependencies = [
 name = "klaver-base"
 version = "0.1.0"
 dependencies = [
- "async-channel",
  "async-stream",
  "async-trait",
  "base64",
@@ -1786,7 +1773,7 @@ dependencies = [
  "futures",
  "indexmap",
  "klaver-modules",
- "klaver-runner",
+ "klaver-task",
  "klaver-util",
  "ordered-float",
  "pin-project-lite",
@@ -1835,7 +1822,7 @@ dependencies = [
  "http",
  "klaver-base",
  "klaver-modules",
- "klaver-runner",
+ "klaver-task",
  "klaver-util",
  "multer",
  "pin-project-lite",
@@ -1899,17 +1886,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "klaver-runner"
-version = "0.1.0"
-dependencies = [
- "event-listener",
- "futures",
- "klaver-util",
- "pin-project-lite",
- "rquickjs",
-]
-
-[[package]]
 name = "klaver-task"
 version = "0.1.0"
 dependencies = [
@@ -1935,7 +1911,7 @@ dependencies = [
  "event-listener",
  "futures",
  "klaver-modules",
- "klaver-runner",
+ "klaver-task",
  "klaver-util",
  "rquickjs",
  "tokio",
@@ -1963,7 +1939,7 @@ dependencies = [
  "futures",
  "klaver-base",
  "klaver-modules",
- "klaver-runner",
+ "klaver-task",
  "klaver-util",
  "rquickjs",
 ]
@@ -1980,22 +1956,8 @@ dependencies = [
  "klaver-modules",
  "klaver-timers",
  "klaver-util",
- "klaver-worker",
  "rquickjs",
  "tokio",
-]
-
-[[package]]
-name = "klaver-worker"
-version = "0.1.0"
-dependencies = [
- "flume",
- "futures",
- "klaver-base",
- "klaver-runner",
- "klaver-util",
- "rquickjs",
- "rquickjs-util",
 ]
 
 [[package]]

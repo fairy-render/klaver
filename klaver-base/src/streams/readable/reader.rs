@@ -38,7 +38,7 @@ impl<'js> ReadableStreamDefaultReader<'js> {
             throw!(@type ctx, "This reader does not hold a lock to the stream")
         };
 
-        data.borrow_mut().abort(ctx, reason.0.clone())?;
+        data.borrow_mut().abort(&ctx, reason.0.clone())?;
 
         Ok(reason.0)
     }

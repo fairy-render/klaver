@@ -7,9 +7,9 @@ use klaver_util::{
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    ResourceKind,
-    cell::ObservableRefCell,
-    exec_state::ExecState,
+    ResourceId, ResourceKind,
+    cell::{ObservableCell, ObservableRefCell},
+    exec_state::{AsyncId, ExecState},
     resource::{Resource, ResourceMap, TaskCtx},
 };
 
@@ -44,12 +44,15 @@ impl AsyncState {
     }
 
     /// Start a new async task
-    pub fn push<'js, T: Resource<'js> + 'js>(ctx: &Ctx<'js>, resource: T) -> rquickjs::Result<()> {
+    pub fn push<'js, T: Resource<'js> + 'js>(
+        ctx: &Ctx<'js>,
+        resource: T,
+    ) -> rquickjs::Result<Option<TaskHandle>> {
         let this = Self::get(ctx)?;
 
         let exception = this.exception.clone();
         if exception.borrow().is_some() {
-            return Ok(());
+            return Ok(None);
         }
 
         let kind = this.resource_map.borrow_mut().register::<T>();
@@ -59,8 +62,13 @@ impl AsyncState {
 
         if let Err(err) = task_ctx.init().catch(&task_ctx) {
             exception.update(move |mut m| *m = Some(err.into()));
-            return task_ctx.destroy();
+            task_ctx.destroy()?;
+            return Ok(None);
         }
+
+        let kill = Rc::new(ObservableCell::new(false));
+
+        let cell = kill.clone();
 
         ctx.spawn(async move {
             if exception.borrow().is_some() {
@@ -82,13 +90,14 @@ impl AsyncState {
                     }
 
                 }
+                _ = kill.subscribe().fuse() => {}
                 _ = exception.subscribe().fuse() => { }
             }
 
             task_ctx.destroy().ok();
         });
 
-        Ok(())
+        Ok(Some(TaskHandle { cell, id, kind }))
     }
 }
 
@@ -135,5 +144,29 @@ impl AsyncState {
                 }
             }
         }
+    }
+}
+
+pub struct TaskHandle {
+    id: AsyncId,
+    kind: ResourceKind,
+    cell: Rc<ObservableCell<bool>>,
+}
+
+impl TaskHandle {
+    pub fn kill(self) {
+        self.cell.set(true);
+    }
+
+    pub fn id(&self) -> AsyncId {
+        self.id
+    }
+
+    pub fn kind(&self) -> ResourceKind {
+        self.kind
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.cell.get()
     }
 }

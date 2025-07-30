@@ -1,14 +1,17 @@
 use std::cell::RefCell;
 
 use futures::{FutureExt, future::LocalBoxFuture};
-use klaver_runner::Workers;
+use klaver_task::{AsyncState, Resource, ResourceId};
 use reggie::{Body, http_body_util::BodyExt};
 
 use http::{Request, Response, Uri};
 use klaver_util::{throw, throw_if};
 use rquickjs::{CatchResultExt, Ctx, JsLifetime, runtime::UserDataGuard};
 
-use crate::body::{JsBody, RemoteBody};
+use crate::{
+    RemoteBodyProducer,
+    body::{JsBody, RemoteBody},
+};
 
 pub trait LocalClient {
     fn send<'js, 'a>(
@@ -106,20 +109,22 @@ impl Client {
             let (body, producer) = body.into_remote();
             let req = Request::from_parts(parts, body);
 
-            Workers::from_ctx(ctx)?.push(ctx.clone(), |ctx, mut shutdown| async move {
-                if shutdown.is_killed() {
-                    return Ok(());
-                }
+            AsyncState::push(&ctx, ClientResource { body: producer })?;
 
-                futures::select! {
-                  err = producer.fuse() => {
-                    return err.catch(&ctx).map_err(Into::into)
-                  }
-                  _ = shutdown => {}
-                }
+            // Workers::from_ctx(ctx)?.push(ctx.clone(), |ctx, mut shutdown| async move {
+            //     if shutdown.is_killed() {
+            //         return Ok(());
+            //     }
 
-                Ok(())
-            });
+            //     futures::select! {
+            //       err = producer.fuse() => {
+            //         return err.catch(&ctx).map_err(Into::into)
+            //       }
+            //       _ = shutdown => {}
+            //     }
+
+            //     Ok(())
+            // });
 
             shared.send(&ctx, req).await
         } else {
@@ -156,5 +161,36 @@ impl SharedClient for reqwest::Client {
 
             Ok(resp)
         })
+    }
+}
+
+struct ClientResourceId;
+
+impl ResourceId for ClientResourceId {
+    fn name() -> &'static str {
+        "ClientRequest"
+    }
+}
+
+struct ClientResource<'js> {
+    body: RemoteBodyProducer<'js>,
+}
+
+impl<'js> Resource<'js> for ClientResource<'js> {
+    type Id = ClientResourceId;
+
+    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
+        if ctx.is_shutdown() {
+            return Ok(());
+        }
+
+        futures::select! {
+          err = self.body.fuse() => {
+            return err
+          }
+          _ = ctx.wait_shutdown().fuse() => {}
+        }
+
+        Ok(())
     }
 }

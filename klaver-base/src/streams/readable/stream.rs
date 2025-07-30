@@ -262,7 +262,7 @@ fn pull<'js>(
         if let Err(err) = source.start(ctx.clone(), ctrl.clone()).await {
             if err.is_exception() {
                 let failure = ctx.catch();
-                data.borrow_mut().fail(ctx.clone(), failure).ok();
+                data.borrow_mut().fail(&ctx, failure).ok();
             }
             return;
         }
@@ -292,7 +292,7 @@ fn pull<'js>(
             if let Err(err) = source.pull(ctx.clone(), ctrl.clone()).await {
                 if err.is_exception() {
                     let failure = ctx.catch();
-                    data.borrow_mut().fail(ctx.clone(), failure).ok();
+                    data.borrow_mut().fail(&ctx, failure).ok();
                 }
                 break;
             }

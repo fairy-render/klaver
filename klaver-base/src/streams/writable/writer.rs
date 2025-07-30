@@ -57,7 +57,7 @@ impl<'js> WritableStreamDefaultWriter<'js> {
             throw!(@type ctx, "The stream youare trying to close is not owned by the writer")
         };
 
-        ctrl.borrow_mut().close(ctx.clone())?;
+        ctrl.borrow_mut().close(&ctx)?;
 
         WaitDone::new(ctrl.clone()).await?;
 
@@ -73,7 +73,7 @@ impl<'js> WritableStreamDefaultWriter<'js> {
             throw!(@type ctx, "The stream youare trying to abort is not owned by the writer")
         };
 
-        ctrl.borrow_mut().abort(ctx, reason.0.clone())?;
+        ctrl.borrow_mut().abort(&ctx, reason.0.clone())?;
 
         Ok(reason.0)
     }

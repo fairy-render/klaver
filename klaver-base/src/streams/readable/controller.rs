@@ -22,11 +22,11 @@ impl<'js> ReadableStreamDefaultController<'js> {
     }
 
     pub fn close(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
-        self.data.borrow_mut().close(ctx)
+        self.data.borrow_mut().close(&ctx)
     }
 
     pub fn error(&self, ctx: Ctx<'js>, value: Value<'js>) -> rquickjs::Result<()> {
-        self.data.borrow_mut().fail(ctx, value)
+        self.data.borrow_mut().fail(&ctx, value)
     }
 }
 

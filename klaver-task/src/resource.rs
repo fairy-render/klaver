@@ -85,6 +85,10 @@ impl<'js> TaskCtx<'js> {
         self.exec.wait_shutdown(self.id).await
     }
 
+    pub fn is_shutdown(&self) -> bool {
+        self.exec.is_shutdown(self.id)
+    }
+
     pub fn ctx(&self) -> &Ctx<'js> {
         &self.ctx
     }
@@ -178,5 +182,5 @@ pub trait ResourceId: Any {
 
 pub trait Resource<'js>: Sized {
     type Id: ResourceId;
-    fn run(&self, ctx: TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>>;
+    fn run(self, ctx: TaskCtx<'js>) -> impl Future<Output = rquickjs::Result<()>>;
 }
