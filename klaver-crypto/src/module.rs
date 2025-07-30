@@ -22,7 +22,7 @@ impl ModuleDef for CryptoModule {
         ctx: &Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
-        Self::export(ctx, &Registry::get(ctx)?, exports)?;
+        Self::export(ctx, &Registry::instance(ctx)?, exports)?;
         Ok(())
     }
 }
@@ -69,7 +69,7 @@ impl klaver_modules::Global for CryptoModule {
         async move {
             let obj = Object::new(ctx.clone())?;
 
-            Self::export(&ctx, &Registry::get(&ctx)?, &obj)?;
+            Self::export(&ctx, &Registry::instance(&ctx)?, &obj)?;
 
             ctx.globals().set("crypto", obj)?;
 

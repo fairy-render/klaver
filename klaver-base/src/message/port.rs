@@ -74,7 +74,7 @@ impl<'js> MessagePort<'js> {
             throw!(ctx, "Port is detached")
         };
 
-        let registry = Registry::get(&ctx)?;
+        let registry = Registry::instance(&ctx)?;
         let (sx, mut rx) = oneshot::channel();
 
         this.borrow_mut().kill = Some(sx);
@@ -134,7 +134,7 @@ impl<'js> MessagePort<'js> {
 
         let opts = opts.0.unwrap_or_default();
 
-        let message = Registry::get(&ctx)?.serialize(&ctx, &msg, &opts)?;
+        let message = Registry::instance(&ctx)?.serialize(&ctx, &msg, &opts)?;
 
         channel.remote.send(Message { message }).ok();
 

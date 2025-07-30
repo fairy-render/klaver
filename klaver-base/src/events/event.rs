@@ -10,60 +10,6 @@ use rquickjs::{
 
 use crate::Exportable;
 
-// #[derive(Clone, Debug, Hash)]
-// pub enum EventKey<'js> {
-//     Symbol(Symbol<'js>),
-//     String(String<'js>),
-// }
-
-// impl<'js> Trace<'js> for EventKey<'js> {
-//     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-//         match self {
-//             Self::Symbol(s) => s.trace(tracer),
-//             Self::String(s) => s.trace(tracer),
-//         }
-//     }
-// }
-
-// impl<'js> EventKey<'js> {
-//     fn from_value(_ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
-//         if value.is_string() {
-//             let key: String = value.get()?;
-//             Ok(EventKey::String(key))
-//         } else {
-//             let sym = value
-//                 .into_symbol()
-//                 .ok_or_else(|| rquickjs::Error::new_from_js("value", "event key"))?;
-//             Ok(EventKey::Symbol(sym))
-//         }
-//     }
-
-//     pub fn to_string(&self) -> rquickjs::Result<String<'js>> {
-//         match self {
-//             Self::String(s) => Ok(s.clone()),
-//             Self::Symbol(_) => panic!("Symbol"),
-//         }
-//     }
-// }
-
-// impl<'js> FromJs<'js> for EventKey<'js> {
-//     fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
-//         Self::from_value(ctx, value)
-//     }
-// }
-
-// impl<'js> Eq for EventKey<'js> {}
-
-// impl<'js> PartialEq for EventKey<'js> {
-//     fn eq(&self, other: &Self) -> bool {
-//         match (self, other) {
-//             (EventKey::Symbol(symbol1), EventKey::Symbol(symbol2)) => symbol1 == symbol2,
-//             (EventKey::String(str1), EventKey::String(str2)) => str1 == str2,
-//             _ => false,
-//         }
-//     }
-// }
-
 #[derive(Debug, Trace)]
 pub struct EventKey<'js> {
     string: StringRef<'js>,
@@ -90,6 +36,18 @@ impl<'js> EventKey<'js> {
 impl<'js> PartialEq for EventKey<'js> {
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
+    }
+}
+
+impl<'js, 'a> PartialEq<&'a str> for EventKey<'js> {
+    fn eq(&self, other: &&'a str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+impl<'js> PartialEq<str> for EventKey<'js> {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
     }
 }
 

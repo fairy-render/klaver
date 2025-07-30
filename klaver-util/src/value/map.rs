@@ -1,8 +1,9 @@
 use rquickjs::{
-    Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Value, class::Trace, function::This,
+    Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Value, atom::PredefinedAtom, class::Trace,
+    function::This,
 };
 
-use crate::{Iter, object::ObjectExt};
+use crate::{BasePrimordials, Iter, object::ObjectExt};
 
 #[derive(Debug, Trace, Clone, PartialEq, Eq, JsLifetime)]
 pub struct Map<'js> {
@@ -11,34 +12,32 @@ pub struct Map<'js> {
 
 impl<'js> Map<'js> {
     pub fn new(ctx: &Ctx<'js>) -> rquickjs::Result<Map<'js>> {
-        let obj = ctx.eval::<Object<'js>, _>("new globalThis.Map()")?;
+        let obj = BasePrimordials::get(ctx)?.constructor_map.construct(())?;
         Ok(Self { object: obj })
     }
 
     pub fn get<K: IntoJs<'js>, T: FromJs<'js>>(&self, name: K) -> rquickjs::Result<T> {
         self.object
-            .get::<_, Function>("get")?
+            .get::<_, Function>(PredefinedAtom::Getter)?
             .call((This(self.object.clone()), name))
     }
 
     pub fn has<T: IntoJs<'js>>(&self, name: T) -> rquickjs::Result<bool> {
         self.object
-            .get::<_, Function>("has")?
+            .get::<_, Function>(PredefinedAtom::Has)?
             .call((This(self.object.clone()), name))
     }
 
     pub fn set<K: IntoJs<'js>, V: IntoJs<'js>>(&self, name: K, value: V) -> rquickjs::Result<()> {
-        self.object.get::<_, Function>("set")?.call::<_, Value>((
-            This(self.object.clone()),
-            name,
-            value,
-        ))?;
+        self.object
+            .get::<_, Function>(PredefinedAtom::Setter)?
+            .call::<_, Value>((This(self.object.clone()), name, value))?;
         Ok(())
     }
 
     pub fn del<K: IntoJs<'js>>(&self, name: K) -> rquickjs::Result<()> {
         self.object
-            .get::<_, Function>("delete")?
+            .get::<_, Function>(PredefinedAtom::Delete)?
             .call::<_, Value>((This(self.object.clone()), name))?;
         Ok(())
     }
@@ -51,7 +50,7 @@ impl<'js> Map<'js> {
     }
 
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
-        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("Map")?;
+        let map_ctor = &BasePrimordials::get(ctx)?.constructor_map;
 
         let Some(obj) = value.as_object() else {
             return Ok(false);
@@ -61,11 +60,14 @@ impl<'js> Map<'js> {
     }
 
     pub fn entries(&self) -> rquickjs::Result<Iter<'js>> {
-        let iter = self
-            .object
-            .call_property::<_, _, Value<'js>>("entries", ())?;
+        let iter = self.object.call_property::<_, _, Value<'js>>(
+            BasePrimordials::get(self.object.ctx())?
+                .atom_entries
+                .clone(),
+            (),
+        )?;
 
-        let iter = Iter::from_js(&self.object.ctx(), iter)?;
+        let iter = Iter::from_js(self.object.ctx(), iter)?;
 
         Ok(iter)
     }
@@ -73,7 +75,7 @@ impl<'js> Map<'js> {
     pub fn values(&self) -> rquickjs::Result<Iter<'js>> {
         let iter = self
             .object
-            .call_property::<_, _, Value<'js>>("values", ())?;
+            .call_property::<_, _, Value<'js>>(PredefinedAtom::Values, ())?;
 
         let iter = Iter::from_js(&self.object.ctx(), iter)?;
 
@@ -81,7 +83,10 @@ impl<'js> Map<'js> {
     }
 
     pub fn keys(&self) -> rquickjs::Result<Iter<'js>> {
-        let iter = self.object.call_property::<_, _, Value<'js>>("keys", ())?;
+        let iter = self.object.call_property::<_, _, Value<'js>>(
+            BasePrimordials::get(self.object.ctx())?.atom_keys.clone(),
+            (),
+        )?;
 
         let iter = Iter::from_js(&self.object.ctx(), iter)?;
 
@@ -89,7 +94,7 @@ impl<'js> Map<'js> {
     }
 
     pub fn to_string(&self) -> rquickjs::Result<String> {
-        let func = self.object.get::<_, Function>("toString")?;
+        let func = self.object.get::<_, Function>(PredefinedAtom::ToString)?;
         func.call((This(self.object.clone()),))
     }
 

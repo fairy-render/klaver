@@ -23,7 +23,7 @@ impl ModuleDef for FetchModule {
         ctx: &rquickjs::Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
-        Self::export(ctx, &Registry::get(ctx)?, exports)
+        Self::export(ctx, &Registry::instance(ctx)?, exports)
     }
 }
 
@@ -50,7 +50,7 @@ impl<'js> Exportable<'js> for FetchModule {
 #[cfg(feature = "module")]
 impl klaver_modules::Global for FetchModule {
     async fn define<'a, 'js: 'a>(&'a self, ctx: rquickjs::Ctx<'js>) -> rquickjs::Result<()> {
-        Self::export(&ctx, &Registry::get(&ctx)?, &ctx.globals())?;
+        Self::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals())?;
 
         Ok(())
     }

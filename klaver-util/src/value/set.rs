@@ -2,7 +2,7 @@ use rquickjs::{
     Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Value, class::Trace, function::This,
 };
 
-use crate::{Iter, ObjectExt};
+use crate::{BasePrimordials, Iter, ObjectExt};
 
 #[derive(Debug, Trace, Clone, JsLifetime)]
 pub struct Set<'js> {
@@ -11,7 +11,7 @@ pub struct Set<'js> {
 
 impl<'js> Set<'js> {
     pub fn new(ctx: &Ctx<'js>) -> rquickjs::Result<Set<'js>> {
-        let obj = ctx.eval::<Object<'js>, _>("new globalThis.Set()")?;
+        let obj = BasePrimordials::get(ctx)?.constructor_set.construct(())?;
         Ok(Self { object: obj })
     }
 
@@ -36,13 +36,11 @@ impl<'js> Set<'js> {
     }
 
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
-        let map_ctor: Value<'_> = ctx.globals().get::<_, Value>("Set")?;
-
         let Some(obj) = value.as_object() else {
             return Ok(false);
         };
 
-        Ok(obj.is_instance_of(&map_ctor))
+        Ok(obj.is_instance_of(&BasePrimordials::get(ctx)?.constructor_set))
     }
 
     pub fn clear(&self) -> rquickjs::Result<()> {

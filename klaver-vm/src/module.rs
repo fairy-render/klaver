@@ -16,7 +16,7 @@ impl ModuleDef for VmModule {
         ctx: &rquickjs::Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
-        JsVm::export(ctx, &Registry::get(ctx)?, exports)?;
+        JsVm::export(ctx, &Registry::instance(ctx)?, exports)?;
         Ok(())
     }
 }

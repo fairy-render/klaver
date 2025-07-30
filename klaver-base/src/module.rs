@@ -36,7 +36,7 @@ impl ModuleDef for BaseModule {
         ctx: &rquickjs::Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
-        let registry = &Registry::get(ctx)?;
+        let registry = &Registry::instance(ctx)?;
 
         Self::export(ctx, registry, exports)
     }
@@ -72,7 +72,7 @@ impl<'js> Exportable<'js> for BaseModule {
 #[cfg(feature = "module")]
 impl klaver_modules::Global for BaseModule {
     async fn define<'a, 'js: 'a>(&'a self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
-        Self::export(&ctx, &Registry::get(&ctx)?, &ctx.globals())?;
+        Self::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals())?;
         Ok(())
     }
 }

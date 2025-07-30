@@ -9,12 +9,12 @@ use crate::ExportTarget;
 pub use self::{dyn_event::*, emitter::*, event::*, event_target::*, listener::*};
 use rquickjs::class::JsClass;
 
-pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
+pub(crate) fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
     declare!(decl, Event, EventTarget);
     Ok(())
 }
 
-pub fn exports<'js, T: ExportTarget<'js>>(
+pub(crate) fn exports<'js, T: ExportTarget<'js>>(
     ctx: &rquickjs::Ctx<'js>,
     registry: &crate::Registry,
     exports: &T,

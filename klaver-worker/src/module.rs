@@ -15,7 +15,7 @@ impl ModuleDef for WorkerModule {
         ctx: &rquickjs::Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
-        let reg = Registry::get(ctx)?;
+        let reg = Registry::instance(ctx)?;
         WebWorker::export(ctx, &reg, exports)?;
 
         Ok(())

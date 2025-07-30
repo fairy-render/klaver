@@ -49,7 +49,7 @@ impl JsVm {
           opts.promise = true;
 
           let value = ctx.eval_file_with_options::<Promise, _>(script_path.as_str(), opts).catch(&ctx)?.into_future::<Value>().await.catch(&ctx)?;
-          let registry = Registry::get(&ctx)?;
+          let registry = Registry::instance(&ctx)?;
 
           let data = registry.serialize(&ctx, &value, &Default::default()).catch(&ctx)?;
     
@@ -59,7 +59,7 @@ impl JsVm {
 
         let ret = throw_if!(ctx, ret);
 
-        let registry = Registry::get(&ctx)?;
+        let registry = Registry::instance(&ctx)?;
 
         let value = registry.deserialize(&ctx, ret)?;
 
@@ -74,7 +74,7 @@ impl JsVm {
         let ret = async_with!(self.vm => |ctx| {
 
           let value = ctx.eval_promise(script.as_str()).catch(&ctx)?.into_future::<Value>().await.catch(&ctx)?;
-          let registry = Registry::get(&ctx)?;
+          let registry = Registry::instance(&ctx)?;
           
           let data = registry.serialize(&ctx, &value, &Default::default()).catch(&ctx)?;
     
@@ -84,7 +84,7 @@ impl JsVm {
 
         let ret = throw_if!(ctx, ret);
 
-        let registry = Registry::get(&ctx)?;
+        let registry = Registry::instance(&ctx)?;
         let value = registry.deserialize(&ctx, ret)?;
 
         Ok(value)

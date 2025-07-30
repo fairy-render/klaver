@@ -59,7 +59,7 @@ impl Registry {
         Ok(registry)
     }
 
-    pub fn get(ctx: &Ctx<'_>) -> rquickjs::Result<Registry> {
+    pub fn instance(ctx: &Ctx<'_>) -> rquickjs::Result<Registry> {
         let registry = match ctx.userdata::<Registry>() {
             Some(registry) => registry,
             None => {

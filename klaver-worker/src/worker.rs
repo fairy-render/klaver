@@ -40,7 +40,7 @@ impl<'js> WebWorker<'js> {
     ) -> rquickjs::Result<Class<'js, WebWorker<'js>>> {
         let workers = Workers::from_ctx(&ctx)?;
 
-        let registry = Registry::get(&ctx)?;
+        let registry = Registry::instance(&ctx)?;
 
         let channel = MessageChannel::new(ctx.clone())?;
 

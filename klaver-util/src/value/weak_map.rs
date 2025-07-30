@@ -1,8 +1,9 @@
 use rquickjs::{
-    Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Value, class::Trace, function::This,
+    Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Value, atom::PredefinedAtom, class::Trace,
+    function::This,
 };
 
-use crate::{Iter, object::ObjectExt};
+use crate::{BasePrimordials, Iter, object::ObjectExt};
 
 #[derive(Debug, Trace, Clone, PartialEq, Eq, JsLifetime)]
 pub struct WeakMap<'js> {
@@ -11,28 +12,28 @@ pub struct WeakMap<'js> {
 
 impl<'js> WeakMap<'js> {
     pub fn new(ctx: &Ctx<'js>) -> rquickjs::Result<WeakMap<'js>> {
-        let obj = ctx.eval::<Object<'js>, _>("new globalThis.WeakMap()")?;
+        let obj = BasePrimordials::get(ctx)?
+            .constructor_weak_map
+            .construct(())?;
         Ok(Self { object: obj })
     }
 
     pub fn get<K: IntoJs<'js>, T: FromJs<'js>>(&self, name: K) -> rquickjs::Result<T> {
         self.object
-            .get::<_, Function>("get")?
+            .get::<_, Function>(PredefinedAtom::Getter)?
             .call((This(self.object.clone()), name))
     }
 
     pub fn has<T: IntoJs<'js>>(&self, name: T) -> rquickjs::Result<bool> {
         self.object
-            .get::<_, Function>("has")?
+            .get::<_, Function>(PredefinedAtom::Has)?
             .call((This(self.object.clone()), name))
     }
 
     pub fn set<K: IntoJs<'js>, V: IntoJs<'js>>(&self, name: K, value: V) -> rquickjs::Result<()> {
-        self.object.get::<_, Function>("set")?.call::<_, Value>((
-            This(self.object.clone()),
-            name,
-            value,
-        ))?;
+        self.object
+            .get::<_, Function>(PredefinedAtom::Setter)?
+            .call::<_, Value>((This(self.object.clone()), name, value))?;
         Ok(())
     }
 

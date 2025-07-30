@@ -28,7 +28,7 @@ impl klaver_modules::Global for WinterCG {
         ctx: Ctx<'js>,
     ) -> impl Future<Output = rquickjs::Result<()>> + 'a {
         async move {
-            let registry = Registry::get(&ctx)?;
+            let registry = Registry::instance(&ctx)?;
 
             WinterCG::export(&ctx, &registry, &ctx.globals())?;
 
