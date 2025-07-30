@@ -1,4 +1,4 @@
-use klaver_task::{AsyncState, EventLoop, Resource, Runner, set_promise_hook};
+use klaver_task::{AsyncState, EventLoop, Resource, ResourceId, Runner, set_promise_hook};
 use klaver_util::{
     RuntimeError,
     rquickjs::{
@@ -27,7 +27,7 @@ impl<'js> Runner<'js> for TestRunner {
         &self,
         ctx: klaver_task::TaskCtx<'js>,
     ) -> klaver_util::rquickjs::Result<Self::Output> {
-        ctx.ctx.globals().set(
+        ctx.globals().set(
             "print",
             Func::new(|ctx: Ctx<'js>, value: Rest<Value<'js>>| {
                 let mut output = String::new();
@@ -45,34 +45,30 @@ impl<'js> Runner<'js> for TestRunner {
             }),
         )?;
 
-        ctx.ctx.globals().set(
+        ctx.globals().set(
             "gc",
             Func::new(|ctx: Ctx<'js>| {
                 ctx.run_gc();
             }),
         )?;
 
-        ctx.ctx.globals().set(
+        ctx.globals().set(
             "testAsync",
             Func::new(|ctx: Ctx<'js>, cb: Function<'js>| {
                 //
 
-                let tasks = AsyncState::get(&ctx)?;
-
-                tasks.push(&ctx, TestResource { callback: cb })?;
+                AsyncState::push(&ctx, TestResource { callback: cb })?;
 
                 rquickjs::Result::Ok(())
             }),
         )?;
 
-        ctx.ctx.globals().set(
+        ctx.globals().set(
             "setTimeout",
             Func::new(|ctx: Ctx<'js>, cb: Function<'js>, timeout: Opt<u64>| {
                 //
 
-                let tasks = AsyncState::get(&ctx)?;
-
-                tasks.push(
+                AsyncState::push(
                     &ctx,
                     TimeResource {
                         callback: cb,
@@ -84,14 +80,19 @@ impl<'js> Runner<'js> for TestRunner {
             }),
         )?;
 
-        Module::declare_def::<klaver_task::TaskModule, _>(ctx.ctx.clone(), "node:async_hooks")?;
+        Module::declare_def::<klaver_task::TaskModule, _>(ctx.ctx().clone(), "node:async_hooks")?;
 
-        let ret = Module::evaluate(ctx.ctx.clone(), "main", include_str!("./test.js"))?
-            .into_future::<()>()
-            .await;
+        let module = Module::declare(ctx.ctx().clone(), "main", include_str!("./test.js"))?;
 
-        println!("Run");
-        ret
+        module.meta()?.set("main", true)?;
+
+        let (module, promise) = module.eval()?;
+
+        // let ret = Module::evaluate(ctx.ctx().clone(), "main", include_str!("./test.js"))?
+        //     .into_future::<()>()
+        //     .await;
+
+        promise.into_future().await
     }
 }
 
@@ -100,6 +101,12 @@ struct TestResource<'js> {
 }
 
 pub struct ResourceKey;
+
+impl ResourceId for ResourceKey {
+    fn name() -> &'static str {
+        "Test"
+    }
+}
 
 impl<'js> Resource<'js> for TestResource<'js> {
     type Id = ResourceKey;
@@ -119,6 +126,12 @@ struct TimeResource<'js> {
 }
 
 pub struct TimeoutKey;
+
+impl ResourceId for TimeoutKey {
+    fn name() -> &'static str {
+        "Timeout"
+    }
+}
 
 impl<'js> Resource<'js> for TimeResource<'js> {
     type Id = TimeoutKey;

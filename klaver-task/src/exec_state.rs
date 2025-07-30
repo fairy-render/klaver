@@ -1,5 +1,5 @@
 use core::fmt;
-use event_listener::{Event, EventListener};
+use event_listener::Event;
 use klaver_util::rquickjs::{self, FromJs, IntoJs, Value, class::Trace};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
 
@@ -101,6 +101,7 @@ impl Default for ExecState {
 
 impl ExecState {
     // Get nearest task which is a Root
+    #[allow(unused)]
     pub fn root(&self, mut id: AsyncId) -> Option<AsyncId> {
         loop {
             if let Some(task) = self.0.borrow().tasks.get(&id) {
@@ -124,10 +125,6 @@ impl ExecState {
         } else {
             this.trigger_id = AsyncId::root();
         }
-    }
-
-    pub fn listen(&self) -> EventListener {
-        self.0.borrow().event.listen()
     }
 
     /// Shutdown a task and all it's subtasks
@@ -194,7 +191,7 @@ impl ExecState {
             if borrow.execution_id != AsyncId::root() {
                 borrow.execution_id
             } else {
-                borrow.trigger_id
+                borrow.execution_id
             }
         });
 

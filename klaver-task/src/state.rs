@@ -1,4 +1,8 @@
-use crate::{AsyncState, HandleMap, HookListeners, exec_state::AsyncId};
+use crate::{
+    AsyncState,
+    exec_state::AsyncId,
+    listener::{HandleMap, HookListeners},
+};
 use klaver_util::{
     FinalizationRegistry, FunctionExt, TypedMap,
     rquickjs::{

@@ -1,6 +1,8 @@
 use klaver_util::rquickjs::{self, Class, Ctx, Function, Value, class::Trace};
 
-use crate::{AsyncState, NativeListener, ResourceKind, TaskCtx, state::HookState};
+use crate::{
+    AsyncState, NativeListener, ResourceKind, TaskCtx, listener::ResourceHandle, state::HookState,
+};
 
 pub struct AsyncLocalStorage<'js> {
     state: AsyncState,
@@ -59,7 +61,7 @@ impl<'js> NativeListener<'js> for AsyncStorageHook<'js> {
         id: crate::exec_state::AsyncId,
         ty: crate::ResourceKind,
         trigger: Option<crate::exec_state::AsyncId>,
-        resource: &crate::ResourceHandle<'js>,
+        resource: &ResourceHandle<'js>,
     ) -> rquickjs::Result<()> {
         let curent_id = self.state.exec.exectution_trigger_id();
         let current_resource = self.hook.borrow().resources.get_handle(ctx, curent_id)?;

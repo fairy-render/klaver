@@ -1,5 +1,5 @@
-use crate::{AsyncState, ScriptListener, async_hook::AsyncHook, state::HookState};
-use klaver_util::rquickjs::{self, Ctx, module::ModuleDef, prelude::Func};
+use crate::{AsyncState, ResourceKind, ScriptListener, async_hook::AsyncHook, state::HookState};
+use klaver_util::rquickjs::{self, Ctx, String, Value, module::ModuleDef, prelude::Func};
 
 pub struct TaskModule;
 
@@ -11,6 +11,7 @@ impl ModuleDef for TaskModule {
         decl.declare("executionAsyncId")?;
         decl.declare("createHook")?;
         decl.declare("executionAsyncResource")?;
+        decl.declare("resourceName")?;
         Ok(())
     }
 
@@ -59,6 +60,19 @@ impl ModuleDef for TaskModule {
                     .get_handle(&ctx, state.exec.exectution_trigger_id())?;
 
                 rquickjs::Result::Ok(resource)
+            }),
+        )?;
+
+        exports.export(
+            "resourceName",
+            Func::new(|ctx: Ctx<'js>, resource: ResourceKind| {
+                let state = AsyncState::get(&ctx)?;
+
+                if let Some(name) = state.resource_map.borrow().name(resource) {
+                    rquickjs::Result::Ok(String::from_str(ctx, name)?.into_value())
+                } else {
+                    Ok(Value::new_null(ctx))
+                }
             }),
         )?;
 

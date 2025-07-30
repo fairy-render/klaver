@@ -1,6 +1,6 @@
 use klaver_util::rquickjs::{self, Class, JsLifetime, class::Trace};
 
-use crate::{HookListeners, Listener, ScriptListener};
+use crate::{Listener, ScriptListener, listener::HookListeners};
 
 #[rquickjs::class(crate = "rquickjs")]
 pub struct AsyncHook<'js> {

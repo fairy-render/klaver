@@ -1,8 +1,10 @@
-import { triggerAsyncId, executionAsyncId, createHook, executionAsyncResource } from 'node:async_hooks'
+import { triggerAsyncId, executionAsyncId, createHook, executionAsyncResource, resourceName } from 'node:async_hooks'
+
 
 
 createHook({
     init(aid, ty, tid, resource) {
+        print("Name", resourceName(ty))
         const cr = executionAsyncResource();
         if (cr) {
             resource["test"] = cr["test"];
@@ -44,32 +46,32 @@ setTimeout(() => {
 })
 
 
-setTimeout(() => {
-    executionAsyncResource()['test'] = 43;
-    print("Eis2", executionAsyncId())
-    setTimeout(() => {
-        print("Eis2", executionAsyncId())
-        print(executionAsyncResource())
-        setTimeout(() => {
-            print("Eis2", executionAsyncId())
-            print(executionAsyncResource())
-        })
-    })
-})
-setTimeout(() => {
-    print('hello')
-    print(executionAsyncId(), triggerAsyncId())
-    setTimeout(() => {
-        print(executionAsyncId(), triggerAsyncId())
-    }, 0)
+// setTimeout(() => {
+//     executionAsyncResource()['test'] = 43;
+//     print("Eis2", executionAsyncId())
+//     setTimeout(() => {
+//         print("Eis2", executionAsyncId())
+//         print(executionAsyncResource())
+//         setTimeout(() => {
+//             print("Eis2", executionAsyncId())
+//             print(executionAsyncResource())
+//         })
+//     })
+// })
+// setTimeout(() => {
+//     print('hello')
+//     print(executionAsyncId(), triggerAsyncId())
+//     setTimeout(() => {
+//         print(executionAsyncId(), triggerAsyncId())
+//     }, 0)
 
-    setTimeout(() => {
-        print(executionAsyncId(), triggerAsyncId())
-        setTimeout(() => {
-            print(executionAsyncId(), triggerAsyncId())
-        }, 0)
-    }, 0)
-}, 0)
+//     setTimeout(() => {
+//         print(executionAsyncId(), triggerAsyncId())
+//         setTimeout(() => {
+//             print(executionAsyncId(), triggerAsyncId())
+//         }, 0)
+//     }, 0)
+// }, 0)
 
 
 

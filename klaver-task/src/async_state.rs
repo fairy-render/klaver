@@ -4,26 +4,20 @@ use klaver_util::{
     rquickjs::{self, CatchResultExt, Ctx, JsLifetime},
     throw, throw_if,
 };
-use std::{
-    any::TypeId,
-    cell::{Cell, RefCell},
-    collections::HashMap,
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    NEXT_ID, ResourceKind,
+    ResourceKind,
     cell::ObservableRefCell,
     exec_state::ExecState,
-    resource::{Resource, TaskCtx},
+    resource::{Resource, ResourceMap, TaskCtx},
 };
 
 #[derive(Clone)]
 pub struct AsyncState {
     pub(crate) exec: ExecState,
     pub(crate) exception: Rc<ObservableRefCell<Option<CaugthException>>>,
-    pub(crate) id_map: Rc<RefCell<HashMap<TypeId, ResourceKind>>>,
-    pub(crate) next_id: Rc<Cell<u32>>,
+    pub(crate) resource_map: Rc<RefCell<ResourceMap>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for AsyncState {
@@ -31,7 +25,7 @@ unsafe impl<'js> JsLifetime<'js> for AsyncState {
 }
 
 impl AsyncState {
-    pub fn get(ctx: &Ctx<'_>) -> rquickjs::Result<AsyncState> {
+    pub(crate) fn get(ctx: &Ctx<'_>) -> rquickjs::Result<AsyncState> {
         match ctx.userdata::<Self>() {
             Some(ret) => Ok(ret.clone()),
             None => {
@@ -40,8 +34,7 @@ impl AsyncState {
                     ctx.store_userdata(AsyncState {
                         exec: Default::default(),
                         exception: Rc::new(ObservableRefCell::new(None)),
-                        id_map: Default::default(),
-                        next_id: Rc::new(Cell::new(NEXT_ID))
+                        resource_map: Rc::new(RefCell::new(ResourceMap::new()))
                     })
                 );
 
@@ -50,36 +43,21 @@ impl AsyncState {
         }
     }
 
-    pub fn push<'js, T: Resource<'js> + 'js>(
-        &self,
-        ctx: &Ctx<'js>,
-        resource: T,
-    ) -> rquickjs::Result<()> {
-        let type_id = TypeId::of::<T::Id>();
+    /// Start a new async task
+    pub fn push<'js, T: Resource<'js> + 'js>(ctx: &Ctx<'js>, resource: T) -> rquickjs::Result<()> {
+        let this = Self::get(ctx)?;
 
-        let kind = if let Some(id) = self.id_map.borrow().get(&type_id) {
-            *id
-        } else {
-            let kind = self.next_id.get();
-            self.next_id.update(|id| id + 1);
-            self.id_map.borrow_mut().insert(type_id, ResourceKind(kind));
-            ResourceKind(kind)
-        };
-
-        let id = self.exec.create_task(None, kind);
-
-        let ctx = ctx.clone();
-
-        let exec = self.exec.clone();
-
-        let task_ctx = TaskCtx::new(ctx.clone(), exec.clone(), kind, id)?;
-        let exception = self.exception.clone();
-
+        let exception = this.exception.clone();
         if exception.borrow().is_some() {
             return Ok(());
         }
 
-        if let Err(err) = task_ctx.init().catch(&task_ctx.ctx) {
+        let kind = this.resource_map.borrow_mut().register::<T>();
+        let id = this.exec.create_task(None, kind);
+
+        let task_ctx = TaskCtx::new(ctx.clone(), this.exec.clone(), kind, id)?;
+
+        if let Err(err) = task_ctx.init().catch(&task_ctx) {
             exception.update(move |mut m| *m = Some(err.into()));
             return task_ctx.destroy();
         }
@@ -90,23 +68,22 @@ impl AsyncState {
                 return;
             }
 
-            let ctx = task_ctx.ctx.clone();
+            let ctx = task_ctx.ctx().clone();
 
             let future = resource.run(task_ctx.clone());
 
+            // Wait for either the task to finish or a uncaught exception
             futures::select! {
                 ret = future.fuse() => {
                     if let Err(err) = ret.catch(&ctx) {
                         exception.update(|mut m| *m = Some(err.into()));
                     } else {
-
+                        this.exec.wait_children(id).await;
                     }
-                }
-                _ = exception.subscribe().fuse() => {
-                }
-            }
 
-            exec.wait_children(id).await;
+                }
+                _ = exception.subscribe().fuse() => { }
+            }
 
             task_ctx.destroy().ok();
         });
@@ -131,6 +108,7 @@ impl AsyncState {
 
         futures::select! {
             ret = ret.fuse() => {
+
                 match ret.catch(&ctx) {
                     Ok(ret) => {
                         self.exec.shutdown(id).await?;

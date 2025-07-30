@@ -11,6 +11,10 @@ mod resource;
 mod state;
 
 pub use self::{
-    async_state::AsyncState, event_loop::*, listener::*, module::TaskModule,
-    promise_hook::set_promise_hook, resource::*,
+    async_state::AsyncState,
+    event_loop::*,
+    listener::{Listener, NativeListener, ScriptListener},
+    module::TaskModule,
+    promise_hook::set_promise_hook,
+    resource::{Resource, ResourceId, ResourceKind, TaskCtx},
 };
