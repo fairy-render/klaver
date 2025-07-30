@@ -1,4 +1,4 @@
-use klaver_util::rquickjs::{self, AsyncRuntime, Ctx, Value, promise::PromiseHookType};
+use klaver_util::rquickjs::{self, AsyncRuntime, Ctx, IntoJs, Value, promise::PromiseHookType};
 
 use crate::{AsyncState, ResourceKind, exec_state::AsyncId, state::HookState};
 
@@ -29,18 +29,19 @@ fn promise_hook<'js>(
 
     match hook {
         PromiseHookType::Init => {
-            let id = state.exec.create_task(parent_id, ResourceKind::Promise);
+            let id = state.exec.create_task(parent_id, ResourceKind::PROMISE);
             promise.set(symbol, id)?;
 
-            hook_state
-                .borrow()
-                .registry
-                .register(promise.clone().into_value(), id)?;
+            hook_state.borrow().registry.register(
+                promise.clone().into_value(),
+                id.into_js(&ctx)?,
+                None,
+            )?;
 
             hook_state.borrow().hooks.borrow_mut().init(
                 &ctx,
                 id,
-                ResourceKind::Promise,
+                ResourceKind::PROMISE,
                 Some(parent_id.unwrap_or_else(|| state.exec.trigger_async_id())),
             )?;
 

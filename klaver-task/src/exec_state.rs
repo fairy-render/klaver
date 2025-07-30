@@ -34,10 +34,14 @@ impl<'js> FromJs<'js> for AsyncId {
 }
 
 pub struct Task {
+    /// The parent task responsible of spawning this tasks
     parent: AsyncId,
+    /// Number of subtask spawned by this task
     children: usize,
     shutdown: Rc<ObservableCell<bool>>,
+    /// Kind of resource
     kind: ResourceKind,
+    /// Nearest native ancester this tasks is attached to
     attached_to: Option<AsyncId>,
 }
 
@@ -48,7 +52,7 @@ impl fmt::Debug for Task {
             .field("children", &self.children)
             .field("shutdown", &self.shutdown.get())
             .field("kind", &self.kind)
-            .field("parent_resource", &self.attached_to)
+            .field("attached_to", &self.attached_to)
             .finish()
     }
 }
@@ -63,6 +67,7 @@ struct Inner {
 }
 
 impl Inner {
+    /// Notify all sub task that they should shutdown
     fn notify_shutdown(&self, parent: AsyncId) -> rquickjs::Result<()> {
         let Some(task) = self.tasks.get(&parent) else {
             return Ok(());
@@ -85,10 +90,6 @@ pub struct ExecState(Rc<RefCell<Inner>>);
 impl Default for ExecState {
     fn default() -> Self {
         ExecState(Rc::new(RefCell::new(Inner {
-            // next_id: 1,
-            // current_id: vec![AsyncId(0)],
-            // execution_id: vec![AsyncId(0)],
-            // tasks,
             tasks: Default::default(),
             next_id: 1,
             trigger_id: AsyncId(0),
@@ -99,10 +100,22 @@ impl Default for ExecState {
 }
 
 impl ExecState {
-    pub fn dump(&self) {
-        println!("{:#?}", &*self.0.borrow());
+    // Get nearest task which is a Root
+    pub fn root(&self, mut id: AsyncId) -> Option<AsyncId> {
+        loop {
+            if let Some(task) = self.0.borrow().tasks.get(&id) {
+                if task.kind == ResourceKind::ROOT {
+                    return Some(id);
+                } else if let Some(attached) = task.attached_to {
+                    id = attached
+                }
+            } else {
+                return None;
+            }
+        }
     }
 
+    /// Set current execution scope
     pub fn set_current(&self, current: AsyncId) {
         let mut this = self.0.borrow_mut();
         this.execution_id = current;
@@ -117,6 +130,8 @@ impl ExecState {
         self.0.borrow().event.listen()
     }
 
+    /// Shutdown a task and all it's subtasks
+    /// It will not stop the tasks, only signal
     pub async fn shutdown(&self, id: AsyncId) -> rquickjs::Result<()> {
         if self.child_count(id) == 0 {
             return Ok(());
@@ -156,6 +171,7 @@ impl ExecState {
         Ok(())
     }
 
+    /// Wait for all subtasks to be destroyed
     pub async fn wait_children(&self, id: AsyncId) {
         loop {
             if self.child_count(id) == 0 {
@@ -165,20 +181,6 @@ impl ExecState {
             let listener = self.0.borrow().event.listen();
 
             listener.await;
-        }
-    }
-
-    fn attach_to_parent_native(&self, mut parent: AsyncId) -> Option<AsyncId> {
-        loop {
-            if let Some(task) = self.0.borrow_mut().tasks.get_mut(&parent) {
-                if task.kind.is_native() {
-                    task.children += 1;
-                    return Some(parent);
-                }
-                parent = task.attached_to.unwrap_or_else(|| task.parent);
-            } else {
-                return None;
-            }
         }
     }
 
@@ -208,16 +210,6 @@ impl ExecState {
             None
         };
 
-        // if self.exectution_trigger_id()
-
-        // let parent = self.exectution_trigger_id();
-
-        // let parent = if let Some(parent) = parent {
-        //     parent
-        // } else {
-        //     self.exectution_trigger_id()
-        // };
-
         self.0.borrow_mut().tasks.insert(
             id,
             Task {
@@ -243,6 +235,7 @@ impl ExecState {
             .unwrap_or_default()
     }
 
+    /// Remove a task
     pub fn destroy_task(&self, id: AsyncId) {
         let Some(task) = self.0.borrow_mut().tasks.remove(&id) else {
             return;
@@ -272,5 +265,21 @@ impl ExecState {
             .get(&id)
             .map(|m| m.parent)
             .unwrap_or(AsyncId(0))
+    }
+}
+
+impl ExecState {
+    fn attach_to_parent_native(&self, mut parent: AsyncId) -> Option<AsyncId> {
+        loop {
+            if let Some(task) = self.0.borrow_mut().tasks.get_mut(&parent) {
+                if task.kind.is_native() {
+                    task.children += 1;
+                    return Some(parent);
+                }
+                parent = task.attached_to.unwrap_or_else(|| task.parent);
+            } else {
+                return None;
+            }
+        }
     }
 }

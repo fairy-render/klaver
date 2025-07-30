@@ -5,8 +5,9 @@ edition = "2024"
 
 [dependencies]
 klaver-util = { path = "../klaver-util" }
-
 event-listener = { workspace = true }
-pin-project-lite = { workspace = true }
-futures = { workspace = true }
-flume.workspace = true
+futures.workspace = true
+slotmap = { version = "1" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["time", "macros", "rt"] }

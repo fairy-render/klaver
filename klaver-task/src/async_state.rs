@@ -30,7 +30,6 @@ unsafe impl<'js> JsLifetime<'js> for AsyncState {
     type Changed<'to> = AsyncState;
 }
 
-impl AsyncState {}
 impl AsyncState {
     pub fn get(ctx: &Ctx<'_>) -> rquickjs::Result<AsyncState> {
         match ctx.userdata::<Self>() {
@@ -49,10 +48,6 @@ impl AsyncState {
                 Ok(ctx.userdata::<Self>().unwrap().clone())
             }
         }
-    }
-
-    pub fn dump(&self) {
-        self.exec.dump();
     }
 
     pub fn push<'js, T: Resource<'js> + 'js>(
@@ -126,9 +121,9 @@ impl AsyncState {
         T: FnOnce(TaskCtx<'js>) -> U,
         U: Future<Output = rquickjs::Result<R>>,
     {
-        let id = self.exec.create_task(None, ResourceKind::Root);
+        let id = self.exec.create_task(None, ResourceKind::ROOT);
 
-        let task_ctx = TaskCtx::new(ctx.clone(), self.exec.clone(), ResourceKind::Root, id)?;
+        let task_ctx = TaskCtx::new(ctx.clone(), self.exec.clone(), ResourceKind::ROOT, id)?;
 
         self.exec.set_current(id);
 

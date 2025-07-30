@@ -27,8 +27,7 @@ members = [
   "klaver-intl",
   "klaver-cli",
   "klaver-test",
-  # "klaver-task",
-  "klaver-task2",
+  "klaver-task",
   # "klaver-http",
 ]
 

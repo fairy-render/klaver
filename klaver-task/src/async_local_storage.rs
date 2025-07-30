@@ -1,12 +1,6 @@
-use klaver_util::{
-    TypedMap,
-    rquickjs::{self, Class, Ctx, Function, Value, class::Trace},
-};
+use klaver_util::rquickjs::{self, Class, Ctx, Function, Value, class::Trace};
 
-use crate::{
-    AsyncState, NativeListener, ResourceHandle, ResourceKind, TaskCtx, exec_state::AsyncId,
-    state::HookState,
-};
+use crate::{AsyncState, NativeListener, ResourceKind, TaskCtx, state::HookState};
 
 pub struct AsyncLocalStorage<'js> {
     state: AsyncState,
@@ -22,12 +16,12 @@ impl<'js> AsyncLocalStorage<'js> {
         store: Value<'js>,
         func: Function<'js>,
     ) -> rquickjs::Result<Value<'js>> {
-        let id = self.state.exec.create_task(None, ResourceKind::Script);
+        let id = self.state.exec.create_task(None, ResourceKind::SCRIPT);
 
         let task_ctx = TaskCtx::new(
             ctx.clone(),
             self.state.exec.clone(),
-            ResourceKind::Script,
+            ResourceKind::SCRIPT,
             id,
         )?;
         task_ctx.init()?;
