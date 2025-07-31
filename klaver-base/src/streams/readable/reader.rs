@@ -48,7 +48,13 @@ impl<'js> ReadableStreamDefaultReader<'js> {
             throw!(@type ctx, "This reader does not hold a lock to the stream")
         };
 
+        if !data.borrow().is_running() {
+            throw!(@type ctx, "Stream is closed")
+        }
+
         WaitReadReady::new(data.clone()).await?;
+
+        println!("{:?}", &*data.borrow());
 
         if let Some(entry) = data.borrow_mut().pop() {
             Ok(Chunk {

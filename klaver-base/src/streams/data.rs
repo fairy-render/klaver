@@ -20,6 +20,7 @@ pub enum ControllerState<'js> {
     Done,
 }
 
+#[derive(Debug)]
 #[rquickjs::class]
 pub struct StreamData<'js> {
     pub queue: Queue<'js>,

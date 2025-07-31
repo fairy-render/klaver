@@ -1,11 +1,11 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt::Debug};
 
 use event_listener::Event;
 use rquickjs::{Ctx, Function, Promise, Value, class::Trace};
 
 use crate::streams::queue_strategy::QueuingStrategy;
 
-#[derive(Trace)]
+#[derive(Trace, Debug)]
 pub struct Entry<'js> {
     pub chunk: Value<'js>,
     pub resolve: Function<'js>,
@@ -18,6 +18,15 @@ pub struct Queue<'js> {
     strategy: QueuingStrategy<'js>,
     current_size: u64,
     ready: Event,
+}
+
+impl<'js> Debug for Queue<'js> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Queue")
+            .field("chunks", &self.chunks)
+            .field("current_size", &self.current_size)
+            .finish()
+    }
 }
 
 impl<'js> Trace<'js> for Queue<'js> {
