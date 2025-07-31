@@ -97,3 +97,48 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    macro_rules! test_async {
+    ($name: ident => |$ctx: ident| $test: block) => {
+        #[test]
+        fn $name() {
+            futures::executor::block_on(async move {
+                let rt = AsyncRuntime::new().unwrap();
+                let ctx = AsyncContext::full(&rt).await.unwrap();
+                rquickjs::async_with!(ctx => |$ctx| {
+                    $test
+
+                    Result::<_, RuntimeError>::Ok(())
+                }).await
+            }).unwrap();
+
+        }
+    };
+}
+
+    use crate::{FunctionExt, NativeAsyncIterator, RuntimeError, StreamAsyncIterator};
+    use futures::StreamExt;
+    use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Class, Context, Function, Runtime};
+
+    test_async!(stream => |ctx| {
+        let stream = futures::stream::iter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).map(|m| rquickjs::Result::Ok(m));
+         let ret = ctx.eval::<Function,_>(
+                    r#"async (iter) => {
+                    const output = [];
+                    for await (const next of iter) {
+                        output.push(next)
+                    }
+                    return output;
+                }"#,
+        ).catch(&ctx)?;
+
+        let ret: Vec<i32> = ret.call_async((Class::instance(ctx.clone(), NativeAsyncIterator::new(StreamAsyncIterator::new(stream)))?,)).await.catch(&ctx)?;
+
+        assert_eq!(ret, vec![1,2,3,4,5,6,7,8,9,10]);
+
+
+    });
+}

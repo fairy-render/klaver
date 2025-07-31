@@ -23,6 +23,7 @@ pub trait NativeSource<'js>: Trace<'js> {
     ) -> rquickjs::Result<()>;
 }
 
+/// A Underlying source that wraps a async iterator
 pub struct AsyncIteratorSource<T>(pub T);
 
 impl<'js, T> Trace<'js> for AsyncIteratorSource<T>

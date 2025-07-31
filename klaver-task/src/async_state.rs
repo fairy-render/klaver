@@ -15,11 +15,10 @@ use std::{
 };
 
 use crate::{
-    ResourceId, ResourceKind,
+    ResourceKind,
     cell::{ObservableCell, ObservableRefCell},
     exec_state::{AsyncId, ExecState},
     resource::{Resource, ResourceMap, TaskCtx},
-    state,
     task::TaskStatus,
 };
 

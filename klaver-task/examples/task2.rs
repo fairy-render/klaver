@@ -6,7 +6,6 @@ use klaver_util::{
         prelude::{Func, Opt, Rest},
     },
 };
-use tracing::level_filters::LevelFilter;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), RuntimeError> {
