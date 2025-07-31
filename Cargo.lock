@@ -1932,6 +1932,7 @@ dependencies = [
  "futures",
  "pin-project-lite",
  "rquickjs",
+ "slotmap",
  "udled 0.4.0",
  "udled-tokenizers 0.3.0",
 ]

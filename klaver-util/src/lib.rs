@@ -12,6 +12,7 @@ mod object;
 mod primordials;
 mod proxy;
 mod string;
+mod sync;
 mod value;
 
 pub use self::{
