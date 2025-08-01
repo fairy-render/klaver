@@ -1,6 +1,7 @@
 use std::{
     cell::RefCell,
     rc::{Rc, Weak},
+    task::ready,
 };
 
 use pin_project_lite::pin_project;
@@ -15,6 +16,9 @@ pub struct Sender<T> {
 }
 impl<T> Sender<T> {
     pub fn send(self, value: T) {
+        if self.notify.total_listeners() == 0 {
+            todo!()
+        }
         *self.data.borrow_mut() = Some(value);
         self.notify.notify();
     }
@@ -29,12 +33,13 @@ pub struct Receiver<T> {
 }
 
 impl<T> Future for Receiver<T> {
-    type Output = T;
+    type Output = Result<T, RecevError>;
 
     fn poll(
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
-        todo!()
+        let this = self.project();
+        ready!(this.listener.poll(cx));
     }
 }

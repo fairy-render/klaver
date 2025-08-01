@@ -17,4 +17,4 @@ udled-tokenizers = { version = "0.3.0" }
 
 chrono = { version = "0.4", optional = true }
 
-slotmap = { version = "1" }
+event-listener = { version = "5" }

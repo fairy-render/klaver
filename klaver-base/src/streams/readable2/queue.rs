@@ -49,7 +49,7 @@ impl<'js> Queue<'js> {
         Ok(())
     }
 
-    pub fn pop(&mut self) -> Option<Entry<'js>> {
+    pub fn pop(&mut self) -> Option<Value<'js>> {
         let entry = self.items.pop_back()?;
         if entry.size > self.size {
             self.size = 0;
@@ -57,6 +57,6 @@ impl<'js> Queue<'js> {
             self.size -= entry.size;
         }
 
-        Some(entry)
+        Some(entry.value)
     }
 }
