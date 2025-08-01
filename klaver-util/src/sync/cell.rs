@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::cell::{Cell, UnsafeCell};
 
 use rquickjs::class::Trace;
 
@@ -39,5 +39,25 @@ where
 {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.cell.get().trace(tracer);
+    }
+}
+
+pub struct ObservableCloneCell<T> {
+    notify: Notify,
+    cell: UnsafeCell<T>,
+}
+
+impl<T> ObservableCloneCell<T>
+where
+    T: Clone,
+{
+    pub fn get(&self) -> T {
+        unsafe { &*self.cell.get() }.clone()
+    }
+
+    pub fn set(&self, value: T) {
+        unsafe {
+            *self.cell.get() = value;
+        }
     }
 }

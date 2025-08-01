@@ -1,6 +1,13 @@
-use std::cell::{Ref, RefCell};
+use std::{
+    cell::{Ref, RefCell},
+    task::{Poll, ready},
+};
 
+use futures::Stream;
+use pin_project_lite::pin_project;
 use rquickjs::class::Trace;
+
+use crate::sync::NotificationStream;
 
 use super::{Listener, Notify};
 
@@ -28,6 +35,14 @@ impl<T> ObservableRefCell<T> {
             inner: self.cell.borrow_mut(),
             mutated: false,
             notify: &self.event,
+        }
+    }
+
+    pub fn wait_until<F>(&self, func: F) -> Wait<'_, F, T> {
+        Wait {
+            func,
+            cell: &self.cell,
+            stream: self.event.stream(),
         }
     }
 
@@ -69,6 +84,36 @@ impl<'a, T> Drop for RefMut<'a, T> {
     fn drop(&mut self) {
         if self.mutated {
             self.notify.notify();
+        }
+    }
+}
+
+pin_project! {
+    pub struct Wait<'a, F, T> {
+        func: F,
+        cell: &'a RefCell<T>,
+        #[pin]
+        stream: NotificationStream,
+    }
+
+}
+
+impl<'a, F, T> Future for Wait<'a, F, T>
+where
+    F: Fn(&T) -> bool,
+{
+    type Output = ();
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        loop {
+            let this = self.as_mut().project();
+            ready!(this.stream.poll_next(cx));
+            if (this.func)(&this.cell.borrow()) {
+                return Poll::Ready(());
+            }
         }
     }
 }
