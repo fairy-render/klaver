@@ -1,3 +1,4 @@
+use klaver_util::sync::ObservableCloneCell;
 use rquickjs::{JsLifetime, String, Value, class::Trace};
 
 use super::queue::Queue;
@@ -16,7 +17,7 @@ pub enum StreamState<'js> {
 #[rquickjs::class]
 pub struct ReadableStreamData<'js> {
     pub queue: Queue<'js>,
-    pub state: StreamState<'js>,
+    pub state: ObservableCloneCell<StreamState<'js>>,
 }
 
 unsafe impl<'js> JsLifetime<'js> for ReadableStreamData<'js> {

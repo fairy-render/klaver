@@ -58,6 +58,22 @@ where
     pub fn set(&self, value: T) {
         unsafe {
             *self.cell.get() = value;
+            self.notify.notify();
+        }
+    }
+
+    pub fn subscribe(&self) -> Listener {
+        self.notify.listen()
+    }
+}
+
+impl<'js, T> Trace<'js> for ObservableCloneCell<T>
+where
+    T: Trace<'js>,
+{
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        unsafe {
+            (&*self.cell.get()).trace(tracer);
         }
     }
 }
