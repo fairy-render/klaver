@@ -19,11 +19,24 @@ impl<'js> ReadableStreamDefaultController<'js> {
 
     pub fn enqueue(&mut self, ctx: Ctx<'js>, data: Value<'js>) -> rquickjs::Result<()> {
         self.enqueued = true;
-        self.data.borrow_mut().push(&ctx, data)
+
+        let mut state = self.data.borrow_mut();
+
+        if state.is_cancled() || state.is_failed() || state.is_closed() {
+            throw!(@type ctx, "Stream is closed")
+        }
+
+        state.push(&ctx, data)
     }
 
     pub fn close(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
-        self.data.borrow_mut().close(&ctx)
+        let mut state = self.data.borrow_mut();
+
+        if state.is_cancled() || state.is_failed() || state.is_closed() {
+            throw!(@type ctx, "Stream is closed")
+        }
+
+        state.close(&ctx)
     }
 
     pub fn error(&self, ctx: Ctx<'js>, value: Value<'js>) -> rquickjs::Result<()> {

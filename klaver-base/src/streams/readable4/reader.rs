@@ -11,6 +11,8 @@ pub struct ReadableStreamDefaultReader<'js> {
     pub data: Option<Class<'js, StreamData<'js>>>,
 }
 
+impl<'js> ReadableStreamDefaultReader<'js> {}
+
 #[rquickjs::methods]
 impl<'js> ReadableStreamDefaultReader<'js> {
     #[qjs(constructor)]

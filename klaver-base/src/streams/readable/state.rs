@@ -1,4 +1,4 @@
-use klaver_util::sync::ObservableCell;
+use klaver_util::sync::{Observable, ObservableCell};
 use rquickjs::{Ctx, JsLifetime, Value, class::Trace};
 
 use crate::streams::queue_strategy::QueuingStrategy;
@@ -20,8 +20,9 @@ pub struct ReadableStreamData<'js> {
     pub queue: Queue<'js>,
     pub state: ObservableCell<StreamState>,
     pub reason: Option<Value<'js>>,
-    pub locked: bool,
-    pub resource_active: ObservableCell<bool>,
+    pub locked: Observable<bool>,
+    pub resource_active: Observable<bool>,
+    pub disturbed: bool,
 }
 
 unsafe impl<'js> JsLifetime<'js> for ReadableStreamData<'js> {
@@ -34,8 +35,9 @@ impl<'js> ReadableStreamData<'js> {
             queue: Queue::new(strategy),
             state: ObservableCell::new(StreamState::Running),
             reason: None,
-            locked: false,
-            resource_active: ObservableCell::new(true),
+            locked: Observable::new(false),
+            resource_active: Observable::new(true),
+            disturbed: false,
         }
     }
 
@@ -44,7 +46,7 @@ impl<'js> ReadableStreamData<'js> {
     }
 
     pub fn is_locked(&self) -> bool {
-        self.locked
+        *self.locked
     }
 
     pub fn is_closed(&self) -> bool {
@@ -75,6 +77,11 @@ impl<'js> ReadableStreamData<'js> {
         self.queue.push(ctx, chunk)?;
 
         Ok(())
+    }
+
+    pub fn pop(&mut self) -> Option<Value<'js>> {
+        self.disturbed = true;
+        self.queue.pop()
     }
 
     pub fn close(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {

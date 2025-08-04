@@ -1,4 +1,5 @@
 mod controller;
+mod from;
 mod queue;
 mod reader;
 mod resource;
@@ -10,6 +11,7 @@ use crate::ExportTarget;
 
 pub use self::{
     controller::ReadableStreamDefaultController,
+    from::from,
     reader::ReadableStreamDefaultReader,
     source::{AsyncIteratorSource, IteratorSource, NativeSource, One, UnderlyingSource},
     stream::ReadableStream,

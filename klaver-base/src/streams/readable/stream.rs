@@ -1,17 +1,19 @@
 use std::{cell::RefCell, rc::Rc};
 
+use futures::{TryStream, stream::LocalBoxStream};
 use klaver_task::AsyncState;
-use klaver_util::throw;
+use klaver_util::{Buffer, RuntimeError, StreamAsyncIterator, StringRef, throw};
 use rquickjs::{
-    Class, Ctx, JsLifetime, Value,
+    CatchResultExt, Class, Ctx, FromJs, IntoJs, JsLifetime, Value,
     class::Trace,
     prelude::{Opt, This},
 };
 
 use crate::streams::{
+    WritableStream,
     queue_strategy::QueuingStrategy,
     readable::{
-        NativeSource,
+        AsyncIteratorSource, NativeSource, from,
         reader::ReadableStreamDefaultReader,
         resource::ReadableStreamResource,
         source::{JsUnderlyingSource, UnderlyingSource},
@@ -26,6 +28,21 @@ pub struct ReadableStream<'js> {
 }
 
 impl<'js> ReadableStream<'js> {
+    pub fn from_stream<T>(
+        ctx: &Ctx<'js>,
+        stream: T,
+        strategy: Option<QueuingStrategy<'js>>,
+    ) -> rquickjs::Result<ReadableStream<'js>>
+    where
+        T: TryStream + Trace<'js> + Unpin + 'js,
+        T::Error: std::error::Error,
+        T::Ok: IntoJs<'js>,
+    {
+        let stream = StreamAsyncIterator::new(stream);
+
+        Self::from_native(ctx, AsyncIteratorSource(stream), strategy)
+    }
+
     pub fn from_native<S: NativeSource<'js> + 'js>(
         ctx: &Ctx<'js>,
         source: S,
@@ -47,6 +64,92 @@ impl<'js> ReadableStream<'js> {
         AsyncState::push(&ctx, resource)?;
 
         Ok(ReadableStream { state })
+    }
+
+    pub fn is(value: &Value<'js>) -> bool {
+        Class::<Self>::from_value(value).is_ok()
+    }
+
+    pub fn disturbed(&self) -> bool {
+        self.state.borrow().disturbed
+            || self.state.borrow().is_cancled()
+            || self.state.borrow().is_failed()
+    }
+
+    pub async fn to_bytes(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Vec<u8>> {
+        let reader = self.get_reader(ctx.clone())?;
+
+        let mut output = Vec::default();
+
+        loop {
+            let next = reader.read_native(ctx).await?;
+
+            if let Some(chunk) = next {
+                if chunk.is_string() {
+                    let chunk = StringRef::from_js(&ctx, chunk)?;
+                    output.extend(chunk.as_bytes())
+                } else {
+                    let buffer = Buffer::from_js(&ctx, chunk)?;
+                    if let Some(bytes) = buffer.as_raw() {
+                        output.extend_from_slice(bytes.slice());
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(output)
+    }
+
+    pub fn to_stream(
+        &self,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<LocalBoxStream<'js, rquickjs::Result<Value<'js>>>> {
+        let reader = self.get_reader(ctx.clone())?;
+
+        let stream = async_stream::try_stream! {
+            loop {
+                let next = reader.read_native(&ctx).await?;
+
+                if  let Some(value) = next {
+                    yield value
+                } else {
+                    break;
+                }
+
+            }
+        };
+        Ok(Box::pin(stream))
+    }
+
+    pub fn to_byte_stream(
+        &self,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<LocalBoxStream<'js, Result<Vec<u8>, RuntimeError>>> {
+        let reader = self.get_reader(ctx.clone())?;
+
+        let stream = async_stream::try_stream! {
+            loop {
+                let next = reader.read_native(&ctx).await.catch(&ctx)?;
+
+                if  let Some(value) = next {
+                    if value.is_string() {
+                        let chunk = StringRef::from_js(&ctx, value).catch(&ctx)?;
+                        yield chunk.as_bytes().to_vec()
+                    } else  {
+                        let buffer = Buffer::from_js(&ctx, value).catch(&ctx)?;
+                        if let Some(bytes) = buffer.as_raw() {
+                            yield bytes.slice().to_vec()
+                        }
+                    }
+                } else {
+                    break;
+                }
+
+            }
+        };
+        Ok(Box::pin(stream))
     }
 }
 
@@ -82,7 +185,7 @@ impl<'js> ReadableStream<'js> {
             throw!(@type ctx, "Stream is locked")
         }
 
-        self.state.borrow_mut().locked = true;
+        self.state.borrow_mut().locked.set(true);
 
         Ok(ReadableStreamDefaultReader {
             data: Some(self.state.clone()),
@@ -99,6 +202,44 @@ impl<'js> ReadableStream<'js> {
         ReadableStreamDefaultReader::cancel(This(reader), ctx, reason).await?;
 
         Ok(())
+    }
+
+    #[qjs(get)]
+    pub fn locked(&self) -> rquickjs::Result<bool> {
+        Ok(self.state.borrow().is_locked())
+    }
+
+    #[qjs(rename = "pipeTo")]
+    pub async fn pipe_to(
+        &self,
+        ctx: Ctx<'js>,
+        stream: Class<'js, WritableStream<'js>>,
+    ) -> rquickjs::Result<()> {
+        let reader = self.get_reader(ctx.clone())?;
+        let writer = stream.borrow().get_writer(ctx.clone())?;
+
+        loop {
+            let next = reader.read_native(&ctx).await?;
+
+            let Some(next) = next else {
+                writer.close(ctx.clone()).await?;
+                break;
+            };
+
+            writer.ready().await?;
+
+            writer.write(ctx.clone(), next)?;
+        }
+
+        Ok(())
+    }
+
+    #[qjs(static)]
+    pub fn from(
+        ctx: Ctx<'js>,
+        value: Value<'js>,
+    ) -> rquickjs::Result<Class<'js, ReadableStream<'js>>> {
+        from(&ctx, value)
     }
 }
 

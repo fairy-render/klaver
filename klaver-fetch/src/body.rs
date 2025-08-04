@@ -73,8 +73,9 @@ impl<'js> BodyMixin<'js> {
                 };
 
                 let stream = ReadableStream::from_stream(
-                    ctx.clone(),
+                    ctx,
                     Static(reggie::body::to_stream(body).map_ok(|m| Bytes(m.to_vec()))),
+                    None,
                 )?;
 
                 let stream = Class::instance(ctx.clone(), stream)?;
@@ -110,7 +111,7 @@ impl<'js> BodyMixin<'js> {
         let Some(body) = self.body(ctx)? else {
             throw!(ctx, "Body already ready")
         };
-        body.borrow().to_bytes(ctx.clone()).await
+        body.borrow().to_bytes(ctx).await
     }
 
     pub async fn to_text(&self, ctx: &Ctx<'js>) -> rquickjs::Result<String<'js>> {
