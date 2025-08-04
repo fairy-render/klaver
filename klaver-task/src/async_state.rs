@@ -155,6 +155,9 @@ impl AsyncState {
             false,
         )?;
 
+        // Init task?
+        task_ctx.init()?;
+
         self.exec.set_current(id);
 
         let ret = func(task_ctx);
