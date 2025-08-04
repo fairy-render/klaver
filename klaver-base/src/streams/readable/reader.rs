@@ -62,6 +62,7 @@ impl<'js> ReadableStreamDefaultReader<'js> {
 
 #[rquickjs::methods]
 impl<'js> ReadableStreamDefaultReader<'js> {
+    #[qjs(get)]
     pub async fn closed(This(this): This<Class<'js, Self>>, ctx: Ctx<'js>) -> rquickjs::Result<()> {
         let Some(data) = this.borrow().data.clone() else {
             throw!(@type ctx, "Lock released");
