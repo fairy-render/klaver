@@ -67,6 +67,6 @@ impl<'js> File<'js> {
     }
 
     pub fn stream(&self, ctx: Ctx<'js>) -> rquickjs::Result<ReadableStream<'js>> {
-        self.blob.stream(ctx)
+        self.blob.stream(ctx, None)
     }
 }

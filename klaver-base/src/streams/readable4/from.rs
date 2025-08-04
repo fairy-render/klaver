@@ -1,7 +1,7 @@
 use klaver_util::{AsyncIter, Buffer, Iter, is_async_iterable, is_iteratable};
 use rquickjs::{Class, Ctx, FromJs, Value};
 
-use crate::streams::readable::{AsyncIteratorSource, IteratorSource, One};
+use crate::streams::readable4::{AsyncIteratorSource, IteratorSource, One};
 
 use super::ReadableStream;
 

@@ -1,108 +1,109 @@
-use crate::streams::data::{StreamData, WaitDone, WaitReadReady, WaitWriteReady};
-use klaver_util::throw;
+use futures::FutureExt;
+use klaver_util::{IteratorResult, throw};
 use rquickjs::{
-    Class, Ctx, FromJs, IntoJs, JsLifetime, Object, String, Value, atom::PredefinedAtom,
-    class::Trace, prelude::Opt,
+    Class, Ctx, JsLifetime, Value,
+    class::Trace,
+    prelude::{Opt, This},
 };
+
+use crate::streams::readable::state::StreamState;
+
+use super::state::ReadableStreamData;
 
 #[derive(Trace, JsLifetime)]
 #[rquickjs::class]
 pub struct ReadableStreamDefaultReader<'js> {
-    pub data: Option<Class<'js, StreamData<'js>>>,
+    pub data: Option<Class<'js, ReadableStreamData<'js>>>,
 }
 
 #[rquickjs::methods]
 impl<'js> ReadableStreamDefaultReader<'js> {
-    #[qjs(constructor)]
-    pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<ReadableStreamDefaultReader<'js>> {
-        throw!(ctx, "ReadableStreamDefaultReader cannot be constructed")
-    }
+    pub fn closed(&self) {}
 
-    #[qjs(get)]
-    pub async fn closed(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
-        let Some(data) = &self.data else {
-            throw!(@type ctx, "This reader does not hold a lock to the stream")
+    pub async fn cancel(
+        This(this): This<Class<'js, Self>>,
+        ctx: Ctx<'js>,
+        reason: Opt<Value<'js>>,
+    ) -> rquickjs::Result<()> {
+        let Some(data) = this.borrow().data.clone() else {
+            throw!(@type ctx, "Lock released");
         };
 
-        WaitDone::new(data.clone()).await?;
+        if !data.borrow().is_locked() {}
+
+        if !data.borrow().is_running() {}
+
+        data.borrow_mut().cancel(&ctx, reason.0)?;
+
+        loop {
+            if !data.borrow().resource_active.get() {
+                break;
+            }
+
+            let listener = data.borrow().resource_active.subscribe();
+            listener.await;
+        }
 
         Ok(())
     }
 
-    pub fn cancel(
-        &self,
+    pub async fn read(
+        This(this): This<Class<'js, Self>>,
         ctx: Ctx<'js>,
-        reason: Opt<String<'js>>,
-    ) -> rquickjs::Result<Option<String<'js>>> {
-        let Some(data) = &self.data else {
-            throw!(@type ctx, "This reader does not hold a lock to the stream")
+    ) -> rquickjs::Result<IteratorResult<Value<'js>>> {
+        let Some(data) = this.borrow().data.clone() else {
+            throw!(@type ctx, "Lock released");
         };
 
-        data.borrow_mut().abort(&ctx, reason.0.clone())?;
+        if data.borrow().is_failed() || data.borrow().is_cancled() {
+            if let Some(data) = data.borrow().reason.clone() {
+                return Err(ctx.throw(data));
+            }
+            throw!(@type ctx, "Stream was cancled")
+        }
 
-        Ok(reason.0)
-    }
+        // Not data in the queue, so we'll wait for a state change
+        if data.borrow().queue.is_empty() && !data.borrow().is_closed() {
+            loop {
+                let state = data.borrow().state.subscribe();
+                let queue = data.borrow().queue.subscribe();
 
-    pub async fn read(&self, ctx: Ctx<'js>) -> rquickjs::Result<Chunk<'js>> {
-        let Some(data) = &self.data else {
-            throw!(@type ctx, "This reader does not hold a lock to the stream")
+                futures::select! {
+                    _ = state.fuse() => {
+                        // A state change means some kind of errors happended
+                    }
+                    _ = queue.fuse() => {
+                        if !data.borrow().queue.is_empty() {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if data.borrow().is_failed() || data.borrow().is_cancled() {
+                if let Some(data) = data.borrow().reason.clone() {
+                    return Err(ctx.throw(data));
+                }
+                throw!(@type ctx, "Stream was cancled")
+            }
+        }
+
+        let Some(value) = data.borrow_mut().queue.pop() else {
+            return Ok(IteratorResult::Done);
         };
 
-        if !data.borrow().is_running() {
-            throw!(@type ctx, "Stream is closed")
-        }
-
-        WaitReadReady::new(data.clone()).await?;
-
-        println!("{:?}", &*data.borrow());
-
-        if let Some(entry) = data.borrow_mut().pop() {
-            Ok(Chunk {
-                value: entry.chunk.into(),
-                done: false,
-            })
-        } else {
-            Ok(Chunk {
-                value: None,
-                done: true,
-            })
-        }
+        Ok(IteratorResult::Value(value))
     }
 
     #[qjs(rename = "releaseLock")]
-    pub fn release_lock(&mut self) -> rquickjs::Result<()> {
-        if let Some(ctrl) = self.data.take() {
-            ctrl.borrow_mut().unlock();
+    pub fn release_lock(&mut self) {
+        let Some(data) = self.data.take() else {
+            return;
+        };
+
+        if data.borrow().is_locked() {
+            data.borrow_mut().locked = false;
         }
-        Ok(())
-    }
-}
-
-#[derive(Trace)]
-pub struct Chunk<'js> {
-    pub value: Option<Value<'js>>,
-    pub done: bool,
-}
-
-impl<'js> IntoJs<'js> for Chunk<'js> {
-    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        let obj = Object::new(ctx.clone())?;
-
-        obj.set(PredefinedAtom::Value, self.value)?;
-        obj.set(PredefinedAtom::Done, self.done)?;
-
-        Ok(obj.into_value())
-    }
-}
-
-impl<'js> FromJs<'js> for Chunk<'js> {
-    fn from_js(_ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
-        let obj = Object::from_value(value)?;
-
-        Ok(Chunk {
-            value: obj.get(PredefinedAtom::Value)?,
-            done: obj.get(PredefinedAtom::Done)?,
-        })
     }
 }
 

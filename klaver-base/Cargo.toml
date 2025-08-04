@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-serde = ["dep:serde", "typetag"]
+serde = ["dep:serde", "typetag", "module"]
 module = ["klaver-modules"]
 
 [dependencies]

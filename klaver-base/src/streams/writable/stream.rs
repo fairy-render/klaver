@@ -26,7 +26,7 @@ unsafe impl<'js> JsLifetime<'js> for WritableStream<'js> {
 impl<'js> WritableStream<'js> {
     #[qjs(constructor)]
     fn new(ctx: Ctx<'js>, sink: JsUnderlyingSink<'js>) -> rquickjs::Result<WritableStream<'js>> {
-        let state = StreamData::new(QueuingStrategy::create_default(ctx.clone())?);
+        let state = StreamData::new(QueuingStrategy::create_default(&ctx)?);
 
         let state = Class::instance(ctx.clone(), state)?;
 

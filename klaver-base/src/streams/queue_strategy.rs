@@ -77,9 +77,9 @@ pub enum QueuingStrategy<'js> {
 }
 
 impl<'js> QueuingStrategy<'js> {
-    pub fn create_default(ctx: Ctx<'js>) -> rquickjs::Result<QueuingStrategy<'js>> {
+    pub fn create_default(ctx: &Ctx<'js>) -> rquickjs::Result<QueuingStrategy<'js>> {
         Ok(Self::Count(Class::instance(
-            ctx,
+            ctx.clone(),
             CountQueuingStrategy { high_water_mark: 1 },
         )?))
     }

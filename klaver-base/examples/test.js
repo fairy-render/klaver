@@ -1,4 +1,4 @@
-import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController, Console, EventTarget, AbortSignal, MessageChannel, structuredClone } from 'quick:base'
+// import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController, Console, EventTarget, AbortSignal, MessageChannel, structuredClone } from 'quick:base'
 
 const output = []
 
@@ -67,6 +67,7 @@ var idx = 0;
 
 const readStream = new ReadableStream({
   pull(ctrl) {
+    console.log("Pulling", idx);
     switch (idx) {
       case 0:
         ctrl.enqueue("Hello");
@@ -80,7 +81,19 @@ const readStream = new ReadableStream({
   }
 })
 
-console.time('pipe')
-await readStream.pipeTo(writeStream);
-console.timeEnd("pipe")
-print('output ' + output.join(" "))
+// console.time('pipe')
+// await readStream.pipeTo(writeStream);
+// console.timeEnd("pipe")
+// print('output ' + output.join(" "))
+
+let reader = readStream.getReader();
+
+while (true) {
+  const chunk = await reader.read();
+  if (chunk.done) {
+    break;
+  }
+  print("Read: " + chunk.value);
+  // output.push(chunk.value);
+}
+print("done")

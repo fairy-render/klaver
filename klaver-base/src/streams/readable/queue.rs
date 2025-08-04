@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+use klaver_util::sync::{Listener, Notify};
 use rquickjs::{Ctx, Value, class::Trace};
 
 use crate::streams::queue_strategy::QueuingStrategy;
@@ -15,6 +16,7 @@ pub struct Queue<'js> {
     strategy: QueuingStrategy<'js>,
     items: VecDeque<Entry<'js>>,
     size: u64,
+    notify: Notify,
 }
 
 impl<'js> Queue<'js> {
@@ -23,6 +25,7 @@ impl<'js> Queue<'js> {
             items: Default::default(),
             strategy,
             size: 0,
+            notify: Notify::default(),
         }
     }
 
@@ -38,15 +41,22 @@ impl<'js> Queue<'js> {
     pub fn clear(&mut self) {
         self.size = 0;
         self.items.clear();
+        self.notify.notify();
     }
 
-    pub fn push(&mut self, ctx: Ctx<'js>, chunk: Value<'js>) -> rquickjs::Result<()> {
+    pub fn push(&mut self, ctx: &Ctx<'js>, chunk: Value<'js>) -> rquickjs::Result<()> {
         let size = self.strategy.size(ctx.clone(), &chunk)?;
 
         self.items.push_back(Entry { value: chunk, size });
         self.size += size;
 
+        self.notify.notify();
+
         Ok(())
+    }
+
+    pub fn subscribe(&self) -> Listener {
+        self.notify.listen()
     }
 
     pub fn pop(&mut self) -> Option<Value<'js>> {
@@ -56,6 +66,8 @@ impl<'js> Queue<'js> {
         } else {
             self.size -= entry.size;
         }
+
+        self.notify.notify();
 
         Some(entry.value)
     }

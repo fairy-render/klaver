@@ -3,6 +3,7 @@ use std::{rc::Rc, task::Poll};
 use event_listener::{Event, EventListener};
 use futures::{Stream, ready};
 use pin_project_lite::pin_project;
+use rquickjs::class::Trace;
 
 #[derive(Debug, Default)]
 pub struct Notify(pub(crate) Rc<Event>);
@@ -28,6 +29,10 @@ impl Notify {
     pub fn total_listeners(&self) -> usize {
         self.0.total_listeners()
     }
+}
+
+impl<'js> Trace<'js> for Notify {
+    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
 
 pin_project! {

@@ -88,8 +88,9 @@ impl<'js> BodyMixin<'js> {
             }
             BodyState::Bytes(bytes) => {
                 let stream = ReadableStream::from_native(
-                    ctx.clone(),
+                    ctx,
                     One::new(Buffer::ArrayBuffer(bytes.clone())),
+                    None,
                 )?;
 
                 let stream = Class::instance(ctx.clone(), stream)?;

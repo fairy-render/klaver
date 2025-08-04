@@ -1,4 +1,6 @@
-use klaver_base::{AbortSignal, Emitter, EventTarget, streams::WritableStream};
+use klaver_base::{
+    AbortSignal, Emitter, EventTarget, Exportable, Registry, streams::WritableStream,
+};
 use klaver_task::{EventLoop, Runner};
 use klaver_util::{Inheritable, RuntimeError, StringRef, Subclass, SuperClass, is_plain_object};
 use rquickjs::{
@@ -25,11 +27,6 @@ impl<'js> Runner<'js> for Base {
     async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<Self::Output> {
         AbortSignal::inherit(&ctx)?;
 
-        let signal = Class::instance(ctx.ctx().clone(), AbortSignal::new()?)?
-            .into_value()
-            .into_object()
-            .unwrap();
-
         ctx.globals().set(
             "print",
             Func::from(|msg: StringRef<'_>| {
@@ -38,10 +35,7 @@ impl<'js> Runner<'js> for Base {
             }),
         )?;
 
-        let (_, promise) =
-            Module::evaluate_def::<klaver_base::BaseModule, _>(ctx.ctx().clone(), "quick:base")?;
-
-        promise.into_future::<()>().await?;
+        klaver_base::BaseModule::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals())?;
 
         let (_, promise) =
             Module::declare(ctx.ctx().clone(), "main", include_str!("./test.js"))?.eval()?;

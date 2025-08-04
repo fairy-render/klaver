@@ -1,13 +1,12 @@
 use klaver_util::throw;
 use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace};
 
-use crate::streams::readable::state::ReadableStreamData;
+use crate::streams::data::StreamData;
 
 #[derive(Trace, JsLifetime)]
 #[rquickjs::class]
 pub struct ReadableStreamDefaultController<'js> {
-    pub data: Class<'js, ReadableStreamData<'js>>,
-    pub enqueued: bool,
+    pub data: Class<'js, StreamData<'js>>,
 }
 
 #[rquickjs::methods]
@@ -17,9 +16,9 @@ impl<'js> ReadableStreamDefaultController<'js> {
         throw!(ctx, "ReadableStreamDefaultController cannot be constructed")
     }
 
-    pub fn enqueue(&mut self, ctx: Ctx<'js>, data: Value<'js>) -> rquickjs::Result<()> {
-        self.enqueued = true;
-        self.data.borrow_mut().push(&ctx, data)
+    pub fn enqueue(&self, ctx: Ctx<'js>, data: Value<'js>) -> rquickjs::Result<()> {
+        self.data.borrow_mut().push(ctx, data)?;
+        Ok(())
     }
 
     pub fn close(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
@@ -27,7 +26,7 @@ impl<'js> ReadableStreamDefaultController<'js> {
     }
 
     pub fn error(&self, ctx: Ctx<'js>, value: Value<'js>) -> rquickjs::Result<()> {
-        self.data.borrow_mut().fail(&ctx, Some(value))
+        self.data.borrow_mut().fail(&ctx, value)
     }
 }
 

@@ -1,18 +1,14 @@
 mod controller;
-mod queue;
+mod from;
 mod reader;
-mod resource;
-mod source;
-mod state;
 mod stream;
+mod underlying_source;
 
 use crate::ExportTarget;
 
 pub use self::{
-    controller::ReadableStreamDefaultController,
-    reader::ReadableStreamDefaultReader,
-    source::{AsyncIteratorSource, IteratorSource, NativeSource, One, UnderlyingSource},
-    stream::ReadableStream,
+    controller::ReadableStreamDefaultController, reader::ReadableStreamDefaultReader,
+    stream::ReadableStream, underlying_source::*,
 };
 
 use rquickjs::class::JsClass;

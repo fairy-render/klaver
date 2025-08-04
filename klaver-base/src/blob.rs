@@ -9,7 +9,7 @@ use crate::{
     Clonable, Registry, SerializationContext, StructuredClone, Tag, TransferData,
     export::{ExportTarget, Exportable},
     register,
-    streams::{ReadableStream, readable::One},
+    streams::{QueuingStrategy, ReadableStream, readable::One},
 };
 
 #[derive(Debug, JsLifetime)]
@@ -62,8 +62,16 @@ impl<'js> Blob<'js> {
         Ok(throw_if!(ctx, str::from_utf8(bytes).map(|m| m.to_string())))
     }
 
-    pub fn stream(&self, ctx: Ctx<'js>) -> rquickjs::Result<ReadableStream<'js>> {
-        ReadableStream::from_native(ctx, One::new(Buffer::ArrayBuffer(self.buffer.clone())))
+    pub fn stream(
+        &self,
+        ctx: Ctx<'js>,
+        strategy: Option<QueuingStrategy<'js>>,
+    ) -> rquickjs::Result<ReadableStream<'js>> {
+        ReadableStream::from_native(
+            &ctx,
+            One::new(Buffer::ArrayBuffer(self.buffer.clone())),
+            strategy,
+        )
     }
 
     #[qjs(get, enumerable)]

@@ -2,7 +2,7 @@ mod data;
 mod queue;
 mod queue_strategy;
 pub mod readable;
-pub mod readable2;
+pub mod readable4;
 pub mod writable;
 
 use rquickjs::class::JsClass;
@@ -10,7 +10,7 @@ use rquickjs::class::JsClass;
 use crate::{ExportTarget, Registry};
 
 pub use self::{
-    queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy},
+    queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy, QueuingStrategy},
     readable::{ReadableStream, ReadableStreamDefaultController, ReadableStreamDefaultReader},
     writable::{WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter},
 };
