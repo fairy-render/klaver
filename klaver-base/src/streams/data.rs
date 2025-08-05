@@ -13,7 +13,7 @@ use super::{queue::Queue, queue_strategy::QueuingStrategy};
 
 #[derive(Trace, Debug)]
 pub enum ControllerState<'js> {
-    Aborted(Option<String<'js>>),
+    Aborted(Option<Value<'js>>),
     Failed(Value<'js>),
     Closed,
     Running,
@@ -55,9 +55,7 @@ impl<'js> StreamData<'js> {
     fn throw_state(&self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         match &self.state {
             ControllerState::Aborted(err) => match err {
-                Some(err) => {
-                    throw!(@type ctx, format!("Stream is aborted: {}", StringRef::from_string(err.clone())?))
-                }
+                Some(err) => return Err(ctx.throw(err.clone())),
                 None => {
                     throw!(@type ctx, format!("Stream is aborted"))
                 }
@@ -90,7 +88,7 @@ impl<'js> StreamData<'js> {
         Ok(())
     }
 
-    pub fn abort(&mut self, ctx: &Ctx<'js>, reason: Option<String<'js>>) -> rquickjs::Result<()> {
+    pub fn abort(&mut self, ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
         if !self.is_running() {
             return self.throw_state(ctx);
         }
@@ -161,7 +159,7 @@ impl<'js> StreamData<'js> {
         matches!(self.state, ControllerState::Done)
     }
 
-    pub fn abort_reason(&self) -> Option<String<'js>> {
+    pub fn abort_reason(&self) -> Option<Value<'js>> {
         match &self.state {
             ControllerState::Aborted(reason) => reason.clone(),
             _ => None,
