@@ -276,7 +276,10 @@ impl<'js> NativeAsyncIteratorInterface<'js> for ReadableStreamIterator<'js> {
         let ret =
             ReadableStreamDefaultReader::read(This(self.readable.clone()), ctx.clone()).await?;
         match ret {
-            IteratorResult::Done => Ok(None),
+            IteratorResult::Done => {
+                self.readable.borrow_mut().release_lock();
+                Ok(None)
+            }
             IteratorResult::Value(value) => Ok(Some(value)),
         }
     }

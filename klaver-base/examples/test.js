@@ -90,7 +90,7 @@ print('output ' + output.join(" "))
 const stream = ReadableStream.from([1,2,3,4]);
 
 for await(const next of stream) {
-
+  
   console.log('next',next, stream.locked)
 }
 

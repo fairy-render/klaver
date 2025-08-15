@@ -106,7 +106,6 @@ impl<'js> JsClass<'js> for NativeAsyncIterator<'js> {
             PredefinedAtom::Next,
             Func::new(Async(
                 |ctx: Ctx<'js>, This(this): This<Class<'js, Self>>| async move {
-                    //
                     match this.borrow().inner.next(&ctx).await? {
                         Some(next) => rquickjs::Result::Ok(IteratorResult::Value(next)),
                         None => Ok(IteratorResult::Done),
