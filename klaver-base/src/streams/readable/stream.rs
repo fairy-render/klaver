@@ -2,22 +2,28 @@ use std::{cell::RefCell, rc::Rc};
 
 use futures::{TryStream, stream::LocalBoxStream};
 use klaver_task::AsyncState;
-use klaver_util::{Buffer, RuntimeError, StreamAsyncIterator, StringRef, throw};
+use klaver_util::{
+    AsyncIterableProtocol, Buffer, IteratorResult, NativeAsyncIteratorInterface, RuntimeError,
+    StreamAsyncIterator, StringRef, throw,
+};
 use rquickjs::{
     CatchResultExt, Class, Ctx, FromJs, IntoJs, JsLifetime, Value,
-    class::Trace,
+    class::{JsClass, Trace},
     prelude::{Opt, This},
 };
 
-use crate::streams::{
-    WritableStream,
-    queue_strategy::QueuingStrategy,
-    readable::{
-        AsyncIteratorSource, NativeSource, from,
-        reader::ReadableStreamDefaultReader,
-        resource::ReadableStreamResource,
-        source::{JsUnderlyingSource, UnderlyingSource},
-        state::ReadableStreamData,
+use crate::{
+    Exportable,
+    streams::{
+        WritableStream,
+        queue_strategy::QueuingStrategy,
+        readable::{
+            AsyncIteratorSource, NativeSource, from,
+            reader::ReadableStreamDefaultReader,
+            resource::ReadableStreamResource,
+            source::{JsUnderlyingSource, UnderlyingSource},
+            state::ReadableStreamData,
+        },
     },
 };
 
@@ -243,4 +249,57 @@ impl<'js> ReadableStream<'js> {
     }
 }
 
-create_export!(ReadableStream<'js>);
+impl<'js> AsyncIterableProtocol<'js> for ReadableStream<'js> {
+    type Iterator = ReadableStreamIterator<'js>;
+
+    fn create_stream(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Self::Iterator> {
+        Ok(ReadableStreamIterator {
+            readable: Class::instance(ctx.clone(), self.get_reader(ctx.clone())?)?,
+        })
+    }
+}
+
+pub struct ReadableStreamIterator<'js> {
+    readable: Class<'js, ReadableStreamDefaultReader<'js>>,
+}
+
+impl<'js> Trace<'js> for ReadableStreamIterator<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.readable.trace(tracer);
+    }
+}
+
+impl<'js> NativeAsyncIteratorInterface<'js> for ReadableStreamIterator<'js> {
+    type Item = Value<'js>;
+
+    async fn next(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Option<Self::Item>> {
+        let ret =
+            ReadableStreamDefaultReader::read(This(self.readable.clone()), ctx.clone()).await?;
+        match ret {
+            IteratorResult::Done => Ok(None),
+            IteratorResult::Value(value) => Ok(Some(value)),
+        }
+    }
+
+    async fn returns(&self, _ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+        self.readable.borrow_mut().release_lock();
+        Ok(())
+    }
+}
+
+impl<'js> Exportable<'js> for ReadableStream<'js> {
+    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::ExportTarget<'js>,
+    {
+        target.set(
+            ctx,
+            ReadableStream::NAME,
+            Class::<Self>::create_constructor(ctx)?,
+        )?;
+
+        Self::add_iterable_prototype(ctx)?;
+
+        Ok(())
+    }
+}

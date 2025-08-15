@@ -7,7 +7,7 @@ use crate::{
 pub struct AsyncLocalStorage<'js> {
     state: AsyncState,
     key: Option<slotmap::DefaultKey>,
-    test: &'js (),
+
     hook: Class<'js, HookState<'js>>,
 }
 
@@ -23,9 +23,9 @@ impl<'js> AsyncLocalStorage<'js> {
         let task_ctx = TaskCtx::new(
             ctx.clone(),
             self.state.exec.clone(),
-            ResourceKind::SCRIPT,
+            ResourceKind::ROOT,
             id,
-            false,
+            true,
         )?;
         task_ctx.init()?;
 
@@ -34,7 +34,12 @@ impl<'js> AsyncLocalStorage<'js> {
 
         let ret = task_ctx.invoke_callback::<_, Value<'js>>(func, ())?;
 
-        task_ctx.destroy()?;
+        let exec = self.state.exec.clone();
+
+        ctx.spawn(async move {
+            exec.wait_children(task_ctx.id()).await;
+            task_ctx.destroy().ok();
+        });
 
         Ok(ret)
     }
@@ -67,19 +72,19 @@ impl<'js> NativeListener<'js> for AsyncStorageHook<'js> {
         let curent_id = self.state.exec.exectution_trigger_id();
         let current_resource = self.hook.borrow().resources.get_handle(ctx, curent_id)?;
         resource.set("store", current_resource.get::<_, Value<'js>>("store")?)?;
-        todo!()
+        Ok(())
     }
 
     fn before(&self, ctx: &Ctx<'js>, id: crate::exec_state::AsyncId) -> rquickjs::Result<()> {
-        todo!()
+        Ok(())
     }
 
     fn after(&self, ctx: &Ctx<'js>, id: crate::exec_state::AsyncId) -> rquickjs::Result<()> {
-        todo!()
+        Ok(())
     }
 
     fn destroy(&self, ctx: &Ctx<'js>, id: crate::exec_state::AsyncId) -> rquickjs::Result<()> {
-        todo!()
+        Ok(())
     }
 
     fn promise_resolve(
@@ -87,6 +92,6 @@ impl<'js> NativeListener<'js> for AsyncStorageHook<'js> {
         ctx: &Ctx<'js>,
         id: crate::exec_state::AsyncId,
     ) -> rquickjs::Result<()> {
-        todo!()
+        Ok(())
     }
 }
