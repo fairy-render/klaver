@@ -2,6 +2,7 @@ mod data;
 mod queue;
 mod queue_strategy;
 pub mod readable;
+mod transform;
 pub mod writable;
 
 use rquickjs::class::JsClass;

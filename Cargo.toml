@@ -3,20 +3,9 @@
 resolver = "2"
 
 members = [
-
-  # "klaver-image",
-  "rquickjs-util",
-  # "klaver-fs",
-  # "klaver-dom",
-  # "klaver-wintercg",
   "klaver-modules",
-  # "klaver-cli",
-  # "klaver",
-  # "klaver-handlebars",
   "klaver-base",
   "klaver-timers",
-  # "klaver-runner",
-  # "klaver-worker",
   "klaver-fetch",
   "klaver-vm",
   "klaver-wintercg",
@@ -28,7 +17,6 @@ members = [
   "klaver-cli",
   "klaver-test",
   "klaver-task",
-  # "klaver-http",
 ]
 
 
@@ -49,4 +37,8 @@ tracing = { version = "0.1" }
 lto = "fat"
 panic = "abort"
 codegen-units = 1
-strip = "debuginfo"
+debug = "full"              # No one needs an undebuggable release binary
+opt-level = "s"             # reduces binary size by ~25%
+split-debuginfo = "packed"  # generates a separate *.dwp/*.dSYM so the binary can get stripped
+strip = "symbols"           # See split-debuginfo - allows us to drop the size by ~65%
+incremental = true    

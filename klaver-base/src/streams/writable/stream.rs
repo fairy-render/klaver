@@ -2,7 +2,7 @@ use event_listener::listener;
 use futures::FutureExt;
 use klaver_task::{AsyncState, Resource, ResourceId};
 use klaver_util::throw;
-use rquickjs::{Class, Ctx, JsLifetime, String, class::Trace, prelude::Opt};
+use rquickjs::{Class, Ctx, JsLifetime, String, Value, class::Trace, prelude::Opt};
 
 use crate::streams::{data::StreamData, queue_strategy::QueuingStrategy};
 
@@ -73,8 +73,8 @@ impl<'js> WritableStream<'js> {
     async fn abort(
         &self,
         ctx: Ctx<'js>,
-        reason: Opt<String<'js>>,
-    ) -> rquickjs::Result<Option<String<'js>>> {
+        reason: Opt<Value<'js>>,
+    ) -> rquickjs::Result<Option<Value<'js>>> {
         if self.state.borrow().is_locked() {
             throw!(@type ctx, "The stream you are trying to abort is locked.")
         }
@@ -133,7 +133,7 @@ impl<'js> Resource<'js> for WritableStreamResource<'js> {
     const SCOPED: bool = true;
 
     async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
-        if let Err(err) = self.sink.start(self.ctrl.clone()).await {
+        if let Err(err) = self.sink.start(&ctx, self.ctrl.clone()).await {
             if err.is_exception() {
                 let failure = ctx.catch();
                 self.data.borrow_mut().fail(ctx.ctx(), failure).ok();
@@ -144,14 +144,14 @@ impl<'js> Resource<'js> for WritableStreamResource<'js> {
         loop {
             if self.data.borrow().is_aborted() {
                 self.sink
-                    .abort(self.data.borrow().abort_reason())
+                    .abort(&ctx, self.data.borrow().abort_reason())
                     .await
                     .ok();
                 break;
             }
 
             if self.data.borrow().is_closed() && self.data.borrow().queue.is_empty() {
-                self.sink.close(self.ctrl.clone()).await.ok();
+                self.sink.close(&ctx, self.ctrl.clone()).await.ok();
                 self.data.borrow_mut().finished().ok();
                 break;
             }
@@ -167,7 +167,7 @@ impl<'js> Resource<'js> for WritableStreamResource<'js> {
                 continue;
             };
 
-            if let Err(err) = self.sink.write(chunk.chunk, self.ctrl.clone()).await {
+            if let Err(err) = self.sink.write(&ctx, chunk.chunk, self.ctrl.clone()).await {
                 if err.is_exception() {
                     let failure = ctx.catch();
                     chunk.reject.call::<_, ()>((failure.clone(),)).ok();

@@ -205,15 +205,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
-name = "avagarden"
-version = "0.1.0"
-source = "git+https://github.com/kildevaeld/avagarden#72e8cf21675202fe1f56ae123daadeadf438fffa"
-dependencies = [
- "rustc_version",
- "spin",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1755,7 +1746,6 @@ dependencies = [
  "klaver-vm",
  "klaver-wintercg",
  "rquickjs",
- "rquickjs-util",
  "tokio",
 ]
 
@@ -1933,8 +1923,8 @@ dependencies = [
  "futures",
  "pin-project-lite",
  "rquickjs",
- "udled 0.4.0",
- "udled-tokenizers 0.3.0",
+ "udled",
+ "udled-tokenizers",
 ]
 
 [[package]]
@@ -3195,18 +3185,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rquickjs-util"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "futures",
- "rquickjs",
- "udled 0.3.1",
- "udled-tokenizers 0.2.0",
- "vaerdi",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3217,15 +3195,6 @@ name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
-
-[[package]]
-name = "rustc_version"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
-dependencies = [
- "semver",
-]
 
 [[package]]
 name = "rustix"
@@ -3363,12 +3332,6 @@ name = "self_cell"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f7d95a54511e0c7be3f51e8867aa8cf35148d7b9445d44de2f943e2b206e749"
-
-[[package]]
-name = "semver"
-version = "1.0.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56e6fa9c48d24d85fb3de5ad847117517440f6beceb7798af16b4a87d616b8d0"
 
 [[package]]
 name = "seq-macro"
@@ -4774,15 +4737,6 @@ dependencies = [
 
 [[package]]
 name = "udled"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "836b191d8346fe2a84af66ce2024bf0317ee634a71607cc5a36ae89a7e2ce828"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
-name = "udled"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3fdf19d0b370d524a5dace07e0a67b0968b11fc2eb1028cd85dbc6af901e861"
@@ -4792,30 +4746,11 @@ dependencies = [
 
 [[package]]
 name = "udled-tokenizers"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da8f61945861d20245844f18f05fd66e473ae107bfa2b487a61e13d1c0f4ff29"
-dependencies = [
- "udled 0.3.1",
-]
-
-[[package]]
-name = "udled-tokenizers"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8fc7c235fd02fdd465ff40a421907d70c8c512babe87bf1fc390d50de3cb8a2"
-dependencies = [
- "udled 0.3.1",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "udled-tokenizers"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b45a67a4197cb48e7f3fe2807c20bdf88d9de400cbb579e93f1bc1857ea430e4"
 dependencies = [
- "udled 0.4.0",
+ "udled",
  "unicode-segmentation",
 ]
 
@@ -4909,21 +4844,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "458f7a779bf54acc9f347480ac654f68407d3aab21269a6e3c9f922acd9e2da9"
 dependencies = [
  "getrandom 0.3.2",
-]
-
-[[package]]
-name = "vaerdi"
-version = "0.1.0"
-source = "git+https://github.com/kildevaeld/vaerdi-rs#fe11ab3877e33405beed753011ef42bf4e6d06d9"
-dependencies = [
- "avagarden",
- "base64",
- "bitflags",
- "chrono",
- "hashbrown 0.14.5",
- "udled 0.3.1",
- "udled-tokenizers 0.1.0",
- "uuid",
 ]
 
 [[package]]

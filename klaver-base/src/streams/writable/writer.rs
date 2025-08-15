@@ -67,8 +67,8 @@ impl<'js> WritableStreamDefaultWriter<'js> {
     pub fn abort(
         &self,
         ctx: Ctx<'js>,
-        reason: Opt<String<'js>>,
-    ) -> rquickjs::Result<Option<String<'js>>> {
+        reason: Opt<Value<'js>>,
+    ) -> rquickjs::Result<Option<Value<'js>>> {
         let Some(ctrl) = self.ctrl.as_ref() else {
             throw!(@type ctx, "The stream youare trying to abort is not owned by the writer")
         };

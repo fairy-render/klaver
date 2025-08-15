@@ -3,6 +3,11 @@ name = "klaver-cli"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "klaver"
+path = "src/main.rs"
+
+
 [features]
 default = ["swc"]
 swc = ["klaver-modules/swc-transform"]

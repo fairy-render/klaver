@@ -11,7 +11,6 @@ pub enum StreamState {
     Failed,
     Closed,
     Running,
-    // Done,
 }
 
 #[derive(Trace)]
