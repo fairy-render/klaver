@@ -1,11 +1,11 @@
-use klaver_base::{Exportable, create_export};
+use klaver_base::Exportable;
 
 use klaver_util::{
-    Iter, Iterable, IterableProtocol, NativeIterator, NativeIteratorExt, Pair, StringExt,
-    StringRef, TypedList, TypedMultiMap, TypedMultiMapEntries,
+    Iter, IterableProtocol, NativeIterator, NativeIteratorExt, Pair, StringRef, TypedList,
+    TypedMultiMap, TypedMultiMapEntries,
 };
 use rquickjs::{
-    Array, Class, Ctx, FromJs, Function, IntoJs, JsLifetime, String, Value,
+    Class, Ctx, FromJs, Function, JsLifetime, String,
     atom::PredefinedAtom,
     class::{JsClass, Trace},
     prelude::Opt,
@@ -136,7 +136,7 @@ impl<'js> URLSearchParams<'js> {
         self.map.delete(key)
     }
 
-    pub fn entries(&self, ctx: Ctx<'js>) -> rquickjs::Result<NativeIterator<'js>> {
+    pub fn entries(&self, _ctx: Ctx<'js>) -> rquickjs::Result<NativeIterator<'js>> {
         Ok(NativeIterator::new(self.map.entries()?))
     }
 

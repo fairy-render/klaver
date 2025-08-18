@@ -7,6 +7,7 @@ use rquickjs::Ctx;
 
 pub struct WinterCG;
 
+#[cfg(feature = "module")]
 impl<'js> klaver_modules::GlobalInfo for WinterCG {
     fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
         #[cfg(feature = "intl")]
@@ -22,6 +23,7 @@ impl<'js> klaver_modules::GlobalInfo for WinterCG {
     }
 }
 
+#[cfg(feature = "module")]
 impl klaver_modules::Global for WinterCG {
     fn define<'a, 'js: 'a>(
         &'a self,
@@ -40,28 +42,15 @@ impl klaver_modules::Global for WinterCG {
 impl<'js> Exportable<'js> for WinterCG {
     fn export<T>(
         ctx: &Ctx<'js>,
-        registry: &klaver_base::Registry,
+        _registry: &klaver_base::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
         T: klaver_base::ExportTarget<'js>,
     {
-        // klaver_base::BaseModule::export(ctx, registry, target)?;
-        // klaver_worker::WebWorker::export(ctx, registry, target)?;
-
-        // EventTarget
-        // crate::event_target::export(ctx, target)?;
-
-        // // Timers
-
-        // #[cfg(feature = "fetch")]
-        // klaver_fetch::FetchModule::export(ctx, registry, target)?;
-
         // Console
         let console = Console::new_with(StdConsoleWriter::default());
         target.set(ctx, "console", console)?;
-
-        // klaver_worker::WorkerModule::export(ctx, registry, target)?;
 
         Ok(())
     }

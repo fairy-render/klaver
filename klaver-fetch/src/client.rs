@@ -1,12 +1,12 @@
 use std::cell::RefCell;
 
-use futures::{FutureExt, future::LocalBoxFuture};
+use futures::future::LocalBoxFuture;
 use klaver_task::{AsyncState, Resource, ResourceId};
 use reggie::{Body, http_body_util::BodyExt};
 
 use http::{Request, Response, Uri};
 use klaver_util::{throw, throw_if};
-use rquickjs::{CatchResultExt, Ctx, JsLifetime, runtime::UserDataGuard};
+use rquickjs::{Ctx, JsLifetime, runtime::UserDataGuard};
 
 use crate::{
     RemoteBodyProducer,

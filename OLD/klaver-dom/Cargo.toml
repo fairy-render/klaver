@@ -8,8 +8,8 @@ parallel = ["rquickjs/parallel"]
 
 [dependencies]
 rquickjs.workspace = true
-rquickjs-util = { path = "../rquickjs-util" }
-rquickjs-modules = { path = "../rquickjs-modules" }
+klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules" }
 
 domjohnson = { git = "https://github.com/kildevaeld/domjohnson" }
 locket = { git = "https://github.com/kildevaeld/locket-rs" }

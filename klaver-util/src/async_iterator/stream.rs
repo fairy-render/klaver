@@ -121,7 +121,7 @@ mod test {
 
     use crate::{FunctionExt, NativeAsyncIterator, RuntimeError, StreamAsyncIterator};
     use futures::StreamExt;
-    use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Class, Context, Function, Runtime};
+    use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Class, Function};
 
     test_async!(stream => |ctx| {
         let stream = futures::stream::iter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).map(|m| rquickjs::Result::Ok(m));

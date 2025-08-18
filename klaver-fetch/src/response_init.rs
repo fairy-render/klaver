@@ -14,7 +14,7 @@ impl<'js> ResponseInit<'js> {
     pub fn build(
         self,
         ctx: Ctx<'js>,
-    ) -> rquickjs::Result<(Class<'js, Headers<'js>>, StatusCode, String<'_>)> {
+    ) -> rquickjs::Result<(Class<'js, Headers<'js>>, StatusCode, String<'js>)> {
         let headers = match self.headers {
             Some(ret) => ret.inner,
             None => Class::instance(ctx.clone(), Headers::new_native(ctx.clone())?)?,
@@ -32,7 +32,7 @@ impl<'js> ResponseInit<'js> {
 }
 
 impl<'js> FromJs<'js> for ResponseInit<'js> {
-    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+    fn from_js(_ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
         let obj = value.into_object().ok_or_else(|| {
             rquickjs::Error::new_from_js("value", "object expected for ResponseInit")
         })?;

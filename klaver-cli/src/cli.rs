@@ -2,21 +2,21 @@ use clap::Parser;
 use klaver_task::AsyncState;
 use klaver_util::BasePrimordials;
 
-use crate::{repl::ReplCmd, run};
+use crate::run;
 
 #[derive(clap::Parser)]
 pub struct Cli {
     path: Option<String>,
     #[clap(short, long, default_value_t = false)]
     exec: bool,
-    #[clap(subcommand)]
-    command: Option<Commands>,
+    // #[clap(subcommand)]
+    // command: Option<Commands>,
 }
 
-#[derive(clap::Subcommand)]
-enum Commands {
-    Repl(ReplCmd),
-}
+// #[derive(clap::Subcommand)]
+// enum Commands {
+//     Repl(ReplCmd),
+// }
 
 impl Cli {
     pub async fn run() -> color_eyre::Result<()> {
@@ -48,15 +48,16 @@ impl Cli {
         })
         .await?;
 
-        if let Some(cmd) = &cli.command {
-            match cmd {
-                Commands::Repl(e) => {
-                    e.run(vm).await?;
-                }
-            }
-        } else {
-            run::run(vm, cli.path.as_ref().map(|m| &**m), cli.exec).await?;
-        }
+        // if let Some(cmd) = &cli.command {
+        //     match cmd {
+        //         Commands::Repl(e) => {
+        //             e.run(vm).await?;
+        //         }
+        //     }
+        // } else {
+        //     run::run(vm, cli.path.as_ref().map(|m| &**m), cli.exec).await?;
+        // }
+        run::run(vm, cli.path.as_ref().map(|m| &**m), cli.exec).await?;
 
         Ok(())
     }

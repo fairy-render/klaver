@@ -1,7 +1,6 @@
 use futures::{FutureExt, StreamExt};
-use http::Uri;
-use klaver_base::{AbortSignal, Emitter, EventKey};
-use klaver_util::{StringExt, StringRef, throw, throw_if};
+use klaver_base::{AbortSignal, Emitter};
+use klaver_util::{StringExt, throw};
 use rquickjs::{Class, Coerced, Ctx, FromJs, String, prelude::Opt};
 
 use crate::{

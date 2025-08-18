@@ -1,13 +1,4 @@
-use std::{
-    cell::RefCell,
-    task::{Poll, ready},
-};
-
-use futures::{
-    Stream, StreamExt, TryStreamExt,
-    future::{BoxFuture, LocalBoxFuture},
-    stream::LocalBoxStream,
-};
+use futures::{Stream, StreamExt, TryStreamExt, future::LocalBoxFuture, stream::LocalBoxStream};
 use klaver_base::{
     Blob,
     streams::{ReadableStream, readable::One},
@@ -19,6 +10,10 @@ use reggie::{
     http_body::{self, Frame},
 };
 use rquickjs::{ArrayBuffer, Class, Ctx, String, TypedArray, Value, class::Trace};
+use std::{
+    cell::RefCell,
+    task::{Poll, ready},
+};
 
 pub enum BodyState<'js> {
     Empty,

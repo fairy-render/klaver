@@ -1,10 +1,9 @@
-use futures::io::Repeat;
 use http::{Extensions, StatusCode};
 use klaver_base::{Blob, streams::ReadableStream};
 use klaver_util::{NativeIteratorExt, StringExt, throw_if};
 use reggie::Body;
 use rquickjs::{
-    ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, Value, class::Trace, prelude::Opt, qjs,
+    ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, Value, class::Trace, prelude::Opt,
 };
 
 use crate::{
@@ -77,7 +76,7 @@ impl<'js> Response<'js> {
         Opt(body): Opt<BodyInit<'js>>,
         Opt(init): Opt<ResponseInit<'js>>,
     ) -> rquickjs::Result<Response<'js>> {
-        let (headers, status, status_text) = match init {
+        let (headers, status, _status_text) = match init {
             Some(init) => init.build(ctx.clone())?,
             None => (
                 Class::instance(ctx.clone(), Headers::new_native(ctx.clone())?)?,

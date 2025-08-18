@@ -7,7 +7,7 @@ mod element;
 mod lock;
 mod node_list;
 
-use rquickjs_modules::module_info;
+use klaver_modules::module_info;
 
 pub use self::{document::JsDocument, element::JsElement, node_list::Children};
 

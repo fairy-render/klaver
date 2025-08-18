@@ -1,4 +1,4 @@
-use klaver_base::{Exportable, create_export};
+use klaver_base::Exportable;
 use klaver_util::{
     IterableProtocol, NativeIterator, Prop, ProxyHandler, TypedMap, TypedMapEntries, create_proxy,
     throw,

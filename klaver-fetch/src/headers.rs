@@ -1,5 +1,5 @@
 use http::HeaderMap;
-use klaver_base::{Exportable, create_export};
+use klaver_base::Exportable;
 use klaver_util::{
     IterableProtocol, NativeIterator, StringExt, TypedMultiMap, TypedMultiMapEntries,
 };

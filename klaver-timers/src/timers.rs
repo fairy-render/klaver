@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
     time::{Duration, Instant},
-    usize,
 };
 
 use klaver_task::{AsyncState, Resource, ResourceId, TaskHandle};
