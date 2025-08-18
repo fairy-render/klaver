@@ -1744,7 +1744,7 @@ dependencies = [
  "klaver-modules",
  "klaver-task",
  "klaver-vm",
- "klaver-wintercg",
+ "klaver-wintertc",
  "rquickjs",
  "tokio",
 ]
@@ -1782,7 +1782,7 @@ dependencies = [
  "klaver-task",
  "klaver-util",
  "klaver-vm",
- "klaver-wintercg",
+ "klaver-wintertc",
  "reedline",
  "rquickjs",
  "tokio",
@@ -1942,7 +1942,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "klaver-wintercg"
+name = "klaver-wintertc"
 version = "0.1.0"
 dependencies = [
  "futures",

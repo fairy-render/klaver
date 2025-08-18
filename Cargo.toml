@@ -8,7 +8,7 @@ members = [
   "klaver-timers",
   "klaver-fetch",
   "klaver-vm",
-  "klaver-wintercg",
+  "klaver-wintertc",
   "klaver",
   "klaver-os",
   "klaver-util",

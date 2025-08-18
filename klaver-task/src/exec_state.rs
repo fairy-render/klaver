@@ -85,10 +85,6 @@ impl ExecState {
         }
     }
 
-    pub fn dump(&self) {
-        println!("{:#?}", &*self.0.borrow())
-    }
-
     /// Set current execution scope
     pub fn set_current(&self, current: AsyncId) {
         let mut this = self.0.borrow_mut();

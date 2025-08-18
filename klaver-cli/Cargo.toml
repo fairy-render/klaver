@@ -14,7 +14,7 @@ swc = ["klaver-modules/swc-transform"]
 
 [dependencies]
 rquickjs.workspace = true
-klaver-wintercg = { path = "../klaver-wintercg", features = [
+klaver-wintertc = { path = "../klaver-wintertc", features = [
   "fetch",
   # "intl",
   "crypto",

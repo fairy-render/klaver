@@ -11,12 +11,12 @@ impl Builder {
         let vm = self
             .opts
             .search_path(".")
-            .global::<klaver_wintercg::WinterCG>()
+            .global::<klaver_wintertc::WinterCG>()
             .build()
             .await?;
 
         klaver_vm::async_with!(vm => |ctx| {
-            klaver_wintercg::backend::Tokio::default().set_runtime(&ctx).catch(&ctx)?;
+            klaver_wintertc::backend::Tokio::default().set_runtime(&ctx).catch(&ctx)?;
             Ok(())
         })
         .await?;

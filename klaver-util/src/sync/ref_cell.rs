@@ -26,7 +26,7 @@ impl<T> ObservableRefCell<T> {
 }
 
 impl<T> ObservableRefCell<T> {
-    pub fn borrow(&self) -> Ref<T> {
+    pub fn borrow(&self) -> Ref<'_, T> {
         self.cell.borrow()
     }
 
