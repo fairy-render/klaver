@@ -4,7 +4,7 @@ use futures::{
 };
 use klaver_util::{
     CaugthException,
-    rquickjs::{self, CatchResultExt, Ctx, JsLifetime},
+    rquickjs::{self, CatchResultExt, Ctx, FromJs, Function, JsLifetime, prelude::IntoArgs},
     throw, throw_if,
 };
 use pin_project_lite::pin_project;
@@ -126,7 +126,7 @@ impl AsyncState {
                         m.set(TaskStatus::Idle)
                     });
 
-                    // this.exec.wait_children(id).await;
+                    this.exec.wait_children(id).await;
                 }
                 _ = kill.subscribe().fuse() => {}
                 _ = exception.subscribe().fuse() => { }
@@ -136,6 +136,60 @@ impl AsyncState {
         });
 
         Ok(Some(TaskHandle { cell, id, kind }))
+    }
+
+    pub fn invoke<'js, T, R>(
+        &self,
+        ctx: &Ctx<'js>,
+        kind: ResourceKind,
+        internal: bool,
+        callback: T,
+    ) -> rquickjs::Result<(R, TaskHandle)>
+    where
+        T: FnOnce(&TaskCtx<'js>) -> rquickjs::Result<R>,
+        R: FromJs<'js>,
+    {
+        let this = Self::instance(ctx)?;
+
+        let id = this.exec.create_task(None, kind);
+
+        let task_ctx = TaskCtx::new(ctx.clone(), this.exec.clone(), kind, id, internal)?;
+
+        if let Err(err) = task_ctx.init().catch(&task_ctx) {
+            task_ctx.destroy()?;
+            return Err(err.throw(ctx));
+        }
+
+        let ret = match task_ctx.invoke(callback) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+
+        let kill = Rc::new(ObservableCell::new(false));
+
+        let cell = kill.clone();
+
+        let exception = self.exception.clone();
+
+        ctx.spawn(async move {
+            if exception.borrow().is_some() {
+                task_ctx.destroy().ok();
+                return;
+            }
+
+            let children = this.exec.wait_children(id);
+
+            // Wait for either the task to finish or a uncaught exception
+            futures::select! {
+                _ = children.fuse() => {}
+                _ = kill.subscribe().fuse() => {}
+                _ = exception.subscribe().fuse() => { }
+            }
+
+            task_ctx.destroy().ok();
+        });
+
+        Ok((ret, TaskHandle { cell, id, kind }))
     }
 }
 
@@ -180,6 +234,9 @@ impl AsyncState {
                     Err(err) => {
                         let err: CaugthException = err.into();
                         self.exception.update(|mut m| *m = Some(err.clone()));
+                        self.exec.task_status(id).unwrap().set(TaskStatus::Idle);
+                        // self.exec.wait_children(id).await;
+                        self.exec.destroy_task(id);
                         throw!(ctx, err)
                     }
                 }

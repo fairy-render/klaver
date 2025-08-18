@@ -11,12 +11,13 @@ path = "src/main.rs"
 [features]
 default = ["swc"]
 swc = ["klaver-modules/swc-transform"]
+debug = ["tracing-subscriber"]
 
 [dependencies]
 rquickjs.workspace = true
 klaver-wintertc = { path = "../klaver-wintertc", features = [
   "fetch",
-  # "intl",
+  "intl",
   "crypto",
   "module",
   "tokio",
@@ -24,7 +25,7 @@ klaver-wintertc = { path = "../klaver-wintertc", features = [
 klaver-util = { path = "../klaver-util" }
 klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules" }
-klaver-task = { path = "../klaver-task" }
+klaver-task = { path = "../klaver-task", features = ["module"] }
 
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["net", "rt", "macros"] }
@@ -32,5 +33,5 @@ color-eyre = { version = "0.6" }
 
 reedline = { version = "0.41" }
 
-tracing-subscriber = { version = "*" }
+tracing-subscriber = { version = "0.3", optional = true }
 tracing.workspace = true

@@ -206,6 +206,14 @@ impl<'js> HookListeners<'js> {
         self.listeners.remove(key);
     }
 
+    pub fn get_resource_handle(
+        &self,
+        ctx: &Ctx<'js>,
+        id: AsyncId,
+    ) -> rquickjs::Result<ResourceHandle<'js>> {
+        self.handles.get_handle(ctx, id)
+    }
+
     pub fn init(
         &self,
         ctx: &Ctx<'js>,

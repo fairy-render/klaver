@@ -1,6 +1,8 @@
 import { triggerAsyncId, executionAsyncId, createHook, executionAsyncResource, resourceName } from 'node:async_hooks'
 
 
+const print = console.log.bind(console);
+
 
 createHook({
     init(aid, ty, tid, resource) {
@@ -35,7 +37,7 @@ setTimeout(() => {
             print("Eis 3", executionAsyncId())
             print(executionAsyncResource())
         })
-    },300)
+    }, 300)
 
     new Promise((res) => {
         print("Promise", executionAsyncId(), triggerAsyncId());
@@ -119,18 +121,18 @@ setTimeout(() => {
 // //     return new Promise((res) => setTimeout(res, ms))
 // // }
 
-testAsync(() => {
-    // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
-    testAsync(() => {
-        print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
-        // throw new Error('dsds')
-    })
+// testAsync(() => {
+//     // print('Root ' + executionAsyncId() + ' ' + triggerAsyncId())
+//     testAsync(() => {
+//         print('Child1 ' + executionAsyncId() + ' ' + triggerAsyncId())
+//         // throw new Error('dsds')
+//     })
 
-    testAsync(() => {
-        print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
-        // throw new Error('dsds')
-    })
-})
+//     testAsync(() => {
+//         print('Child2 ' + executionAsyncId() + ' ' + triggerAsyncId())
+//         // throw new Error('dsds')
+//     })
+// })
 
 // async function test() {
 //     // print("Test", executionAsyncId(), triggerAsyncId())

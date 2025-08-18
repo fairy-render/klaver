@@ -78,11 +78,34 @@ impl ExecState {
                     return Some(id);
                 } else if let Some(attached) = task.attached_to {
                     id = attached
+                } else {
+                    id = task.parent;
                 }
             } else {
                 return None;
             }
         }
+    }
+
+    #[allow(unused)]
+    pub fn find_parent<T: Fn(&Task) -> bool>(&self, mut id: AsyncId, search: T) -> Option<AsyncId> {
+        loop {
+            if let Some(task) = self.0.borrow().tasks.get(&id) {
+                if search(task) {
+                    return Some(id);
+                } else if let Some(attached) = task.attached_to {
+                    id = attached;
+                } else {
+                    id = task.parent;
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+
+    pub fn parent(&self, id: AsyncId) -> Option<AsyncId> {
+        self.0.borrow().tasks.get(&id).map(|m| m.parent)
     }
 
     /// Set current execution scope

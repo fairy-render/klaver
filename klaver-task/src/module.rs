@@ -1,5 +1,10 @@
-use crate::{AsyncState, ResourceKind, ScriptListener, async_hook::AsyncHook, state::HookState};
-use klaver_util::rquickjs::{self, Ctx, String, Value, module::ModuleDef, prelude::Func};
+use crate::{
+    AsyncState, ResourceKind, ScriptListener, async_hook::AsyncHook,
+    async_local_storage::AsyncLocalStorage, state::HookState,
+};
+use klaver_util::rquickjs::{
+    self, Class, Ctx, String, Value, class::JsClass, module::ModuleDef, prelude::Func,
+};
 
 pub struct TaskModule;
 
@@ -12,11 +17,12 @@ impl ModuleDef for TaskModule {
         decl.declare("createHook")?;
         decl.declare("executionAsyncResource")?;
         decl.declare("resourceName")?;
+        decl.declare(AsyncLocalStorage::NAME)?;
         Ok(())
     }
 
     fn evaluate<'js>(
-        _ctx: &klaver_util::rquickjs::Ctx<'js>,
+        ctx: &klaver_util::rquickjs::Ctx<'js>,
         exports: &klaver_util::rquickjs::module::Exports<'js>,
     ) -> klaver_util::rquickjs::Result<()> {
         exports.export(
@@ -76,6 +82,14 @@ impl ModuleDef for TaskModule {
             }),
         )?;
 
+        exports.export(
+            AsyncLocalStorage::NAME,
+            Class::<AsyncLocalStorage>::create_constructor(ctx)?,
+        )?;
+
         Ok(())
     }
 }
+
+#[cfg(feature = "module")]
+klaver_modules::module_info!("node:async_hooks" => TaskModule);

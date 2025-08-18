@@ -25,6 +25,7 @@ impl Cli {
         let mut builder = klaver_vm::Options::default()
             .search_path(".")
             .module::<klaver_vm::VmModule>()
+            .module::<klaver_task::TaskModule>()
             .global::<klaver_wintertc::WinterCG>();
 
         #[cfg(feature = "swc")]
@@ -40,9 +41,11 @@ impl Cli {
 
         let vm = builder.build().await?;
 
+        klaver_task::set_promise_hook(vm.runtime()).await;
+
         vm.with(|ctx| {
             let _ = BasePrimordials::get(&ctx)?;
-            let _ = AsyncState::instance(&ctx)?;
+
             klaver_wintertc::backend::Tokio::default().set_runtime(&ctx)?;
             Ok(())
         })

@@ -54,7 +54,7 @@ impl klaver_modules::Global for IntlModule {
 
             let obj = Object::new(ctx.clone())?;
 
-            Self::export(&ctx, &Registry::get(&ctx)?, &obj)?;
+            Self::export(&ctx, &Registry::instance(&ctx)?, &obj)?;
 
             ctx.globals().set("Intl", obj)?;
 

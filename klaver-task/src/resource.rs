@@ -11,7 +11,7 @@ use klaver_util::{
 
 use crate::{
     exec_state::{AsyncId, ExecState},
-    listener::HookListeners,
+    listener::{HookListeners, ResourceHandle},
     state::HookState,
 };
 
@@ -65,6 +65,26 @@ impl<'js> TaskCtx<'js> {
 
         Ok(())
     }
+
+    pub fn invoke<T: FnOnce(&TaskCtx<'js>) -> rquickjs::Result<R>, R: FromJs<'js>>(
+        &self,
+        func: T,
+    ) -> rquickjs::Result<R> {
+        if self.internal {
+            throw!(@internal self.ctx, "Internal resource cannot have children");
+        };
+
+        let id = self.exec.exectution_trigger_id();
+
+        self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
+
+        self.exec.set_current(self.id);
+        let ret = func(self);
+        self.exec.set_current(id);
+
+        self.hook_list.borrow().after(&self.ctx, self.id.clone())?;
+        ret
+    }
 }
 
 impl<'js> TaskCtx<'js> {
@@ -77,13 +97,22 @@ impl<'js> TaskCtx<'js> {
             throw!(@internal self.ctx, "Internal resource cannot have children");
         };
 
+        let id = self.exec.exectution_trigger_id();
+
         self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
 
         self.exec.set_current(self.id);
         let ret = cb.call(args);
+        self.exec.set_current(id);
 
         self.hook_list.borrow().after(&self.ctx, self.id.clone())?;
         ret
+    }
+
+    pub fn handle(&self) -> rquickjs::Result<ResourceHandle<'js>> {
+        self.hook_list
+            .borrow()
+            .get_resource_handle(&self.ctx, self.id)
     }
 
     pub fn id(&self) -> AsyncId {
@@ -126,6 +155,7 @@ impl ResourceKind {
     pub const PROMISE: ResourceKind = ResourceKind(1);
     pub const SCRIPT: ResourceKind = ResourceKind(2);
     pub const ROOT: ResourceKind = ResourceKind(3);
+    pub const STORAGE: ResourceKind = ResourceKind(4);
 
     pub fn is_native(&self) -> bool {
         self.0 > 2
@@ -150,7 +180,7 @@ impl<'js> FromJs<'js> for ResourceKind {
     }
 }
 
-const NEXT_ID: u32 = 4;
+const NEXT_ID: u32 = 5;
 
 pub(crate) struct ResourceMap {
     next_id: u32,
@@ -194,6 +224,8 @@ impl ResourceMap {
             Some("Root")
         } else if id == ResourceKind::SCRIPT {
             Some("Script")
+        } else if id == ResourceKind::STORAGE {
+            Some("AsyncLocalStorage")
         } else {
             self.name_map.get(&id).map(|m| &**m)
         }

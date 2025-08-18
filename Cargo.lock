@@ -1884,6 +1884,7 @@ version = "0.1.0"
 dependencies = [
  "event-listener",
  "futures",
+ "klaver-modules",
  "klaver-util",
  "pin-project-lite",
  "slotmap",
