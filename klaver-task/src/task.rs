@@ -20,6 +20,8 @@ pub struct Task {
     pub kind: ResourceKind,
     /// Nearest native ancester this tasks is attached to
     pub attached_to: Option<AsyncId>,
+
+    pub references: usize,
 }
 
 impl fmt::Debug for Task {

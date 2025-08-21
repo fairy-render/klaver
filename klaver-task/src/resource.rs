@@ -5,7 +5,9 @@ use std::{
 };
 
 use klaver_util::{
-    rquickjs::{self, Class, Ctx, FromJs, Function, IntoJs, prelude::IntoArgs},
+    rquickjs::{
+        self, Class, Ctx, FromJs, Function, IntoJs, class::Trace, function::Args, prelude::IntoArgs,
+    },
     throw,
 };
 
@@ -23,6 +25,13 @@ pub struct TaskCtx<'js> {
     hook_list: Class<'js, HookListeners<'js>>,
     exec: ExecState,
     internal: bool,
+}
+
+impl<'js> Trace<'js> for TaskCtx<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        tracer.mark_ctx(&self.ctx);
+        self.hook_list.trace(tracer);
+    }
 }
 
 impl<'js> TaskCtx<'js> {
@@ -103,6 +112,26 @@ impl<'js> TaskCtx<'js> {
 
         self.exec.set_current(self.id);
         let ret = cb.call(args);
+        self.exec.set_current(id);
+
+        self.hook_list.borrow().after(&self.ctx, self.id.clone())?;
+        ret
+    }
+
+    pub fn invoke_callback_arg<R>(&self, cb: Function<'js>, args: Args<'js>) -> rquickjs::Result<R>
+    where
+        R: FromJs<'js>,
+    {
+        if self.internal {
+            throw!(@internal self.ctx, "Internal resource cannot have children");
+        };
+
+        let id = self.exec.exectution_trigger_id();
+
+        self.hook_list.borrow().before(&self.ctx, self.id.clone())?;
+
+        self.exec.set_current(self.id);
+        let ret = cb.call_arg(args);
         self.exec.set_current(id);
 
         self.hook_list.borrow().after(&self.ctx, self.id.clone())?;

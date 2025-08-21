@@ -177,6 +177,7 @@ impl ExecState {
                 state: Rc::new(ObservableCell::new(TaskStatus::Working)),
                 kind,
                 attached_to,
+                references: 1,
             },
         );
 
@@ -200,6 +201,13 @@ impl ExecState {
 
     /// Remove a task
     pub fn destroy_task(&self, id: AsyncId) {
+        if let Some(task) = self.0.borrow_mut().tasks.get_mut(&id) {
+            if task.references > 1 {
+                task.references -= 1;
+                return;
+            }
+        }
+
         let Some(task) = self.0.borrow_mut().tasks.remove(&id) else {
             return;
         };

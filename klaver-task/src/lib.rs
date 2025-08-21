@@ -8,6 +8,7 @@ mod listener;
 mod module;
 mod promise_hook;
 mod resource;
+mod snapshot;
 mod state;
 mod task;
 
