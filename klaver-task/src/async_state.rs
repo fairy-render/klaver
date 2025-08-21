@@ -171,6 +171,9 @@ impl AsyncState {
 
         let exception = self.exception.clone();
 
+        let parent_id = this.exec.parent_id(id);
+        let parent_state = this.exec.task_status(parent_id);
+
         ctx.spawn(async move {
             if exception.borrow().is_some() {
                 task_ctx.destroy().ok();
@@ -179,11 +182,21 @@ impl AsyncState {
 
             let children = this.exec.wait_children(id);
 
+            let idle = if let Some(ob) = parent_state {
+                Either::Left(WaitIdle {
+                    state: WaitIdleState::Init,
+                    cell: ob.clone(),
+                })
+            } else {
+                Either::Right(pending::<()>())
+            };
+
             // Wait for either the task to finish or a uncaught exception
             futures::select! {
                 _ = children.fuse() => {}
                 _ = kill.subscribe().fuse() => {}
                 _ = exception.subscribe().fuse() => { }
+                _ = idle.fuse() => {}
             }
 
             task_ctx.destroy().ok();

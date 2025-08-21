@@ -18,6 +18,15 @@ storage.run(new Map(), () => {
     }, 100);
 });
 
+
+const snapshot2 = storage.run(42, () => AsyncLocalStorage.snapshot());
+
+snapshot2(() => {
+    console.log("Inside snapshot2 executionAsyncId:", executionAsyncId(), 'triggerAsyncId:', triggerAsyncId());
+    console.log('Stored value in snapshot2:', storage.getStore());
+})
+
+
 console.log(typeof storage.getStore())
 
 setTimeout(() => {

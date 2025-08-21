@@ -1879,6 +1879,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-runtime"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "klaver-modules",
+ "klaver-util",
+ "pin-project-lite",
+ "slotmap",
+ "tracing",
+]
+
+[[package]]
 name = "klaver-task"
 version = "0.1.0"
 dependencies = [

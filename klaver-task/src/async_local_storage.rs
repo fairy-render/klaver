@@ -91,6 +91,15 @@ impl<'js> AsyncLocalStorage<'js> {
             .get::<Function>()?
             .bind(&ctx, (ctx.globals(), snapshot))?;
 
-        Ok(func.into_value())
+        let value = func.into_value();
+
+        let state = HookState::get(&ctx)?;
+
+        state
+            .borrow()
+            .registry
+            .register(value.clone(), id.into_js(&ctx)?, None)?;
+
+        Ok(value)
     }
 }

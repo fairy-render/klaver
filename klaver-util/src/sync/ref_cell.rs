@@ -25,6 +25,15 @@ impl<T> ObservableRefCell<T> {
     }
 }
 
+impl<T: Clone> Clone for ObservableRefCell<T> {
+    fn clone(&self) -> Self {
+        ObservableRefCell {
+            event: Notify::default(),
+            cell: self.cell.clone(),
+        }
+    }
+}
+
 impl<T> ObservableRefCell<T> {
     pub fn borrow(&self) -> Ref<'_, T> {
         self.cell.borrow()

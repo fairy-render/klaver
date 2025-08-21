@@ -1,51 +1,17 @@
 use core::fmt;
-use event_listener::Event;
 use klaver_util::{
     rquickjs::{self, Ctx, FromJs, IntoJs, Value, class::Trace},
+    sync::{Notify, Observable, ObservableCell},
     throw,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
 use tracing::trace;
 
 use crate::{
-    ResourceKind, TaskCtx,
-    cell::ObservableCell,
+    id::AsyncId,
+    resource::ResourceKind,
     task::{Task, TaskStatus},
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct AsyncId(usize);
-
-impl AsyncId {
-    pub fn root() -> AsyncId {
-        AsyncId(0)
-    }
-}
-
-impl fmt::Display for AsyncId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl<'js> Trace<'js> for AsyncId {
-    fn trace<'a>(&self, _tracer: klaver_util::rquickjs::class::Tracer<'a, 'js>) {}
-}
-
-impl<'js> IntoJs<'js> for AsyncId {
-    fn into_js(
-        self,
-        ctx: &klaver_util::rquickjs::Ctx<'js>,
-    ) -> klaver_util::rquickjs::Result<klaver_util::rquickjs::Value<'js>> {
-        Ok(Value::new_int(ctx.clone(), self.0 as _))
-    }
-}
-
-impl<'js> FromJs<'js> for AsyncId {
-    fn from_js(_ctx: &rquickjs::Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
-        Ok(AsyncId(value.get()?))
-    }
-}
 
 #[derive(Debug)]
 struct Inner {
@@ -53,42 +19,42 @@ struct Inner {
     trigger_id: AsyncId,
     execution_id: AsyncId,
     tasks: HashMap<AsyncId, Task>,
-    event: Rc<Event>,
+    event: Rc<Notify>,
 }
 
 #[derive(Clone)]
-pub struct ExecState(Rc<RefCell<Inner>>);
+pub struct TaskManager(Rc<RefCell<Inner>>);
 
-impl Default for ExecState {
+impl Default for TaskManager {
     fn default() -> Self {
-        ExecState(Rc::new(RefCell::new(Inner {
+        TaskManager(Rc::new(RefCell::new(Inner {
             tasks: Default::default(),
             next_id: 1,
-            trigger_id: AsyncId(0),
+            trigger_id: AsyncId::root(),
             execution_id: AsyncId::root(),
-            event: Rc::new(Event::new()),
+            event: Rc::new(Notify::default()),
         })))
     }
 }
 
-impl ExecState {
+impl TaskManager {
     // Get nearest task which is a Root
-    #[allow(unused)]
-    pub fn root(&self, mut id: AsyncId) -> Option<AsyncId> {
-        loop {
-            if let Some(task) = self.0.borrow().tasks.get(&id) {
-                if task.kind == ResourceKind::ROOT {
-                    return Some(id);
-                } else if let Some(attached) = task.attached_to {
-                    id = attached
-                } else {
-                    id = task.parent;
-                }
-            } else {
-                return None;
-            }
-        }
-    }
+    // #[allow(unused)]
+    // pub fn root(&self, mut id: AsyncId) -> Option<AsyncId> {
+    //     loop {
+    //         if let Some(task) = self.0.borrow().tasks.get(&id) {
+    //             if task.kind == Resour::ROOT {
+    //                 return Some(id);
+    //             } else if let Some(attached) = task.attached_to {
+    //                 id = attached
+    //             } else {
+    //                 id = task.parent;
+    //             }
+    //         } else {
+    //             return None;
+    //         }
+    //     }
+    // }
 
     #[allow(unused)]
     pub fn find_parent<T: Fn(&Task) -> bool>(&self, mut id: AsyncId, search: T) -> Option<AsyncId> {
@@ -146,21 +112,19 @@ impl ExecState {
         }
     }
 
-    pub fn create_task(&self, parent: Option<AsyncId>, kind: ResourceKind) -> AsyncId {
+    pub fn create_task(
+        &self,
+        parent: Option<AsyncId>,
+        kind: ResourceKind,
+        persist: bool,
+    ) -> AsyncId {
         let id = self.0.borrow().next_id;
         self.0.borrow_mut().next_id += 1;
         let id = AsyncId(id);
 
-        let resolve_parent = parent.unwrap_or_else(|| {
-            let borrow = self.0.borrow();
-            if borrow.execution_id != AsyncId::root() {
-                borrow.execution_id
-            } else {
-                borrow.execution_id
-            }
-        });
+        let resolve_parent = parent.unwrap_or_else(|| self.0.borrow().execution_id);
 
-        let attached_to = if kind.is_native() {
+        let attached_to = if persist {
             self.attach_to_parent_native(resolve_parent)
         } else {
             None
@@ -173,14 +137,14 @@ impl ExecState {
             Task {
                 parent: resolve_parent,
                 children: 0,
-                state: Rc::new(ObservableCell::new(TaskStatus::Working)),
+                state: ObservableCell::new(TaskStatus::Working).into(),
                 kind,
                 attached_to,
                 references: 1,
             },
         );
 
-        self.0.borrow().event.notify(usize::MAX);
+        self.0.borrow().event.notify();
 
         id
     }
@@ -199,16 +163,16 @@ impl ExecState {
     }
 
     /// Remove a task
-    pub fn destroy_task(&self, id: AsyncId) {
+    pub fn destroy_task(&self, id: AsyncId) -> bool {
         if let Some(task) = self.0.borrow_mut().tasks.get_mut(&id) {
             if task.references > 1 {
                 task.references -= 1;
-                return;
+                return false;
             }
         }
 
         let Some(task) = self.0.borrow_mut().tasks.remove(&id) else {
-            return;
+            return false;
         };
 
         if let Some(attached_to) = task.attached_to {
@@ -219,7 +183,9 @@ impl ExecState {
 
         trace!(id = %id, kind = %task.kind, children = %task.children, attached_to = ?task.attached_to, state = ?task.state.get(), "Destroy task");
 
-        self.0.borrow().event.notify(usize::MAX);
+        self.0.borrow().event.notify();
+
+        true
     }
 
     pub fn trigger_async_id(&self) -> AsyncId {
@@ -239,23 +205,23 @@ impl ExecState {
             .unwrap_or(AsyncId(0))
     }
 
-    pub fn task_ctx<'js>(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<TaskCtx<'js>> {
-        let mut this = self.0.borrow_mut();
-        let Some(task) = this.tasks.get_mut(&id) else {
-            throw!(ctx, "Task not active")
-        };
+    // pub fn task_ctx<'js>(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<TaskCtx<'js>> {
+    //     let mut this = self.0.borrow_mut();
+    //     let Some(task) = this.tasks.get_mut(&id) else {
+    //         throw!(ctx, "Task not active")
+    //     };
 
-        task.references += 1;
+    //     task.references += 1;
 
-        TaskCtx::new(ctx.clone(), self.clone(), task.kind, id, false)
-    }
+    //     TaskCtx::new(ctx.clone(), self.clone(), task.kind, id, false)
+    // }
 }
 
-impl ExecState {
+impl TaskManager {
     fn attach_to_parent_native(&self, mut parent: AsyncId) -> Option<AsyncId> {
         loop {
             if let Some(task) = self.0.borrow_mut().tasks.get_mut(&parent) {
-                if task.kind.is_native() {
+                if task.kind == ResourceKind::ROOT {
                     task.children += 1;
                     return Some(parent);
                 }
