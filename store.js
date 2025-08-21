@@ -1,7 +1,7 @@
 import { createHook, executionAsyncId, triggerAsyncId, AsyncLocalStorage } from 'node:async_hooks';
 
 
-
+const snapshot = AsyncLocalStorage.snapshot();
 
 const storage = new AsyncLocalStorage();
 storage.run(new Map(), () => {

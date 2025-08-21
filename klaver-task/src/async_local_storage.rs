@@ -1,7 +1,13 @@
-use klaver_util::rquickjs::{self, Class, Ctx, Function, JsLifetime, Value, class::Trace};
+use klaver_util::FunctionExt;
+use klaver_util::rquickjs::{
+    self, Class, Ctx, Function, IntoJs, JsLifetime, Value, class::Trace, prelude::Func,
+};
 
 use crate::{
-    AsyncState, NativeListener, ResourceKind, TaskCtx, listener::ResourceHandle, state::HookState,
+    AsyncState, NativeListener, ResourceKind, TaskCtx,
+    listener::ResourceHandle,
+    snapshot::{Snapshot, snapshot},
+    state::HookState,
 };
 
 #[rquickjs::class(crate = "rquickjs")]
@@ -62,5 +68,29 @@ impl<'js> AsyncLocalStorage<'js> {
             return Ok(Value::new_null(ctx));
         };
         resource.get("store")
+    }
+
+    #[qjs(static)]
+    pub fn snapshot(ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        let state = AsyncState::instance(&ctx)?;
+
+        let id = state.exec.exectution_trigger_id();
+
+        let task_ctx = state.exec.task_ctx(&ctx, id)?;
+
+        let snapshot = Class::instance(
+            ctx.clone(),
+            Snapshot {
+                id,
+                exec: Some(task_ctx),
+            },
+        )?;
+
+        let func = Func::new(crate::snapshot::snapshot)
+            .into_js(&ctx)?
+            .get::<Function>()?
+            .bind(&ctx, (ctx.globals(), snapshot))?;
+
+        Ok(func.into_value())
     }
 }

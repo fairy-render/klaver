@@ -66,6 +66,7 @@ impl<'js> TaskCtx<'js> {
     }
 
     pub(crate) fn destroy(self) -> rquickjs::Result<()> {
+        // TODO: Check for references
         if !self.internal {
             self.hook_list.borrow_mut().destroy(&self.ctx, self.id)?;
         }

@@ -1,11 +1,14 @@
 use core::fmt;
 use event_listener::Event;
-use klaver_util::rquickjs::{self, FromJs, IntoJs, Value, class::Trace};
+use klaver_util::{
+    rquickjs::{self, Ctx, FromJs, IntoJs, Value, class::Trace},
+    throw,
+};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
 use tracing::trace;
 
 use crate::{
-    ResourceKind,
+    ResourceKind, TaskCtx,
     cell::ObservableCell,
     task::{Task, TaskStatus},
 };
@@ -238,6 +241,17 @@ impl ExecState {
             .get(&id)
             .map(|m| m.parent)
             .unwrap_or(AsyncId(0))
+    }
+
+    pub fn task_ctx<'js>(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<TaskCtx<'js>> {
+        let mut this = self.0.borrow_mut();
+        let Some(task) = this.tasks.get_mut(&id) else {
+            throw!(ctx, "Task not active")
+        };
+
+        task.references += 1;
+
+        TaskCtx::new(ctx.clone(), self.clone(), task.kind, id, false)
     }
 }
 
