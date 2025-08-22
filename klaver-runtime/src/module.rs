@@ -1,5 +1,5 @@
 use crate::{
-    AsyncState, ResourceKind, async_hook::AsyncHook, async_locale_storage::AsyncLocalStorage,
+    ResourceKind, async_hook::AsyncHook, async_locale_storage::AsyncLocalStorage,
     listener::ScriptListener, runtime::Runtime,
 };
 use klaver_util::rquickjs::{

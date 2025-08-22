@@ -1,17 +1,15 @@
 use klaver_util::{
     FunctionExt,
     rquickjs::{
-        self, Atom, Class, Ctx, Function, IntoJs, JsLifetime, String, Value,
+        self, Class, Ctx, Function, IntoJs, JsLifetime, String, Value,
         class::Trace,
         prelude::{Func, Rest},
-        runtime,
     },
 };
 
 use crate::{
-    AsyncId, Context, ResourceKind,
-    executor::{Snapshot, TaskExecutor},
-    runtime::Runtime,
+    ResourceKind,
+    executor::{Execution, Snapshot, TaskExecutor},
 };
 
 #[rquickjs::class(crate = "rquickjs")]
@@ -49,11 +47,14 @@ impl<'js> AsyncLocalStorage<'js> {
         cb: Function<'js>,
     ) -> rquickjs::Result<Value<'js>> {
         let key = self.store_key.clone();
-        self.runtime
-            .run(&ctx, ResourceKind::STORAGE, move |context| {
+        self.runtime.run(
+            &ctx,
+            Execution::default().kind(ResourceKind::STORAGE),
+            move |context| {
                 context.handle()?.set(key, store)?;
-                context.invoke_callback(cb, ())
-            })
+                context.invoke_callback2(cb, ())
+            },
+        )
     }
 
     #[qjs(rename = "enterWith")]
@@ -79,8 +80,6 @@ impl<'js> AsyncLocalStorage<'js> {
     #[qjs(rename = "getStore")]
     pub fn get_store(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let current = self.runtime.manager().exectution_trigger_id();
-
-        println!("Current {}", current);
 
         if let Some(id) = self
             .runtime

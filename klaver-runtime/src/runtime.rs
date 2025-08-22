@@ -1,29 +1,15 @@
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    task::{Poll, ready},
-};
+use std::{cell::RefCell, rc::Rc};
 
-use futures::{
-    FutureExt,
-    future::{Either, pending},
-};
 use klaver_util::{
     CaugthException, FinalizationRegistry,
-    rquickjs::{
-        self, CatchResultExt, Class, Ctx, Function, IntoJs, JsLifetime, Value, class::Trace,
-        prelude::Func,
-    },
-    sync::{ObservableCell, ObservableRefCell},
+    rquickjs::{self, Class, Ctx, Function, IntoJs, JsLifetime, class::Trace, prelude::Func},
+    sync::ObservableRefCell,
 };
-use pin_project_lite::pin_project;
 
 use crate::{
-    context::Context,
     id::AsyncId,
     listener::{HandleMap, HookListeners},
-    resource::{Resource, ResourceKind, ResourceMap},
-    task::TaskStatus,
+    resource::ResourceMap,
     task_manager::TaskManager,
 };
 
@@ -91,50 +77,3 @@ impl<'js> Runtime<'js> {
         }
     }
 }
-
-// pin_project! {
-//     #[project = WaitIdleStateProj]
-//     enum WaitIdleState {
-//         Init,
-//         Waiting {
-//             #[pin]
-//             future: klaver_util::sync::Listener
-//         }
-//     }
-// }
-
-// pin_project! {
-//     struct WaitIdle {
-//         #[pin]
-//         state: WaitIdleState,
-//         cell: Rc<ObservableCell<TaskStatus>>,
-//     }
-// }
-
-// impl Future for WaitIdle {
-//     type Output = ();
-
-//     fn poll(
-//         mut self: std::pin::Pin<&mut Self>,
-//         cx: &mut std::task::Context<'_>,
-//     ) -> std::task::Poll<Self::Output> {
-//         loop {
-//             let mut this = self.as_mut().project();
-
-//             if this.cell.get() == TaskStatus::Idle {
-//                 return Poll::Ready(());
-//             }
-
-//             match this.state.as_mut().project() {
-//                 WaitIdleStateProj::Init => {
-//                     let future = this.cell.subscribe();
-//                     this.state.set(WaitIdleState::Waiting { future });
-//                 }
-//                 WaitIdleStateProj::Waiting { future } => {
-//                     ready!(future.poll(cx));
-//                     this.state.set(WaitIdleState::Init);
-//                 }
-//             }
-//         }
-//     }
-// }

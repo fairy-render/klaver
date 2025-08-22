@@ -1,5 +1,12 @@
 import { createHook, executionAsyncId, triggerAsyncId, AsyncLocalStorage } from 'node:async_hooks';
 
+createHook({
+    init: () => { }
+}).enable()
+
+if (typeof print !== 'function') {
+    globalThis.print = console.log.bind(console);
+}
 
 print("Hello", executionAsyncId())
 

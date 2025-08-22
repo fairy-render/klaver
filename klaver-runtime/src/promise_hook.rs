@@ -29,6 +29,8 @@ fn promise_hook<'js>(
         .as_object()
         .and_then(|m| m.get::<_, AsyncId>("$aid").ok());
 
+    // println!("Hook {:?} {:?}", hook, promise.get::<_, Value<'js>>("$aid"));
+
     match hook {
         PromiseHookType::Init => {
             let id = manager.create_task(parent_id, ResourceKind::PROMISE, false, false);
@@ -45,7 +47,7 @@ fn promise_hook<'js>(
                 Some(parent_id.unwrap_or_else(|| manager.trigger_async_id())),
             )?;
 
-            manager.set_current(id);
+            // manager.set_current(id);
         }
         PromiseHookType::Resolve => {
             let id: AsyncId = promise.get("$aid")?;
@@ -56,7 +58,7 @@ fn promise_hook<'js>(
         PromiseHookType::Before => {
             let id: AsyncId = promise.get("$aid")?;
             hooks.borrow().before(&ctx, id)?;
-            // manager.set_current(id);
+            manager.set_current(id);
         }
         PromiseHookType::After => {
             let id: AsyncId = promise.get("$aid")?;

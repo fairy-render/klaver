@@ -1,7 +1,7 @@
 use core::fmt;
 use std::rc::Rc;
 
-use klaver_util::sync::{Observable, ObservableCell};
+use klaver_util::sync::ObservableCell;
 
 use crate::{id::AsyncId, resource::ResourceKind};
 
@@ -10,6 +10,7 @@ pub enum TaskStatus {
     Working,
     Idle,
     Failed,
+    Killed,
 }
 
 pub struct Task {

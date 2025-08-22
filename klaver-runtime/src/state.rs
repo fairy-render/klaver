@@ -1,56 +1,77 @@
-use klaver_util::{
-    rquickjs::{self, Ctx, FromJs, JsLifetime},
-    throw_if,
-};
+use klaver_util::rquickjs::{self, Ctx, FromJs};
 
 use crate::{
     context::Context,
-    executor::{TaskExecutor, TaskHandle},
+    executor::{Execution, TaskExecutor, TaskHandle},
     resource::{Resource, ResourceKind},
-    runtime::Runtime,
-    task_manager::TaskManager,
 };
 
 #[derive(Clone)]
-pub struct AsyncState {
-    tasks: TaskManager,
-}
+pub struct AsyncState {}
 
 impl AsyncState {
-    // pub fn instance(ctx: &Ctx<'_>) -> rquickjs::Result<AsyncState> {
-    //     match ctx.userdata::<Self>() {
-    //         Some(ret) => Ok(ret.clone()),
-    //         None => {
-    //             let _ = throw_if!(
-    //                 ctx,
-    //                 ctx.store_userdata(AsyncState {
-    //                     exec: Default::default(),
-    //                     exception: Rc::new(ObservableRefCell::new(None)),
-    //                     resource_map: Rc::new(RefCell::new(ResourceMap::new()))
-    //                 })
-    //             );
-
-    //             Ok(ctx.userdata::<Self>().unwrap().clone())
-    //         }
-    //     }
-    // }
-
     pub fn push<'js, T: Resource<'js> + 'js>(
         ctx: &Ctx<'js>,
         resource: T,
     ) -> rquickjs::Result<TaskHandle> {
-        let runtime = Runtime::from_ctx(ctx)?;
-        let executor = TaskExecutor::new(&*runtime.borrow());
+        let executor = TaskExecutor::from_ctx(ctx)?;
         executor.push(ctx, resource)
     }
 
-    pub async fn run<'js, T, R>(ctx: &Ctx<'js>, runner: T) -> rquickjs::Result<R>
+    pub async fn run_async<'js, T, R>(ctx: &Ctx<'js>, runner: T) -> rquickjs::Result<R>
     where
         T: AsyncFnOnce(Context<'js>) -> rquickjs::Result<R>,
         R: FromJs<'js>,
     {
-        let runtime = Runtime::from_ctx(ctx)?;
-        let executor = TaskExecutor::new(&*runtime.borrow());
-        executor.run_async(ctx, ResourceKind::ROOT, runner).await
+        Self::run_async_with(
+            ctx,
+            Execution::default()
+                .persist(true)
+                .kind(ResourceKind::ROOT)
+                .wait(true),
+            runner,
+        )
+        .await
+    }
+
+    pub async fn run_async_with<'js, T, R>(
+        ctx: &Ctx<'js>,
+        execution: Execution,
+        runner: T,
+    ) -> rquickjs::Result<R>
+    where
+        T: AsyncFnOnce(Context<'js>) -> rquickjs::Result<R>,
+        R: FromJs<'js>,
+    {
+        let executor = TaskExecutor::from_ctx(ctx)?;
+        executor.run_async(ctx, execution, runner).await
+    }
+
+    pub fn run<'js, T, R>(ctx: &Ctx<'js>, runner: T) -> rquickjs::Result<R>
+    where
+        T: FnOnce(Context<'js>) -> rquickjs::Result<R>,
+        R: FromJs<'js>,
+    {
+        Self::run_with(
+            ctx,
+            Execution::default()
+                .persist(true)
+                .kind(ResourceKind::ROOT)
+                .wait(true),
+            runner,
+        )
+    }
+
+    pub fn run_with<'js, T, R>(
+        ctx: &Ctx<'js>,
+        execution: Execution,
+        runner: T,
+    ) -> rquickjs::Result<R>
+    where
+        T: FnOnce(Context<'js>) -> rquickjs::Result<R>,
+        R: FromJs<'js>,
+    {
+        let executor = TaskExecutor::from_ctx(ctx)?;
+        executor.run(ctx, execution, runner)
     }
 }

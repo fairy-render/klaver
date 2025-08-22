@@ -1,4 +1,6 @@
-use klaver_runtime::{AsyncState, Context, Resource, ResourceId, set_promise_hook};
+use klaver_runtime::{
+    AsyncState, Context, Execution, ExitMode, Resource, ResourceId, set_promise_hook,
+};
 use klaver_util::{
     RuntimeError,
     rquickjs::{
@@ -24,12 +26,16 @@ async fn main() -> Result<(), RuntimeError> {
     })
     .await?;
 
+    runtime.idle().await;
+
     Ok(())
 }
 async fn run<'js>(ctx: Ctx<'js>) -> rquickjs::Result<()> {
-    AsyncState::run(&ctx, |ctx: Context<'js>| async move {
-        run_inner(ctx.ctx().clone()).await
-    })
+    AsyncState::run_async_with(
+        &ctx,
+        Execution::default().exit(ExitMode::Idle).wait(false),
+        |ctx: Context<'js>| async move { run_inner(ctx.ctx().clone()).await },
+    )
     .await
 }
 
@@ -89,7 +95,7 @@ async fn run_inner<'js>(ctx: Ctx<'js>) -> rquickjs::Result<()> {
 
     Module::declare_def::<klaver_runtime::TaskModule, _>(ctx.clone(), "node:async_hooks")?;
 
-    let module = Module::declare(ctx.clone(), "main", include_str!("./store.js"))?;
+    let module = Module::declare(ctx.clone(), "main", include_str!("./promise.js"))?;
 
     module.meta()?.set("main", true)?;
 

@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{
     any::{Any, TypeId},
-    collections::{BTreeMap, HashMap},
+    collections::HashMap,
 };
 
 use klaver_util::rquickjs::{self, Ctx, FromJs, IntoJs};

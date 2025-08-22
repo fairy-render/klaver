@@ -68,18 +68,24 @@ impl<'js> TaskExecutor<'js> {
     pub async fn run_async<T, R>(
         &self,
         ctx: &Ctx<'js>,
-        kind: ResourceKind,
+        execution: Execution,
         runner: T,
     ) -> rquickjs::Result<R>
     where
         T: AsyncFnOnce(Context<'js>) -> rquickjs::Result<R>,
     {
+        if !execution.kind.is_native() {
+            throw!(@type ctx, "ResourceKind should be a nativekind");
+        }
+
         let id = self
             .manager
-            .create_task(None, kind, kind == ResourceKind::ROOT, false);
+            .create_task(None, execution.kind, execution.persist, false);
         let parent_id = self.manager.parent_id(id);
 
-        self.hooks.borrow().init(ctx, id, kind, Some(parent_id))?;
+        self.hooks
+            .borrow()
+            .init(ctx, id, execution.kind, Some(parent_id))?;
 
         let context = Context {
             hooks: self.hooks.clone(),
@@ -97,7 +103,11 @@ impl<'js> TaskExecutor<'js> {
         let ret = futures::select! {
           ret = work_future.fuse() => {
             if let Some(state) = self.manager.task_status(id) {
-              state.set(TaskStatus::Idle);
+              state.set(if execution.exit == ExitMode::Idle {
+                TaskStatus::Idle
+              } else {
+                TaskStatus::Killed
+              });
             }
             ret
           }
@@ -106,7 +116,7 @@ impl<'js> TaskExecutor<'js> {
           }
         };
 
-        if kind == ResourceKind::ROOT {
+        if execution.wait {
             self.manager.wait_children(id).await;
         }
 
@@ -119,16 +129,18 @@ impl<'js> TaskExecutor<'js> {
         ret
     }
 
-    pub fn run<T, R>(&self, ctx: &Ctx<'js>, kind: ResourceKind, runner: T) -> rquickjs::Result<R>
+    pub fn run<T, R>(&self, ctx: &Ctx<'js>, execution: Execution, runner: T) -> rquickjs::Result<R>
     where
         T: FnOnce(Context<'js>) -> rquickjs::Result<R>,
     {
         let id = self
             .manager
-            .create_task(None, kind, kind == ResourceKind::ROOT, false);
+            .create_task(None, execution.kind, execution.persist, false);
         let parent_id = self.manager.parent_id(id);
 
-        self.hooks.borrow().init(ctx, id, kind, Some(parent_id))?;
+        self.hooks
+            .borrow()
+            .init(ctx, id, execution.kind, Some(parent_id))?;
 
         let context = Context {
             hooks: self.hooks.clone(),
@@ -139,33 +151,26 @@ impl<'js> TaskExecutor<'js> {
             internal: false,
         };
 
-        // let current_id = self.manager.exectution_trigger_id();
-
-        // // self.manager.set_current(id);
-
         let ret = (runner)(context);
 
-        // self.manager.set_current(current_id);
-
         if let Some(state) = self.manager.task_status(id) {
-            state.set(TaskStatus::Idle);
+            state.set(if execution.exit == ExitMode::Idle {
+                TaskStatus::Idle
+            } else {
+                TaskStatus::Killed
+            });
         }
 
-        if kind == ResourceKind::ROOT {
+        if execution.wait {
             let manager = self.manager.clone();
             let hooks = self.hooks.clone();
             let cloned_ctx = ctx.clone();
             ctx.spawn(async move {
                 manager.wait_children(id).await;
-                // if manager.destroy_task(id, &cloned_ctx, &hooks).ok() {
-                //     // hooks.borrow().destroy(&cloned_ctx, id).ok();
-                // }
                 manager.destroy_task(id, &cloned_ctx, &hooks, true).ok();
             });
         } else {
-            if self.manager.destroy_task(id, ctx, &self.hooks, true)? {
-                self.hooks.borrow().destroy(ctx, id)?;
-            }
+            self.manager.destroy_task(id, ctx, &self.hooks, true)?;
         }
 
         ret
@@ -198,11 +203,7 @@ impl<'js> TaskExecutor<'js> {
             .manager
             .find_parent(id, |task| task.kind == ResourceKind::ROOT);
 
-        let root_state = if T::SCOPED {
-            root_id.and_then(|root_id| self.manager.task_status(root_id))
-        } else {
-            None
-        };
+        let root_state = root_id.and_then(|root_id| self.manager.task_status(root_id));
         let exception = self.exception.clone();
 
         let ctx = ctx.clone();
@@ -220,12 +221,19 @@ impl<'js> TaskExecutor<'js> {
             let resource_future = resource.run(context);
 
             let idle = if let Some(ob) = root_state {
-                Either::Left(WaitIdle {
-                    state: WaitIdleState::Init,
-                    cell: ob.clone(),
-                })
+                if T::SCOPED {
+                    Either::Left(Either::Left(WaitIdle {
+                        state: WaitIdleState::Init,
+                        cell: ob.clone(),
+                    }))
+                } else {
+                    Either::Left(Either::Right(WaitKilled {
+                        state: WaitIdleState::Init,
+                        cell: ob.clone(),
+                    }))
+                }
             } else {
-                Either::Right(pending::<()>())
+                Either::Right(pending::<TaskStatus>())
             };
 
             let exception_future = exception.subscribe();
@@ -240,10 +248,13 @@ impl<'js> TaskExecutor<'js> {
                     }
                 },
                 _ = kill.subscribe().fuse() => {
-                    TaskStatus::Idle
+                    // TaskStatus::Idle
+                    TaskStatus::Killed
                 }
-                _ = idle.fuse() => {
-                    TaskStatus::Idle
+                status = idle.fuse() => {
+
+                    // TaskStatus::Idle
+                    status
                 }
                 _ = exception_future.fuse() => {
                     TaskStatus::Idle
@@ -334,7 +345,7 @@ pin_project! {
 }
 
 impl Future for WaitIdle {
-    type Output = ();
+    type Output = TaskStatus;
 
     fn poll(
         mut self: std::pin::Pin<&mut Self>,
@@ -343,8 +354,51 @@ impl Future for WaitIdle {
         loop {
             let mut this = self.as_mut().project();
 
-            if this.cell.get() == TaskStatus::Idle {
-                return Poll::Ready(());
+            let status = this.cell.get();
+
+            if status == TaskStatus::Idle
+                || status == TaskStatus::Failed
+                || status == TaskStatus::Killed
+            {
+                return Poll::Ready(status);
+            }
+
+            match this.state.as_mut().project() {
+                WaitIdleStateProj::Init => {
+                    let future = this.cell.subscribe();
+                    this.state.set(WaitIdleState::Waiting { future });
+                }
+                WaitIdleStateProj::Waiting { future } => {
+                    ready!(future.poll(cx));
+                    this.state.set(WaitIdleState::Init);
+                }
+            }
+        }
+    }
+}
+
+pin_project! {
+  struct WaitKilled {
+      #[pin]
+      state: WaitIdleState,
+      cell: Rc<ObservableCell<TaskStatus>>,
+  }
+}
+
+impl Future for WaitKilled {
+    type Output = TaskStatus;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        loop {
+            let mut this = self.as_mut().project();
+
+            let status = this.cell.get();
+
+            if status == TaskStatus::Failed || status == TaskStatus::Killed {
+                return Poll::Ready(status);
             }
 
             match this.state.as_mut().project() {
@@ -386,5 +440,58 @@ impl<'js> Snapshot<'js> {
         let mut args = Args::new(ctx.clone(), rest.len());
         args.push_args(rest.0)?;
         self.context.invoke_callback_arg(cb, args)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExitMode {
+    Kill,
+    Idle,
+}
+
+impl Default for ExitMode {
+    fn default() -> Self {
+        ExitMode::Idle
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Execution {
+    pub exit: ExitMode,
+    pub wait: bool,
+    pub kind: ResourceKind,
+    pub persist: bool,
+}
+
+impl Default for Execution {
+    fn default() -> Self {
+        Execution {
+            exit: ExitMode::default(),
+            wait: true,
+            kind: ResourceKind::ROOT,
+            persist: false,
+        }
+    }
+}
+
+impl Execution {
+    pub fn exit(mut self, mode: ExitMode) -> Self {
+        self.exit = mode;
+        self
+    }
+
+    pub fn wait(mut self, wait: bool) -> Self {
+        self.wait = wait;
+        self
+    }
+
+    pub fn kind(mut self, kind: ResourceKind) -> Self {
+        self.kind = kind;
+        self
+    }
+
+    pub fn persist(mut self, persist: bool) -> Self {
+        self.persist = persist;
+        self
     }
 }

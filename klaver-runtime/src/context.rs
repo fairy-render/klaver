@@ -3,7 +3,7 @@ use std::rc::Rc;
 use klaver_util::{
     CaugthException,
     rquickjs::{
-        self, Class, Ctx, FromJs, Function, Value, class::Trace, function::Args, prelude::IntoArgs,
+        self, Class, Ctx, FromJs, Function, class::Trace, function::Args, prelude::IntoArgs,
     },
     sync::ObservableRefCell,
     throw,
@@ -12,8 +12,6 @@ use klaver_util::{
 use crate::{
     id::AsyncId,
     listener::{HookListeners, ResourceHandle},
-    resource::ResourceKind,
-    runtime::Runtime,
     task_manager::TaskManager,
 };
 
@@ -34,23 +32,6 @@ impl<'js> Trace<'js> for Context<'js> {
 }
 
 impl<'js> Context<'js> {
-    pub(crate) fn new(
-        ctx: Ctx<'js>,
-        runtime: &Runtime<'js>,
-        id: AsyncId,
-        kind: ResourceKind,
-        internal: bool,
-    ) -> Context<'js> {
-        Context {
-            id,
-            tasks: runtime.manager.clone(),
-            hooks: runtime.hooks.clone(),
-            exception: runtime.exception.clone(),
-            internal,
-            ctx,
-        }
-    }
-
     pub fn id(&self) -> AsyncId {
         self.id
     }
@@ -72,12 +53,37 @@ impl<'js> Context<'js> {
             throw!(@internal self.ctx, "Internal resource cannot have children");
         };
 
+        // let id = self.tasks.exectution_trigger_id();
+
+        self.hooks.borrow().before(&self.ctx, self.id.clone())?;
+
+        self.tasks.set_current(self.id);
+
+        let ret = cb.call(args);
+
+        // self.tasks.set_current(id);
+
+        self.hooks.borrow().after(&self.ctx, self.id.clone())?;
+        ret
+    }
+
+    pub(crate) fn invoke_callback2<A, R>(&self, cb: Function<'js>, args: A) -> rquickjs::Result<R>
+    where
+        A: IntoArgs<'js>,
+        R: FromJs<'js>,
+    {
+        if self.internal {
+            throw!(@internal self.ctx, "Internal resource cannot have children");
+        };
+
         let id = self.tasks.exectution_trigger_id();
 
         self.hooks.borrow().before(&self.ctx, self.id.clone())?;
 
         self.tasks.set_current(self.id);
+
         let ret = cb.call(args);
+
         self.tasks.set_current(id);
 
         self.hooks.borrow().after(&self.ctx, self.id.clone())?;

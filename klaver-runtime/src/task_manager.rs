@@ -1,8 +1,6 @@
-use core::fmt;
 use klaver_util::{
-    rquickjs::{self, Class, Ctx, FromJs, IntoJs, Value, class::Trace},
-    sync::{Notify, Observable, ObservableCell},
-    throw,
+    rquickjs::{self, Class, Ctx},
+    sync::{Notify, ObservableCell},
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc, usize};
 use tracing::trace;
