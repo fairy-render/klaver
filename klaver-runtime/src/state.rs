@@ -16,10 +16,6 @@ pub struct AsyncState {
     tasks: TaskManager,
 }
 
-unsafe impl<'js> JsLifetime<'js> for AsyncState {
-    type Changed<'to> = AsyncState;
-}
-
 impl AsyncState {
     // pub fn instance(ctx: &Ctx<'_>) -> rquickjs::Result<AsyncState> {
     //     match ctx.userdata::<Self>() {

@@ -34,6 +34,8 @@ fn promise_hook<'js>(
             let id = manager.create_task(parent_id, ResourceKind::PROMISE, false, false);
             promise.set("$aid", id)?;
 
+            // println!("CREATE PROMISE {}", id);
+
             finalizers.register(promise.clone().into_value(), id.into_js(&ctx)?, None)?;
 
             hooks.borrow().init(
@@ -47,10 +49,19 @@ fn promise_hook<'js>(
         }
         PromiseHookType::Resolve => {
             let id: AsyncId = promise.get("$aid")?;
+
             hooks.borrow().promise_resolve(&ctx, id)?;
+            manager.set_current(id);
         }
-        hook => {
-            println!("Unknown {:?}", hook);
+        PromiseHookType::Before => {
+            let id: AsyncId = promise.get("$aid")?;
+            hooks.borrow().before(&ctx, id)?;
+            // manager.set_current(id);
+        }
+        PromiseHookType::After => {
+            let id: AsyncId = promise.get("$aid")?;
+            hooks.borrow().after(&ctx, id)?;
+            manager.set_current(id);
         }
     }
     Ok(())

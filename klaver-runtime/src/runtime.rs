@@ -62,7 +62,10 @@ impl<'js> Runtime<'js> {
 
                 let hooks = state.borrow().hooks.clone();
 
-                state.borrow_mut().manager.destroy_task(id, &ctx, &hooks)?;
+                state
+                    .borrow_mut()
+                    .manager
+                    .destroy_task(id, &ctx, &hooks, false)?;
 
                 rquickjs::Result::Ok(())
             })

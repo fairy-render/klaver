@@ -1,16 +1,23 @@
-use klaver_util::rquickjs::{
-    self, Atom, Class, Ctx, Function, JsLifetime, String, Value,
-    class::Trace,
-    prelude::{Func, Rest},
-    runtime,
+use klaver_util::{
+    FunctionExt,
+    rquickjs::{
+        self, Atom, Class, Ctx, Function, IntoJs, JsLifetime, String, Value,
+        class::Trace,
+        prelude::{Func, Rest},
+        runtime,
+    },
 };
 
-use crate::{AsyncId, Context, ResourceKind, executor::TaskExecutor, runtime::Runtime};
+use crate::{
+    AsyncId, Context, ResourceKind,
+    executor::{Snapshot, TaskExecutor},
+    runtime::Runtime,
+};
 
 #[rquickjs::class(crate = "rquickjs")]
 pub struct AsyncLocalStorage<'js> {
     runtime: TaskExecutor<'js>,
-    store_key: Atom<'js>,
+    store_key: String<'js>,
 }
 
 impl<'js> Trace<'js> for AsyncLocalStorage<'js> {
@@ -28,7 +35,7 @@ unsafe impl<'js> JsLifetime<'js> for AsyncLocalStorage<'js> {
 impl<'js> AsyncLocalStorage<'js> {
     #[qjs(constructor)]
     pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<AsyncLocalStorage<'js>> {
-        let store_key = Atom::from_str(ctx.clone(), "$AsyncLocaleStorageStoreKey")?;
+        let store_key = String::from_str(ctx.clone(), "$AsyncLocaleStorageStoreKey")?;
 
         Ok(AsyncLocalStorage {
             runtime: TaskExecutor::from_ctx(&ctx)?,
@@ -73,6 +80,8 @@ impl<'js> AsyncLocalStorage<'js> {
     pub fn get_store(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let current = self.runtime.manager().exectution_trigger_id();
 
+        println!("Current {}", current);
+
         if let Some(id) = self
             .runtime
             .manager()
@@ -96,31 +105,21 @@ impl<'js> AsyncLocalStorage<'js> {
         }
     }
 
-    pub fn snapshot(ctx: Ctx<'js>) -> rquickjs::Result<()> {
-        let runtime = Runtime::from_ctx(&ctx)?;
-
-        let id = runtime.borrow().manager.exectution_trigger_id();
+    #[qjs(static)]
+    pub fn snapshot(ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        let executor = TaskExecutor::from_ctx(&ctx)?;
+        let snapshot = executor.snapshot(&ctx)?;
 
         let func = Func::new(
             |ctx: Ctx<'js>,
-             snapshot: Class<'js, Snapshot>,
+             snapshot: Class<'js, Snapshot<'js>>,
              callback: Function<'js>,
-             args: Rest<Value<'js>>| {},
-        );
+             args: Rest<Value<'js>>| { snapshot.borrow().run(ctx, callback, args) },
+        )
+        .into_js(&ctx)?
+        .get::<Function<'js>>()?
+        .bind(&ctx, (ctx.globals(), snapshot))?;
 
-        Ok(())
+        Ok(func.into_value())
     }
-}
-
-#[rquickjs::class(crate = "rquickjs")]
-pub struct Snapshot {
-    id: AsyncId,
-}
-
-impl<'js> Trace<'js> for Snapshot {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {}
-}
-
-unsafe impl<'js> JsLifetime<'js> for Snapshot {
-    type Changed<'to> = Snapshot;
 }

@@ -10,7 +10,10 @@ use futures::{
 };
 use klaver_util::{
     CaugthException,
-    rquickjs::{self, CatchResultExt, Class, Ctx, JsLifetime, class::Trace},
+    rquickjs::{
+        self, CatchResultExt, Class, Ctx, Function, IntoJs, JsLifetime, Value, class::Trace,
+        function::Args, prelude::Rest,
+    },
     sync::{ObservableCell, ObservableRefCell},
     throw,
 };
@@ -107,7 +110,7 @@ impl<'js> TaskExecutor<'js> {
             self.manager.wait_children(id).await;
         }
 
-        self.manager.destroy_task(id, ctx, &self.hooks)?;
+        self.manager.destroy_task(id, ctx, &self.hooks, true)?;
 
         if let Some(found) = self.exception.borrow().clone() {
             throw!(ctx, found);
@@ -157,10 +160,10 @@ impl<'js> TaskExecutor<'js> {
                 // if manager.destroy_task(id, &cloned_ctx, &hooks).ok() {
                 //     // hooks.borrow().destroy(&cloned_ctx, id).ok();
                 // }
-                manager.destroy_task(id, &cloned_ctx, &hooks).ok();
+                manager.destroy_task(id, &cloned_ctx, &hooks, true).ok();
             });
         } else {
-            if self.manager.destroy_task(id, ctx, &self.hooks)? {
+            if self.manager.destroy_task(id, ctx, &self.hooks, true)? {
                 self.hooks.borrow().destroy(ctx, id)?;
             }
         }
@@ -251,7 +254,7 @@ impl<'js> TaskExecutor<'js> {
                 state.set(status);
             }
 
-            manager.destroy_task(id, &ctx, &hooks).ok();
+            manager.destroy_task(id, &ctx, &hooks, true).ok();
         });
 
         Ok(TaskHandle { id, kind, cell })
@@ -259,8 +262,31 @@ impl<'js> TaskExecutor<'js> {
 
     pub fn snapshot(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, Snapshot<'js>>> {
         let current = self.manager.exectution_trigger_id();
-        if let Some(task) = self.manager.0.borrow().tasks.get(&current) {}
-        todo!()
+
+        if let Some(task) = self.manager.0.borrow_mut().tasks.get_mut(&current) {
+            let context = Context {
+                id: current,
+                tasks: self.manager.clone(),
+                hooks: self.hooks.clone(),
+                exception: self.exception.clone(),
+                internal: task.internal,
+                ctx: ctx.clone(),
+            };
+
+            let snapshot = Class::instance(ctx.clone(), Snapshot { context })?;
+
+            Runtime::from_ctx(ctx)?.borrow().finalizers.register(
+                snapshot.clone().into_value(),
+                current.into_js(ctx)?,
+                None,
+            )?;
+
+            task.references += 1;
+
+            Ok(snapshot)
+        } else {
+            throw!(ctx, "could not find current async task")
+        }
     }
 }
 
@@ -337,13 +363,28 @@ impl Future for WaitIdle {
 
 #[rquickjs::class(crate = "rquickjs")]
 pub struct Snapshot<'js> {
-    id: Context<'js>,
+    context: Context<'js>,
 }
 
 impl<'js> Trace<'js> for Snapshot<'js> {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {}
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.context.trace(tracer);
+    }
 }
 
 unsafe impl<'js> JsLifetime<'js> for Snapshot<'js> {
     type Changed<'to> = Snapshot<'to>;
+}
+
+impl<'js> Snapshot<'js> {
+    pub fn run(
+        &self,
+        ctx: Ctx<'js>,
+        cb: Function<'js>,
+        rest: Rest<Value<'js>>,
+    ) -> rquickjs::Result<Value<'js>> {
+        let mut args = Args::new(ctx.clone(), rest.len());
+        args.push_args(rest.0)?;
+        self.context.invoke_callback_arg(cb, args)
+    }
 }

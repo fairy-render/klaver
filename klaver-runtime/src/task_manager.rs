@@ -15,11 +15,11 @@ use crate::{
 };
 
 #[derive(Debug)]
-struct Inner {
+pub(crate) struct Inner {
     next_id: usize,
     trigger_id: AsyncId,
     execution_id: AsyncId,
-    tasks: HashMap<AsyncId, Task>,
+    pub tasks: HashMap<AsyncId, Task>,
     event: Rc<Notify>,
 }
 
@@ -176,32 +176,47 @@ impl TaskManager {
         id: AsyncId,
         ctx: &Ctx<'js>,
         hooks: &Class<'js, HookListeners<'js>>,
+        detach: bool,
     ) -> rquickjs::Result<bool> {
-        if let Some(task) = self.0.borrow_mut().tasks.get_mut(&id) {
+        let mut this = self.0.borrow_mut();
+
+        if let Some(task) = this.tasks.get_mut(&id) {
             if task.references > 1 {
                 task.references -= 1;
                 trace!(id = %id, refs = task.references, "Decrement references");
+
+                if detach {
+                    if let Some(attached_to) = task.attached_to.take() {
+                        let _ = task;
+                        if let Some(parent) = this.tasks.get_mut(&attached_to) {
+                            parent.children -= 1;
+                        }
+                    }
+                }
+
                 return Ok(false);
             }
         }
 
-        let Some(task) = self.0.borrow_mut().tasks.remove(&id) else {
+        let Some(task) = this.tasks.remove(&id) else {
             return Ok(false);
         };
 
         if let Some(attached_to) = task.attached_to {
-            if let Some(parent) = self.0.borrow_mut().tasks.get_mut(&attached_to) {
+            if let Some(parent) = this.tasks.get_mut(&attached_to) {
                 parent.children -= 1;
             }
         }
 
         trace!(id = %id, kind = %task.kind, children = %task.children, attached_to = ?task.attached_to, state = ?task.state.get(), "Destroy task");
 
-        self.0.borrow().event.notify();
+        this.event.notify();
+
+        drop(this);
 
         hooks.borrow().destroy(ctx, id)?;
 
-        self.destroy_task(task.parent, ctx, hooks)?;
+        self.destroy_task(task.parent, ctx, hooks, false)?;
 
         Ok(true)
     }

@@ -13,9 +13,8 @@ async fn main() -> Result<(), RuntimeError> {
     //     .with_max_level(tracing::level_filters::LevelFilter::TRACE)
     //     .init();
     let runtime = AsyncRuntime::new()?;
-    let context = AsyncContext::full(&runtime).await?;
-
     set_promise_hook(&runtime).await;
+    let context = AsyncContext::full(&runtime).await?;
 
     rquickjs::async_with!(context => |ctx| {
 
