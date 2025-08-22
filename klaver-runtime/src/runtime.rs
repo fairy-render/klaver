@@ -60,9 +60,9 @@ impl<'js> Runtime<'js> {
             let handler = Func::new(|ctx: Ctx<'js>, id: AsyncId| {
                 let state = Runtime::from_ctx(&ctx)?;
 
-                state.borrow().hooks.borrow_mut().destroy(&ctx, id)?;
+                let hooks = state.borrow().hooks.clone();
 
-                state.borrow_mut().manager.destroy_task(id);
+                state.borrow_mut().manager.destroy_task(id, &ctx, &hooks)?;
 
                 rquickjs::Result::Ok(())
             })

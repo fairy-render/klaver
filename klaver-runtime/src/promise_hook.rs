@@ -31,7 +31,7 @@ fn promise_hook<'js>(
 
     match hook {
         PromiseHookType::Init => {
-            let id = manager.create_task(parent_id, ResourceKind::PROMISE, false);
+            let id = manager.create_task(parent_id, ResourceKind::PROMISE, false, false);
             promise.set("$aid", id)?;
 
             finalizers.register(promise.clone().into_value(), id.into_js(&ctx)?, None)?;

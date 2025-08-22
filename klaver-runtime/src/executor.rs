@@ -73,7 +73,7 @@ impl<'js> TaskExecutor<'js> {
     {
         let id = self
             .manager
-            .create_task(None, kind, kind == ResourceKind::ROOT);
+            .create_task(None, kind, kind == ResourceKind::ROOT, false);
         let parent_id = self.manager.parent_id(id);
 
         self.hooks.borrow().init(ctx, id, kind, Some(parent_id))?;
@@ -104,13 +104,10 @@ impl<'js> TaskExecutor<'js> {
         };
 
         if kind == ResourceKind::ROOT {
-            println!("Wait children");
             self.manager.wait_children(id).await;
         }
 
-        if self.manager.destroy_task(id) {
-            self.hooks.borrow().destroy(ctx, id)?;
-        }
+        self.manager.destroy_task(id, ctx, &self.hooks)?;
 
         if let Some(found) = self.exception.borrow().clone() {
             throw!(ctx, found);
@@ -125,7 +122,7 @@ impl<'js> TaskExecutor<'js> {
     {
         let id = self
             .manager
-            .create_task(None, kind, kind == ResourceKind::ROOT);
+            .create_task(None, kind, kind == ResourceKind::ROOT, false);
         let parent_id = self.manager.parent_id(id);
 
         self.hooks.borrow().init(ctx, id, kind, Some(parent_id))?;
@@ -153,12 +150,13 @@ impl<'js> TaskExecutor<'js> {
             let cloned_ctx = ctx.clone();
             ctx.spawn(async move {
                 manager.wait_children(id).await;
-                if manager.destroy_task(id) {
-                    hooks.borrow().destroy(&cloned_ctx, id).ok();
-                }
+                // if manager.destroy_task(id, &cloned_ctx, &hooks).ok() {
+                //     // hooks.borrow().destroy(&cloned_ctx, id).ok();
+                // }
+                manager.destroy_task(id, &cloned_ctx, &hooks).ok();
             });
         } else {
-            if self.manager.destroy_task(id) {
+            if self.manager.destroy_task(id, ctx, &self.hooks)? {
                 self.hooks.borrow().destroy(ctx, id)?;
             }
         }
@@ -173,7 +171,9 @@ impl<'js> TaskExecutor<'js> {
     ) -> rquickjs::Result<TaskHandle> {
         let kind = self.resource_map.borrow_mut().register::<T>();
 
-        let id = self.manager.create_task(None, kind, !T::SCOPED);
+        let id = self
+            .manager
+            .create_task(None, kind, !T::SCOPED, T::INTERNAL);
 
         let kill = Rc::new(ObservableCell::new(false));
         let cell = kill.clone();
@@ -186,9 +186,6 @@ impl<'js> TaskExecutor<'js> {
             ctx: ctx.clone(),
             internal: T::INTERNAL,
         };
-
-        let parent_id = self.manager.parent_id(id);
-        self.manager.increment_ref(parent_id);
 
         let root_id = self
             .manager
@@ -250,17 +247,7 @@ impl<'js> TaskExecutor<'js> {
                 state.set(status);
             }
 
-            if manager.destroy_task(id) && !T::INTERNAL {
-                if let Err(err) = hooks.borrow().destroy(&ctx, id).catch(&ctx) {
-                    *exception.borrow_mut() = Some(err.into());
-                }
-
-                if manager.destroy_task(parent_id) {
-                    if let Err(err) = hooks.borrow().destroy(&ctx, parent_id).catch(&ctx) {
-                        *exception.borrow_mut() = Some(err.into());
-                    }
-                }
-            }
+            manager.destroy_task(id, &ctx, &hooks).ok();
         });
 
         Ok(TaskHandle { id, kind, cell })

@@ -1,6 +1,6 @@
 use core::fmt;
 use klaver_util::{
-    rquickjs::{self, Ctx, FromJs, IntoJs, Value, class::Trace},
+    rquickjs::{self, Class, Ctx, FromJs, IntoJs, Value, class::Trace},
     sync::{Notify, Observable, ObservableCell},
     throw,
 };
@@ -9,6 +9,7 @@ use tracing::trace;
 
 use crate::{
     id::AsyncId,
+    listener::HookListeners,
     resource::ResourceKind,
     task::{Task, TaskStatus},
 };
@@ -74,20 +75,6 @@ impl TaskManager {
         }
     }
 
-    pub fn increment_ref(&self, id: AsyncId) {
-        if let Some(task) = self.0.borrow_mut().tasks.get_mut(&id) {
-            task.references += 1;
-        }
-    }
-
-    pub fn decrement_ref(&self, id: AsyncId) {
-        if let Some(task) = self.0.borrow_mut().tasks.get_mut(&id) {
-            if task.references > 1 {
-                task.references -= 1;
-            }
-        }
-    }
-
     /// Set current execution scope
     pub fn set_current(&self, current: AsyncId) {
         let mut this = self.0.borrow_mut();
@@ -132,6 +119,7 @@ impl TaskManager {
         parent: Option<AsyncId>,
         kind: ResourceKind,
         persist: bool,
+        internal: bool,
     ) -> AsyncId {
         let id = self.0.borrow().next_id;
         self.0.borrow_mut().next_id += 1;
@@ -145,6 +133,10 @@ impl TaskManager {
             None
         };
 
+        if let Some(task) = self.0.borrow_mut().tasks.get_mut(&resolve_parent) {
+            task.references += 1;
+        }
+
         trace!(id = %id, kind = %kind, parent = %resolve_parent, attached_to = ?attached_to, persist = ?persist, "Create task");
 
         self.0.borrow_mut().tasks.insert(
@@ -156,6 +148,7 @@ impl TaskManager {
                 kind,
                 attached_to,
                 references: 1,
+                internal,
             },
         );
 
@@ -178,16 +171,22 @@ impl TaskManager {
     }
 
     /// Remove a task
-    pub fn destroy_task(&self, id: AsyncId) -> bool {
+    pub fn destroy_task<'js>(
+        &self,
+        id: AsyncId,
+        ctx: &Ctx<'js>,
+        hooks: &Class<'js, HookListeners<'js>>,
+    ) -> rquickjs::Result<bool> {
         if let Some(task) = self.0.borrow_mut().tasks.get_mut(&id) {
             if task.references > 1 {
                 task.references -= 1;
-                return false;
+                trace!(id = %id, refs = task.references, "Decrement references");
+                return Ok(false);
             }
         }
 
         let Some(task) = self.0.borrow_mut().tasks.remove(&id) else {
-            return false;
+            return Ok(false);
         };
 
         if let Some(attached_to) = task.attached_to {
@@ -200,7 +199,11 @@ impl TaskManager {
 
         self.0.borrow().event.notify();
 
-        true
+        hooks.borrow().destroy(ctx, id)?;
+
+        self.destroy_task(task.parent, ctx, hooks)?;
+
+        Ok(true)
     }
 
     pub fn trigger_async_id(&self) -> AsyncId {

@@ -9,12 +9,16 @@ storage.run(new Map(), () => {
     setTimeout(() => {
         print('Inside first timeout executionAsyncId:', executionAsyncId(), 'triggerAsyncId:', triggerAsyncId());
         // storage.getStore().set('key1', 'value1');
-        print("Stored value",storage.getStore().set('key1', 'value1'))
+        print("Stored value", storage.getStore().set('key1', 'value1'))
         setTimeout(() => {
             print('Inside second timeout executionAsyncId:', executionAsyncId(), 'triggerAsyncId:', triggerAsyncId());
             print('Stored value:', storage.getStore().get('key1'));
         }, 100);
     }, 100);
+
+    setTimeout(() => {
+        print("Another timeout")
+    }, 100)
 });
 
 

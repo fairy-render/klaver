@@ -24,6 +24,7 @@ pub struct Task {
     pub attached_to: Option<AsyncId>,
 
     pub references: usize,
+    pub internal: bool,
 }
 
 impl fmt::Debug for Task {

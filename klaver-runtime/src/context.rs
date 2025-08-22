@@ -90,8 +90,4 @@ impl<'js> Context<'js> {
         self.hooks.borrow().after(&self.ctx, self.id.clone())?;
         ret
     }
-
-    pub fn incr(&self) {
-        self.tasks.increment_ref(self.id);
-    }
 }
