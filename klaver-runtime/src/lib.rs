@@ -1,5 +1,6 @@
 mod async_hook;
 mod async_locale_storage;
+mod async_resource;
 mod context;
 mod executor;
 mod id;

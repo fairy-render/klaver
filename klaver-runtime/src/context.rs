@@ -15,6 +15,7 @@ use crate::{
     task_manager::TaskManager,
 };
 
+#[derive(Clone)]
 pub struct Context<'js> {
     pub id: AsyncId,
     pub tasks: TaskManager,

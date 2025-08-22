@@ -29,7 +29,12 @@ fn promise_hook<'js>(
         .as_object()
         .and_then(|m| m.get::<_, AsyncId>("$aid").ok());
 
-    // println!("Hook {:?} {:?}", hook, promise.get::<_, Value<'js>>("$aid"));
+    // println!(
+    //     "Hook {:?} {:?}: {}",
+    //     hook,
+    //     promise.get::<_, Value<'js>>("$aid"),
+    //     manager.exectution_trigger_id()
+    // );
 
     match hook {
         PromiseHookType::Init => {

@@ -24,6 +24,7 @@ impl ResourceKind {
     pub const SCRIPT: ResourceKind = ResourceKind(2);
     pub const ROOT: ResourceKind = ResourceKind(3);
     pub const STORAGE: ResourceKind = ResourceKind(4);
+    pub const ASYNC_RESOURCE: ResourceKind = ResourceKind(5);
 
     pub fn is_native(&self) -> bool {
         self.0 > 2
@@ -48,7 +49,7 @@ impl<'js> FromJs<'js> for ResourceKind {
     }
 }
 
-const NEXT_ID: u32 = 5;
+const NEXT_ID: u32 = 6;
 
 pub(crate) struct ResourceMap {
     next_id: u32,
@@ -94,6 +95,8 @@ impl ResourceMap {
             Some("Script")
         } else if id == ResourceKind::STORAGE {
             Some("AsyncLocalStorage")
+        } else if id == ResourceKind::STORAGE {
+            Some("AsyncResource")
         } else {
             self.name_map.get(&id).map(|m| &**m)
         }

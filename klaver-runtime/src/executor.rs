@@ -271,7 +271,7 @@ impl<'js> TaskExecutor<'js> {
         Ok(TaskHandle { id, kind, cell })
     }
 
-    pub fn snapshot(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, Snapshot<'js>>> {
+    pub fn snapshot(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, JsSnapshot<'js>>> {
         let current = self.manager.exectution_trigger_id();
 
         if let Some(task) = self.manager.0.borrow_mut().tasks.get_mut(&current) {
@@ -284,7 +284,12 @@ impl<'js> TaskExecutor<'js> {
                 ctx: ctx.clone(),
             };
 
-            let snapshot = Class::instance(ctx.clone(), Snapshot { context })?;
+            let snapshot = Class::instance(
+                ctx.clone(),
+                JsSnapshot {
+                    context: Some(context),
+                },
+            )?;
 
             Runtime::from_ctx(ctx)?.borrow().finalizers.register(
                 snapshot.clone().into_value(),
@@ -293,6 +298,54 @@ impl<'js> TaskExecutor<'js> {
             )?;
 
             task.references += 1;
+
+            Ok(snapshot)
+        } else {
+            throw!(ctx, "could not find current async task")
+        }
+    }
+
+    pub fn crate_task(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, JsSnapshot<'js>>> {
+        let current = self
+            .manager
+            .create_task(None, ResourceKind::ROOT, true, false);
+
+        self.hooks.borrow().init(
+            ctx,
+            current,
+            ResourceKind::ROOT,
+            Some(self.manager.exectution_trigger_id()),
+        )?;
+
+        if let Some(task) = self.manager.0.borrow_mut().tasks.get_mut(&current) {
+            let context = Context {
+                id: current,
+                tasks: self.manager.clone(),
+                hooks: self.hooks.clone(),
+                exception: self.exception.clone(),
+                internal: task.internal,
+                ctx: ctx.clone(),
+            };
+
+            let snapshot = Class::instance(
+                ctx.clone(),
+                JsSnapshot {
+                    context: Some(context),
+                },
+            )?;
+
+            Runtime::from_ctx(ctx)?.borrow().finalizers.register(
+                snapshot.clone().into_value(),
+                current.into_js(ctx)?,
+                None,
+            )?;
+
+            task.references += 1;
+
+            let _ = task;
+
+            self.manager
+                .destroy_task(current, ctx, &self.hooks, false)?;
 
             Ok(snapshot)
         } else {
@@ -416,30 +469,43 @@ impl Future for WaitKilled {
 }
 
 #[rquickjs::class(crate = "rquickjs")]
-pub struct Snapshot<'js> {
-    context: Context<'js>,
+pub struct JsSnapshot<'js> {
+    context: Option<Context<'js>>,
 }
 
-impl<'js> Trace<'js> for Snapshot<'js> {
+impl<'js> Trace<'js> for JsSnapshot<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.context.trace(tracer);
     }
 }
 
-unsafe impl<'js> JsLifetime<'js> for Snapshot<'js> {
-    type Changed<'to> = Snapshot<'to>;
+unsafe impl<'js> JsLifetime<'js> for JsSnapshot<'js> {
+    type Changed<'to> = JsSnapshot<'to>;
 }
 
-impl<'js> Snapshot<'js> {
-    pub fn run(
+impl<'js> JsSnapshot<'js> {
+    pub fn run_callback(
         &self,
         ctx: Ctx<'js>,
         cb: Function<'js>,
         rest: Rest<Value<'js>>,
     ) -> rquickjs::Result<Value<'js>> {
+        let Some(context) = self.context.as_ref() else {
+            throw!(ctx, "Task is closed")
+        };
         let mut args = Args::new(ctx.clone(), rest.len());
         args.push_args(rest.0)?;
-        self.context.invoke_callback_arg(cb, args)
+        context.invoke_callback_arg(cb, args)
+    }
+
+    pub fn emit_destroy(&mut self) -> rquickjs::Result<()> {
+        let Some(context) = self.context.take() else {
+            return Ok(());
+        };
+        context
+            .tasks
+            .destroy_task(context.id, &context.ctx, &context.hooks, false)?;
+        Ok(())
     }
 }
 

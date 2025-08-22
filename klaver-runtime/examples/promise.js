@@ -23,7 +23,9 @@ function sleep(ms) {
 
 sleep(200).then(ret => {
     print("After sleep promise", executionAsyncId(), triggerAsyncId())
-});
+}).then(() => [
+    print("After after")
+]);
 
 print("Root", executionAsyncId(), triggerAsyncId())
 

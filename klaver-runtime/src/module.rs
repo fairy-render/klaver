@@ -1,6 +1,6 @@
 use crate::{
     ResourceKind, async_hook::AsyncHook, async_locale_storage::AsyncLocalStorage,
-    listener::ScriptListener, runtime::Runtime,
+    async_resource::AsyncResource, listener::ScriptListener, runtime::Runtime,
 };
 use klaver_util::rquickjs::{
     self, Class, Ctx, String, Value, class::JsClass, module::ModuleDef, prelude::Func,
@@ -18,6 +18,7 @@ impl ModuleDef for TaskModule {
         decl.declare("executionAsyncResource")?;
         decl.declare("resourceName")?;
         decl.declare(AsyncLocalStorage::NAME)?;
+        decl.declare(AsyncResource::NAME)?;
         Ok(())
     }
 
@@ -85,6 +86,11 @@ impl ModuleDef for TaskModule {
         exports.export(
             AsyncLocalStorage::NAME,
             Class::<AsyncLocalStorage>::create_constructor(ctx)?,
+        )?;
+
+        exports.export(
+            AsyncResource::NAME,
+            Class::<AsyncResource>::create_constructor(ctx)?,
         )?;
 
         Ok(())

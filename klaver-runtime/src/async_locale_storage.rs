@@ -9,7 +9,7 @@ use klaver_util::{
 
 use crate::{
     ResourceKind,
-    executor::{Execution, Snapshot, TaskExecutor},
+    executor::{Execution, JsSnapshot, TaskExecutor},
 };
 
 #[rquickjs::class(crate = "rquickjs")]
@@ -111,9 +111,11 @@ impl<'js> AsyncLocalStorage<'js> {
 
         let func = Func::new(
             |ctx: Ctx<'js>,
-             snapshot: Class<'js, Snapshot<'js>>,
+             snapshot: Class<'js, JsSnapshot<'js>>,
              callback: Function<'js>,
-             args: Rest<Value<'js>>| { snapshot.borrow().run(ctx, callback, args) },
+             args: Rest<Value<'js>>| {
+                snapshot.borrow().run_callback(ctx, callback, args)
+            },
         )
         .into_js(&ctx)?
         .get::<Function<'js>>()?
