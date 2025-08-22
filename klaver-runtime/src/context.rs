@@ -2,7 +2,9 @@ use std::rc::Rc;
 
 use klaver_util::{
     CaugthException,
-    rquickjs::{self, Class, Ctx, FromJs, Function, Value, function::Args, prelude::IntoArgs},
+    rquickjs::{
+        self, Class, Ctx, FromJs, Function, Value, class::Trace, function::Args, prelude::IntoArgs,
+    },
     sync::ObservableRefCell,
     throw,
 };
@@ -24,6 +26,13 @@ pub struct Context<'js> {
     pub ctx: Ctx<'js>,
 }
 
+impl<'js> Trace<'js> for Context<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.hooks.trace(tracer);
+        tracer.mark_ctx(&self.ctx);
+    }
+}
+
 impl<'js> Context<'js> {
     pub(crate) fn new(
         ctx: Ctx<'js>,
@@ -40,6 +49,10 @@ impl<'js> Context<'js> {
             internal,
             ctx,
         }
+    }
+
+    pub fn id(&self) -> AsyncId {
+        self.id
     }
 
     pub fn handle(&self) -> rquickjs::Result<ResourceHandle<'js>> {

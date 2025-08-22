@@ -1,15 +1,22 @@
-use klaver_util::rquickjs::{self, Class, Ctx, Function, JsLifetime, Value, class::Trace};
+use klaver_util::rquickjs::{
+    self, Atom, Class, Ctx, Function, JsLifetime, String, Value,
+    class::Trace,
+    prelude::{Func, Rest},
+    runtime,
+};
 
-use crate::{ResourceKind, executor::TaskExecutor, runtime::Runtime};
+use crate::{AsyncId, Context, ResourceKind, executor::TaskExecutor, runtime::Runtime};
 
 #[rquickjs::class(crate = "rquickjs")]
 pub struct AsyncLocalStorage<'js> {
     runtime: TaskExecutor<'js>,
+    store_key: Atom<'js>,
 }
 
 impl<'js> Trace<'js> for AsyncLocalStorage<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.runtime.trace(tracer);
+        self.store_key.trace(tracer);
     }
 }
 
@@ -21,8 +28,11 @@ unsafe impl<'js> JsLifetime<'js> for AsyncLocalStorage<'js> {
 impl<'js> AsyncLocalStorage<'js> {
     #[qjs(constructor)]
     pub fn new(ctx: Ctx<'js>) -> rquickjs::Result<AsyncLocalStorage<'js>> {
+        let store_key = Atom::from_str(ctx.clone(), "$AsyncLocaleStorageStoreKey")?;
+
         Ok(AsyncLocalStorage {
             runtime: TaskExecutor::from_ctx(&ctx)?,
+            store_key,
         })
     }
     pub fn run(
@@ -31,28 +41,86 @@ impl<'js> AsyncLocalStorage<'js> {
         store: Value<'js>,
         cb: Function<'js>,
     ) -> rquickjs::Result<Value<'js>> {
+        let key = self.store_key.clone();
         self.runtime
             .run(&ctx, ResourceKind::STORAGE, move |context| {
-                context.handle()?.set("store", store)?;
+                context.handle()?.set(key, store)?;
                 context.invoke_callback(cb, ())
             })
+    }
+
+    #[qjs(rename = "enterWith")]
+    pub fn enter_with(&self, ctx: Ctx<'js>, store: Value<'js>) -> rquickjs::Result<()> {
+        let current = self.runtime.manager().exectution_trigger_id();
+        if let Some(id) = self
+            .runtime
+            .manager()
+            .find_parent(current, |task| task.kind == ResourceKind::ROOT)
+        {
+            match self.runtime.hooks().borrow().get_resource_handle(&ctx, id) {
+                Ok(ret) => {
+                    ret.set(self.store_key.clone(), store)?;
+                    Ok(())
+                }
+                _ => Ok(()),
+            }
+        } else {
+            Ok(())
+        }
     }
 
     #[qjs(rename = "getStore")]
     pub fn get_store(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let current = self.runtime.manager().exectution_trigger_id();
-        // println!("{} {:#?}", current, self.runtime.manager());
+
         if let Some(id) = self
             .runtime
             .manager()
             .find_parent(current, |task| task.kind == ResourceKind::STORAGE)
         {
             match self.runtime.hooks().borrow().get_resource_handle(&ctx, id) {
-                Ok(ret) => ret.get("store"),
+                Ok(ret) => ret.get(self.store_key.clone()),
+                _ => Ok(Value::new_null(ctx)),
+            }
+        } else if let Some(id) = self
+            .runtime
+            .manager()
+            .find_parent(current, |task| task.kind == ResourceKind::ROOT)
+        {
+            match self.runtime.hooks().borrow().get_resource_handle(&ctx, id) {
+                Ok(ret) => ret.get(self.store_key.clone()),
                 _ => Ok(Value::new_null(ctx)),
             }
         } else {
             Ok(Value::new_null(ctx))
         }
     }
+
+    pub fn snapshot(ctx: Ctx<'js>) -> rquickjs::Result<()> {
+        let runtime = Runtime::from_ctx(&ctx)?;
+
+        let id = runtime.borrow().manager.exectution_trigger_id();
+
+        let func = Func::new(
+            |ctx: Ctx<'js>,
+             snapshot: Class<'js, Snapshot>,
+             callback: Function<'js>,
+             args: Rest<Value<'js>>| {},
+        );
+
+        Ok(())
+    }
+}
+
+#[rquickjs::class(crate = "rquickjs")]
+pub struct Snapshot {
+    id: AsyncId,
+}
+
+impl<'js> Trace<'js> for Snapshot {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {}
+}
+
+unsafe impl<'js> JsLifetime<'js> for Snapshot {
+    type Changed<'to> = Snapshot;
 }

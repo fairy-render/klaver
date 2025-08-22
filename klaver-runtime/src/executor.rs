@@ -10,7 +10,7 @@ use futures::{
 };
 use klaver_util::{
     CaugthException,
-    rquickjs::{self, CatchResultExt, Class, Ctx, class::Trace},
+    rquickjs::{self, CatchResultExt, Class, Ctx, JsLifetime, class::Trace},
     sync::{ObservableCell, ObservableRefCell},
     throw,
 };
@@ -136,9 +136,13 @@ impl<'js> TaskExecutor<'js> {
             internal: false,
         };
 
-        self.manager.set_current(id);
+        // let current_id = self.manager.exectution_trigger_id();
+
+        // // self.manager.set_current(id);
 
         let ret = (runner)(context);
+
+        // self.manager.set_current(current_id);
 
         if let Some(state) = self.manager.task_status(id) {
             state.set(TaskStatus::Idle);
@@ -252,6 +256,12 @@ impl<'js> TaskExecutor<'js> {
 
         Ok(TaskHandle { id, kind, cell })
     }
+
+    pub fn snapshot(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Class<'js, Snapshot<'js>>> {
+        let current = self.manager.exectution_trigger_id();
+        if let Some(task) = self.manager.0.borrow().tasks.get(&current) {}
+        todo!()
+    }
 }
 
 pub struct TaskHandle {
@@ -323,4 +333,17 @@ impl Future for WaitIdle {
             }
         }
     }
+}
+
+#[rquickjs::class(crate = "rquickjs")]
+pub struct Snapshot<'js> {
+    id: Context<'js>,
+}
+
+impl<'js> Trace<'js> for Snapshot<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {}
+}
+
+unsafe impl<'js> JsLifetime<'js> for Snapshot<'js> {
+    type Changed<'to> = Snapshot<'to>;
 }

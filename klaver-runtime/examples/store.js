@@ -22,3 +22,4 @@ storage.run(new Map(), () => {
 });
 
 
+print('store',storage.getStore())

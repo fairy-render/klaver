@@ -9,9 +9,9 @@ use klaver_util::{
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), RuntimeError> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::level_filters::LevelFilter::TRACE)
-        .init();
+    // tracing_subscriber::fmt()
+    //     .with_max_level(tracing::level_filters::LevelFilter::TRACE)
+    //     .init();
     let runtime = AsyncRuntime::new()?;
     let context = AsyncContext::full(&runtime).await?;
 
@@ -20,6 +20,7 @@ async fn main() -> Result<(), RuntimeError> {
     rquickjs::async_with!(context => |ctx| {
 
       run(ctx.clone()).await.catch(&ctx)?;
+      ctx.run_gc();
       Result::<_, RuntimeError>::Ok(())
     })
     .await?;

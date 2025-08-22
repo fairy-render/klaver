@@ -24,7 +24,7 @@ struct Inner {
 }
 
 #[derive(Clone, Debug)]
-pub struct TaskManager(Rc<RefCell<Inner>>);
+pub struct TaskManager(pub(crate) Rc<RefCell<Inner>>);
 
 impl Default for TaskManager {
     fn default() -> Self {
