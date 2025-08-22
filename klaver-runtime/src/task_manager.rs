@@ -22,7 +22,7 @@ struct Inner {
     event: Rc<Notify>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TaskManager(Rc<RefCell<Inner>>);
 
 impl Default for TaskManager {
@@ -62,13 +62,28 @@ impl TaskManager {
             if let Some(task) = self.0.borrow().tasks.get(&id) {
                 if search(task) {
                     return Some(id);
-                } else if let Some(attached) = task.attached_to {
-                    id = attached;
                 } else {
+                    if id == task.parent {
+                        return None;
+                    }
                     id = task.parent;
                 }
             } else {
                 return None;
+            }
+        }
+    }
+
+    pub fn increment_ref(&self, id: AsyncId) {
+        if let Some(task) = self.0.borrow_mut().tasks.get_mut(&id) {
+            task.references += 1;
+        }
+    }
+
+    pub fn decrement_ref(&self, id: AsyncId) {
+        if let Some(task) = self.0.borrow_mut().tasks.get_mut(&id) {
+            if task.references > 1 {
+                task.references -= 1;
             }
         }
     }
@@ -130,7 +145,7 @@ impl TaskManager {
             None
         };
 
-        trace!(id = %id, kind = %kind, parent = %resolve_parent, attached_to = ?attached_to, "Create task");
+        trace!(id = %id, kind = %kind, parent = %resolve_parent, attached_to = ?attached_to, persist = ?persist, "Create task");
 
         self.0.borrow_mut().tasks.insert(
             id,

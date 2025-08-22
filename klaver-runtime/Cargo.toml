@@ -14,3 +14,8 @@ slotmap = { version = "1" }
 tracing = { workspace = true }
 
 pin-project-lite = { workspace = true }
+
+
+[dev-dependencies]
+tokio = { version = "1", features = ["time", "macros", "rt"] }
+tracing-subscriber = { version = "*" }

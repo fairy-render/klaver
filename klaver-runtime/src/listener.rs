@@ -157,6 +157,11 @@ impl<'js> Trace<'js> for HandleMap<'js> {
 }
 
 impl<'js> HandleMap<'js> {
+    pub fn new(ctx: &Ctx<'js>) -> rquickjs::Result<HandleMap<'js>> {
+        Ok(HandleMap {
+            handles: TypedMap::new(ctx.clone())?,
+        })
+    }
     pub fn get_handle(&self, ctx: &Ctx<'js>, id: AsyncId) -> rquickjs::Result<ResourceHandle<'js>> {
         if let Some(handle) = self.handles.get(id)? {
             Ok(handle)

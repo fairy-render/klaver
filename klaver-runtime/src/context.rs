@@ -8,21 +8,24 @@ use klaver_util::{
 };
 
 use crate::{
-    id::AsyncId, listener::HookListeners, resource::ResourceKind, runtime::Runtime,
+    id::AsyncId,
+    listener::{HookListeners, ResourceHandle},
+    resource::ResourceKind,
+    runtime::Runtime,
     task_manager::TaskManager,
 };
 
 pub struct Context<'js> {
-    id: AsyncId,
-    tasks: TaskManager,
-    hooks: Class<'js, HookListeners<'js>>,
-    exception: Rc<ObservableRefCell<CaugthException>>,
-    internal: bool,
-    ctx: Ctx<'js>,
+    pub id: AsyncId,
+    pub tasks: TaskManager,
+    pub hooks: Class<'js, HookListeners<'js>>,
+    pub exception: Rc<ObservableRefCell<Option<CaugthException>>>,
+    pub internal: bool,
+    pub ctx: Ctx<'js>,
 }
 
 impl<'js> Context<'js> {
-    pub fn new(
+    pub(crate) fn new(
         ctx: Ctx<'js>,
         runtime: &Runtime<'js>,
         id: AsyncId,
@@ -37,6 +40,14 @@ impl<'js> Context<'js> {
             internal,
             ctx,
         }
+    }
+
+    pub fn handle(&self) -> rquickjs::Result<ResourceHandle<'js>> {
+        self.hooks.borrow().get_resource_handle(&self.ctx, self.id)
+    }
+
+    pub fn ctx(&self) -> &Ctx<'js> {
+        &self.ctx
     }
 
     pub fn invoke_callback<A, R>(&self, cb: Function<'js>, args: A) -> rquickjs::Result<R>
@@ -78,5 +89,9 @@ impl<'js> Context<'js> {
 
         self.hooks.borrow().after(&self.ctx, self.id.clone())?;
         ret
+    }
+
+    pub fn incr(&self) {
+        self.tasks.increment_ref(self.id);
     }
 }

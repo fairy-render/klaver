@@ -1887,7 +1887,9 @@ dependencies = [
  "klaver-util",
  "pin-project-lite",
  "slotmap",
+ "tokio",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

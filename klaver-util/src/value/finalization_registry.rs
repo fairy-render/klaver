@@ -6,6 +6,7 @@ use rquickjs::{
 
 use crate::ObjectExt;
 
+#[derive(Clone)]
 pub struct FinalizationRegistry<'js> {
     obj: Object<'js>,
 }
