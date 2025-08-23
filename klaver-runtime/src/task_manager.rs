@@ -206,11 +206,17 @@ impl TaskManager {
             }
         }
 
+        let parent_id = task.parent;
+
         trace!(id = %id, kind = %task.kind, children = %task.children, attached_to = ?task.attached_to, state = ?task.state.get(), "Destroy task");
 
         this.event.notify();
 
         drop(this);
+
+        if id == self.exectution_trigger_id() {
+            self.set_current(parent_id);
+        }
 
         hooks.borrow().destroy(ctx, id)?;
 
