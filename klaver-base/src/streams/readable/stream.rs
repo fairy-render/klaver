@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use futures::{TryStream, stream::LocalBoxStream};
-use klaver_task::AsyncState;
+use klaver_runtime::AsyncState;
 use klaver_util::{
     AsyncIterableProtocol, Buffer, IteratorResult, NativeAsyncIteratorInterface, RuntimeError,
     StreamAsyncIterator, StringRef, throw,

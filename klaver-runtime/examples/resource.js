@@ -22,7 +22,7 @@ async function test() {
 
 async function test2() {
   print("TEST 2", executionAsyncId())
-  await delay(100)
+  await delay(500)
 }
 
 await resource.runInAsyncScope(() => {

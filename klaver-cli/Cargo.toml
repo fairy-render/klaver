@@ -25,7 +25,7 @@ klaver-wintertc = { path = "../klaver-wintertc", features = [
 klaver-util = { path = "../klaver-util" }
 klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules" }
-klaver-task = { path = "../klaver-task", features = ["module"] }
+klaver-runtime = { path = "../klaver-runtime", features = ["module"] }
 
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["net", "rt", "macros"] }

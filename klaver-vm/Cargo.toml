@@ -11,7 +11,7 @@ pool = ["deadpool", "worker"]
 
 [dependencies]
 klaver-modules = { path = "../klaver-modules" }
-klaver-task = { path = "../klaver-task" }
+klaver-runtime = { path = "../klaver-runtime" }
 klaver-base = { path = "../klaver-base" }
 klaver-util = { path = "../klaver-util" }
 rquickjs = { workspace = true }

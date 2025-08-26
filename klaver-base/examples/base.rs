@@ -1,7 +1,7 @@
 use klaver_base::{
     AbortSignal, Emitter, EventTarget, Exportable, Registry, streams::WritableStream,
 };
-use klaver_task::{EventLoop, Runner};
+use klaver_runtime::{EventLoop, Runner};
 use klaver_util::{Inheritable, RuntimeError, StringRef, Subclass, SuperClass, is_plain_object};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, Module, Value, class::JsClass,
@@ -24,7 +24,7 @@ struct Base;
 
 impl<'js> Runner<'js> for Base {
     type Output = ();
-    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<Self::Output> {
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<Self::Output> {
         AbortSignal::inherit(&ctx)?;
 
         ctx.globals().set(

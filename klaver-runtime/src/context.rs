@@ -111,3 +111,10 @@ impl<'js> Context<'js> {
         ret
     }
 }
+
+impl<'js> std::ops::Deref for Context<'js> {
+    type Target = Ctx<'js>;
+    fn deref(&self) -> &Self::Target {
+        self.ctx()
+    }
+}

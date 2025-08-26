@@ -1742,7 +1742,7 @@ dependencies = [
  "futures",
  "klaver-base",
  "klaver-modules",
- "klaver-task",
+ "klaver-runtime",
  "klaver-vm",
  "klaver-wintertc",
  "rquickjs",
@@ -1763,7 +1763,7 @@ dependencies = [
  "futures",
  "indexmap",
  "klaver-modules",
- "klaver-task",
+ "klaver-runtime",
  "klaver-util",
  "ordered-float",
  "pin-project-lite",
@@ -1779,7 +1779,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "klaver-modules",
- "klaver-task",
+ "klaver-runtime",
  "klaver-util",
  "klaver-vm",
  "klaver-wintertc",
@@ -1815,7 +1815,7 @@ dependencies = [
  "http",
  "klaver-base",
  "klaver-modules",
- "klaver-task",
+ "klaver-runtime",
  "klaver-util",
  "multer",
  "pin-project-lite",
@@ -1893,21 +1893,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "klaver-task"
-version = "0.1.0"
-dependencies = [
- "event-listener",
- "futures",
- "klaver-modules",
- "klaver-util",
- "pin-project-lite",
- "slotmap",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "klaver-test"
 version = "0.1.0"
 dependencies = [
@@ -1922,7 +1907,7 @@ dependencies = [
  "event-listener",
  "futures",
  "klaver-modules",
- "klaver-task",
+ "klaver-runtime",
  "klaver-util",
  "rquickjs",
  "tokio",
@@ -1951,7 +1936,7 @@ dependencies = [
  "futures",
  "klaver-base",
  "klaver-modules",
- "klaver-task",
+ "klaver-runtime",
  "klaver-util",
  "rquickjs",
 ]

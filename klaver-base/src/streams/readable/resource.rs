@@ -1,5 +1,5 @@
 use futures::FutureExt;
-use klaver_task::{Resource, ResourceId};
+use klaver_runtime::{Resource, ResourceId};
 use rquickjs::Class;
 
 use crate::streams::readable::{
@@ -26,7 +26,7 @@ impl<'js> Resource<'js> for ReadableStreamResource<'js> {
     const INTERNAL: bool = true;
     const SCOPED: bool = true;
 
-    async fn run(mut self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
+    async fn run(mut self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
         let ctrl = Class::instance(
             ctx.ctx().clone(),
             ReadableStreamDefaultController {

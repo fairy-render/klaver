@@ -4,12 +4,12 @@ const timer = new Timers();
 
 timer.createTimeout(() => {
     print("!")
-}, 100, false)
+}, 600, false)
 
 
 timer.createTimeout(() => {
     print("World")
-}, 800, false)
+}, 200, false)
 
 const id = timer.createTimeout(() => {
     print("Butt")

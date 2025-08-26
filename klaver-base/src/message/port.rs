@@ -7,7 +7,7 @@ use crate::{
 };
 use flume::{Receiver, Sender};
 use futures::channel::{self, oneshot};
-use klaver_task::{AsyncState, Resource, ResourceId};
+use klaver_runtime::{AsyncState, Resource, ResourceId};
 use klaver_util::{RuntimeError, Subclass, throw};
 use rquickjs::{
     CatchResultExt, Class, Ctx, Function, JsLifetime, String, Value,
@@ -266,7 +266,10 @@ struct MessagePortResource<'js> {
 impl<'js> Resource<'js> for MessagePortResource<'js> {
     type Id = MessagePortResourceKey;
 
-    async fn run(mut self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
+    const INTERNAL: bool = false;
+    const SCOPED: bool = false;
+
+    async fn run(mut self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
         loop {
             futures::select! {
                 next = self.channel.rx.recv_async() => {

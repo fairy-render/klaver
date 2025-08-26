@@ -1,6 +1,6 @@
 use event_listener::listener;
 use futures::FutureExt;
-use klaver_task::{AsyncState, Resource, ResourceId};
+use klaver_runtime::{AsyncState, Resource, ResourceId};
 use klaver_util::throw;
 use rquickjs::{Class, Ctx, JsLifetime, String, Value, class::Trace, prelude::Opt};
 
@@ -132,7 +132,7 @@ impl<'js> Resource<'js> for WritableStreamResource<'js> {
     const INTERNAL: bool = true;
     const SCOPED: bool = true;
 
-    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
         if let Err(err) = self.sink.start(&ctx, self.ctrl.clone()).await {
             if err.is_exception() {
                 let failure = ctx.catch();

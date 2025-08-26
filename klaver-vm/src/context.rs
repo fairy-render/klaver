@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use futures::future::BoxFuture;
 use klaver_modules::Environ;
-use klaver_task::{EventLoop, Runner};
+use klaver_runtime::{EventLoop, Runner};
 use klaver_util::RuntimeError;
 use rquickjs::{
     AsyncContext, AsyncRuntime, Ctx, FromJs, Function, Module, Object, Value,
@@ -50,6 +50,7 @@ impl Context {
     pub async fn run<T, R>(&self, task: T) -> Result<R, RuntimeError>
     where
         T: for<'js> Runner<'js, Output = R>,
+        R: for<'js> FromJs<'js>,
         R: 'static,
     {
         EventLoop::new(task)
@@ -99,7 +100,7 @@ struct ModuleRunner {
 impl<'js> Runner<'js> for ModuleRunner {
     type Output = ();
 
-    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<Self::Output> {
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<Self::Output> {
         let promise = Module::import(&ctx, self.module)?;
         let _ = promise.into_future::<()>().await?;
 
@@ -121,7 +122,7 @@ where
 {
     type Output = R;
 
-    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<Self::Output> {
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<Self::Output> {
         let promise = Module::import(&ctx, self.module)?;
         let module = promise.into_future::<Object>().await?;
 

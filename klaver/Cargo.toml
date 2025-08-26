@@ -10,7 +10,7 @@ klaver-wintertc = { path = "../klaver-wintertc", features = [
 ] }
 klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules" }
-klaver-task = { path = "../klaver-task" }
+klaver-runtime = { path = "../klaver-runtime" }
 klaver-base = { path = "../klaver-base" }
 rquickjs = { workspace = true }
 futures.workspace = true

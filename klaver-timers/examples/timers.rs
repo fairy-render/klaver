@@ -1,5 +1,5 @@
 use futures::future::LocalBoxFuture;
-use klaver_task::{EventLoop, Runner};
+use klaver_runtime::{AsyncState, Context, Execution, ExitMode};
 use klaver_timers::{TimeId, Timers, TimingBackend};
 use klaver_util::{FunctionExt, RuntimeError, StringRef};
 use rquickjs::{
@@ -79,55 +79,51 @@ impl klaver_timers::Backend for TokioTimers {
     }
 }
 
-pub struct Base;
+async fn run<'js>(ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    ctx.globals().set(
+        "print",
+        Func::from(|msg: StringRef<'_>| {
+            println!("{}", msg);
+            rquickjs::Result::Ok(())
+        }),
+    )?;
 
-impl<'js> Runner<'js> for Base {
-    type Output = ();
+    let timers = klaver_timers::Timers::new(ctx.clone())?;
 
-    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<Self::Output> {
-        ctx.globals().set(
-            "print",
-            Func::from(|msg: StringRef<'_>| {
-                println!("{}", msg);
-                rquickjs::Result::Ok(())
-            }),
-        )?;
+    let set_timeout = Func::new(
+        |ctx: Ctx<'js>, timers: Class<'js, Timers>, func: Function<'js>, timeout: Opt<u64>| {
+            timers
+                .borrow_mut()
+                .create_timeout(ctx, func, timeout, Opt(None))
+        },
+    )
+    .into_js(&ctx)?
+    .get::<Function>()?
+    .bind(&ctx, (ctx.globals(), timers.clone()))?;
 
-        let timers = klaver_timers::Timers::new(ctx.ctx().clone())?;
+    ctx.globals().set("setTimeout", set_timeout)?;
 
-        let set_timeout = Func::new(
-            |ctx: Ctx<'js>, timers: Class<'js, Timers>, func: Function<'js>, timeout: Opt<u64>| {
-                timers
-                    .borrow_mut()
-                    .create_timeout(ctx, func, timeout, Opt(None))
-            },
-        )
-        .into_js(&ctx)?
-        .get::<Function>()?
-        .bind(&ctx, (ctx.globals(), timers.clone()))?;
+    let clear_timeout =
+        Func::new(|timers: Class<'js, Timers>, id: TimeId| timers.borrow_mut().clear_timeout(id))
+            .into_js(&ctx)?
+            .get::<Function>()?
+            .bind(&ctx, (ctx.globals(), timers.clone()))?;
 
-        ctx.globals().set("setTimeout", set_timeout)?;
+    ctx.globals().set("clearTimeout", clear_timeout)?;
 
-        let clear_timeout = Func::new(|timers: Class<'js, Timers>, id: TimeId| {
-            timers.borrow_mut().clear_timeout(id)
-        })
-        .into_js(&ctx)?
-        .get::<Function>()?
-        .bind(&ctx, (ctx.globals(), timers.clone()))?;
+    ctx.store_userdata(TimingBackend::new(TokioTimers).with_should_shutdown(false))
+        .unwrap();
+    let (_, promise) = Module::evaluate_def::<klaver_timers::TimeModule, _>(ctx.clone(), "timer")?;
+    promise.into_future::<()>().await?;
 
-        ctx.globals().set("clearTimeout", clear_timeout)?;
+    let promise = Module::evaluate(ctx.clone(), "main", include_str!("./test.js"))?;
 
-        ctx.store_userdata(TimingBackend::new(TokioTimers).with_should_shutdown(false))
-            .unwrap();
-        let (_, promise) =
-            Module::evaluate_def::<klaver_timers::TimeModule, _>(ctx.ctx().clone(), "timer")?;
-        promise.into_future::<()>().await?;
+    promise.into_future::<()>().await?;
+    Ok(())
+}
 
-        let promise = Module::evaluate(ctx.ctx().clone(), "main", include_str!("./test.js"))?;
-
-        promise.into_future::<()>().await?;
-        Ok(())
-    }
+async fn _run<'js>(ctx: Context<'js>) -> rquickjs::Result<()> {
+    run(ctx.ctx().clone()).await
 }
 
 #[tokio::main]
@@ -135,5 +131,16 @@ async fn main() -> Result<(), RuntimeError> {
     let runtime = AsyncRuntime::new()?;
     let context = AsyncContext::full(&runtime).await?;
 
-    EventLoop::new(Base).run(&context).await
+    rquickjs::async_with!(context => |ctx| {
+
+        AsyncState::run_async_with(&ctx, Execution::default().wait(true).exit(ExitMode::Idle), |ctx| async {
+            _run(ctx).await
+        }).await.catch(&ctx)?;
+        Result::<_, RuntimeError>::Ok(())
+    })
+    .await?;
+
+    runtime.idle().await;
+
+    Ok(())
 }

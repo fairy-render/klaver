@@ -1,5 +1,5 @@
 use clap::Parser;
-use klaver_task::AsyncState;
+use klaver_runtime::AsyncState;
 use klaver_util::BasePrimordials;
 
 use crate::run;
@@ -25,7 +25,7 @@ impl Cli {
         let mut builder = klaver_vm::Options::default()
             .search_path(".")
             .module::<klaver_vm::VmModule>()
-            .module::<klaver_task::TaskModule>()
+            .module::<klaver_runtime::TaskModule>()
             .global::<klaver_wintertc::WinterCG>();
 
         #[cfg(feature = "swc")]
@@ -41,7 +41,7 @@ impl Cli {
 
         let vm = builder.build().await?;
 
-        klaver_task::set_promise_hook(vm.runtime()).await;
+        klaver_runtime::set_promise_hook(vm.runtime()).await;
 
         vm.with(|ctx| {
             let _ = BasePrimordials::get(&ctx)?;

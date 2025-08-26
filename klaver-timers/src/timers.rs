@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use klaver_task::{AsyncState, Resource, ResourceId, TaskHandle};
+use klaver_runtime::{AsyncState, Resource, ResourceId, TaskHandle};
 use klaver_util::throw;
 use rquickjs::{Class, Ctx, Function, JsLifetime, class::Trace, prelude::Opt};
 
@@ -50,17 +50,14 @@ impl Timers {
 
         let timeout = Duration::from_millis(timeout.unwrap_or(0));
 
-        let Some(task_handle) = AsyncState::push(
+        let task_handle = AsyncState::push(
             &ctx,
             TimeoutResource {
                 timeout,
                 repeat: repeat.0.unwrap_or_default(),
                 callback,
             },
-        )?
-        else {
-            throw!(ctx, "Vm in invalid state")
-        };
+        )?;
 
         let id = TimeId(task_handle.id());
 
@@ -96,7 +93,10 @@ struct TimeoutResource<'js> {
 impl<'js> Resource<'js> for TimeoutResource<'js> {
     type Id = TimeoutResourceId;
 
-    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
+    const INTERNAL: bool = false;
+    const SCOPED: bool = false;
+
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
         loop {
             let timeout = {
                 let Some(backend) = ctx.userdata::<TimingBackend>() else {

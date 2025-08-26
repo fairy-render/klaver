@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use futures::future::LocalBoxFuture;
-use klaver_task::{AsyncState, Resource, ResourceId};
+use klaver_runtime::{AsyncState, Resource, ResourceId};
 use reggie::{Body, http_body_util::BodyExt};
 
 use http::{Request, Response, Uri};
@@ -111,21 +111,6 @@ impl Client {
 
             AsyncState::push(&ctx, ClientResource { body: producer })?;
 
-            // Workers::from_ctx(ctx)?.push(ctx.clone(), |ctx, mut shutdown| async move {
-            //     if shutdown.is_killed() {
-            //         return Ok(());
-            //     }
-
-            //     futures::select! {
-            //       err = producer.fuse() => {
-            //         return err.catch(&ctx).map_err(Into::into)
-            //       }
-            //       _ = shutdown => {}
-            //     }
-
-            //     Ok(())
-            // });
-
             shared.send(&ctx, req).await
         } else {
             throw!(ctx, "Could not find any Http client")
@@ -182,7 +167,7 @@ impl<'js> Resource<'js> for ClientResource<'js> {
     const INTERNAL: bool = true;
     const SCOPED: bool = true;
 
-    async fn run(self, ctx: klaver_task::TaskCtx<'js>) -> rquickjs::Result<()> {
+    async fn run(self, _ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
         self.body.await
     }
 }

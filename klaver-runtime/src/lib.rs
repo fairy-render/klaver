@@ -2,6 +2,7 @@ mod async_hook;
 mod async_locale_storage;
 mod async_resource;
 mod context;
+mod event_loop;
 mod executor;
 mod id;
 mod listener;
@@ -15,6 +16,8 @@ mod task_manager;
 
 pub use self::{
     context::Context,
+    event_loop::*,
+    executor::TaskHandle,
     executor::{Execution, ExitMode},
     id::AsyncId,
     module::TaskModule,
