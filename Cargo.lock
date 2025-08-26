@@ -1897,7 +1897,10 @@ name = "klaver-test"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "klaver-modules",
  "klaver-util",
+ "klaver-vm",
+ "tokio",
 ]
 
 [[package]]

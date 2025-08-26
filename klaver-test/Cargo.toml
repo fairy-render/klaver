@@ -5,4 +5,9 @@ edition = "2024"
 
 [dependencies]
 klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules" }
 futures.workspace = true
+
+[dev-dependencies]
+klaver-vm = { path = "../klaver-vm" }
+tokio = { version = "1", features = ["rt", "macros"] }
