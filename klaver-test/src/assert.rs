@@ -1,4 +1,5 @@
 use klaver_util::{
+    equal,
     rquickjs::{self, Coerced, Ctx, String, Value, prelude::Opt},
     throw,
 };
@@ -26,6 +27,19 @@ impl Assert {
         msg: Opt<String<'js>>,
     ) -> rquickjs::Result<()> {
         if actual != expected {
+            throw!(ctx, "Assert error")
+        }
+        Ok(())
+    }
+
+    pub fn deep_equal<'js>(
+        &self,
+        ctx: Ctx<'js>,
+        actual: Value<'js>,
+        expected: Value<'js>,
+        msg: Opt<String<'js>>,
+    ) -> rquickjs::Result<()> {
+        if !equal(&ctx, actual, expected)? {
             throw!(ctx, "Assert error")
         }
         Ok(())

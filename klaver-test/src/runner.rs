@@ -6,19 +6,23 @@ use klaver_util::{
         self, Class, Ctx, Function, IntoJs, JsLifetime, Object, String, Value,
         class::{JsClass, Trace, Tracer, Writable},
         function::Constructor,
-        prelude::{Async, Func, This},
+        prelude::{Async, Func, Opt, This},
     },
 };
+
+use crate::reporter::Reporter;
 
 pub struct TestRunner<'js> {
     suites: Vec<Class<'js, Suite<'js>>>,
     result: Vec<Class<'js, Suite<'js>>>,
+    report: Reporter<'js>,
 }
 
 impl<'js> Trace<'js> for TestRunner<'js> {
     fn trace<'a>(&self, tracer: Tracer<'a, 'js>) {
         self.suites.trace(tracer);
         self.result.trace(tracer);
+        self.report.trace(tracer);
     }
 }
 
@@ -61,8 +65,10 @@ impl<'js> TestRunner<'js> {
     }
 
     pub async fn run(&self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+        self.report.prepare(ctx, &self.result)?;
+
         for suite in &self.result {
-            suite.borrow().run(ctx).await?;
+            suite.borrow().run(ctx, &self.report).await?;
         }
 
         Ok(())
@@ -77,13 +83,20 @@ impl<'js> JsClass<'js> for TestRunner<'js> {
     fn constructor(
         ctx: &rquickjs::Ctx<'js>,
     ) -> rquickjs::Result<Option<rquickjs::function::Constructor<'js>>> {
-        let ctor = Constructor::new_class::<TestRunner, _, _>(ctx.clone(), || {
-            //
-            TestRunner {
-                suites: Default::default(),
-                result: Default::default(),
-            }
-        })?;
+        let ctor = Constructor::new_class::<TestRunner, _, _>(
+            ctx.clone(),
+            |reporter: Opt<Reporter<'js>>| {
+                //
+
+                let report = reporter.0.unwrap_or_else(|| Reporter { ts: None });
+
+                TestRunner {
+                    suites: Default::default(),
+                    result: Default::default(),
+                    report,
+                }
+            },
+        )?;
 
         Ok(Some(ctor))
     }
@@ -149,6 +162,7 @@ impl<'js> Suite<'js> {
     fn run<'a>(
         &'a self,
         ctx: &'a Ctx<'js>,
+        reporter: &'a Reporter<'js>,
     ) -> Pin<Box<dyn Future<Output = rquickjs::Result<()>> + 'a>> {
         Box::pin(async move {
             println!("Suite {}", self.desc.str_ref()?);
@@ -157,7 +171,7 @@ impl<'js> Suite<'js> {
                 test.func.call_async::<_, ()>(()).await?;
             }
             for child in &self.children {
-                child.borrow().run(ctx).await?;
+                child.borrow().run(ctx, reporter).await?;
             }
             Ok(())
         })

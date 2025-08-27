@@ -17,8 +17,9 @@ pub mod sync;
 mod value;
 
 pub use self::{
-    array::*, async_iterator::*, context::*, error::*, extensions::*, format::*, func::*,
-    helpers::*, inherit::*, iterator::*, object::*, primordials::*, proxy::*, string::*, value::*,
+    array::*, async_iterator::*, context::*, equal::equal, error::*, extensions::*, format::*,
+    func::*, helpers::*, inherit::*, iterator::*, object::*, primordials::*, proxy::*, string::*,
+    value::*,
 };
 
 pub use rquickjs;

@@ -55,8 +55,13 @@ impl<'js> IntoJs<'js> for Test<'js> {
 }
 
 impl<'js> FromJs<'js> for Test<'js> {
-    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> Result<Self> {
-        todo!()
+    fn from_js(_ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> Result<Self> {
+        let obj: Object<'js> = value.get()?;
+
+        Ok(Self {
+            desc: obj.get("description")?,
+            func: obj.get("test")?,
+        })
     }
 }
 

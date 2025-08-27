@@ -1,7 +1,8 @@
-use rquickjs::{Ctx, Object, Type, Value};
+use rquickjs::{Array, Ctx, Filter, FromIteratorJs, Object, Type, Value};
 
-use crate::StringExt;
+use crate::{ArrayExt, ObjectExt, StringExt};
 
+// TODO: Map, Set, Regex, Buffer
 pub fn equal<'js>(ctx: &Ctx<'js>, left: Value<'js>, right: Value<'js>) -> rquickjs::Result<bool> {
     if left == right {
         return Ok(true);
@@ -42,18 +43,30 @@ pub fn equal<'js>(ctx: &Ctx<'js>, left: Value<'js>, right: Value<'js>) -> rquick
         let left: Object = left.get()?;
         let right: Object = right.get()?;
 
-        let left_keys: Vec<Value<'js>> = left
-            .keys::<Value<'js>>()
-            .collect::<rquickjs::Result<Vec<_>>>()?;
+        let left_keys = left.keys_array(Filter::default())?;
 
-        let right_keys: Vec<Value<'js>> = right
-            .keys::<Value<'js>>()
-            .collect::<rquickjs::Result<Vec<_>>>()?;
+        let right_keys = right.keys_array(Filter::default())?;
 
         if left_keys.len() != right_keys.len() {
             return Ok(false);
         }
 
-        Ok(false)
+        left_keys.sort()?;
+        right_keys.sort()?;
+
+        if !equal(ctx, left_keys.clone().into_value(), right_keys.into_value())? {
+            return Ok(false);
+        }
+
+        for key in left_keys.iter::<Value<'js>>() {
+            let key = key?;
+            let l = left.get::<_, Value>(key.clone())?;
+            let r = right.get::<_, Value>(key)?;
+            if !equal(ctx, l, r)? {
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
     }
 }
