@@ -4,6 +4,7 @@ pub trait ArrayExt<'js> {
     fn push<V: IntoJs<'js>>(&self, value: V) -> rquickjs::Result<()>;
     fn pop<V: FromJs<'js>>(&self) -> rquickjs::Result<Option<V>>;
     fn join<T: FromJs<'js>, N: IntoJs<'js>>(&self, value: N) -> rquickjs::Result<T>;
+    fn sort(&self) -> rquickjs::Result<()>;
 }
 
 impl<'js> ArrayExt<'js> for Array<'js> {
@@ -23,5 +24,11 @@ impl<'js> ArrayExt<'js> for Array<'js> {
         self.as_object()
             .get::<_, Function>("join")?
             .call((This(self.clone()), value))
+    }
+
+    fn sort(&self) -> rquickjs::Result<()> {
+        self.as_object()
+            .get::<_, Function>("sort")?
+            .call((This(self.clone()),))
     }
 }

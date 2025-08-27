@@ -1,6 +1,7 @@
 mod array;
 mod async_iterator;
 mod context;
+mod equal;
 mod error;
 mod extensions;
 mod format;
