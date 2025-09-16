@@ -24,7 +24,7 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result
         prompt.right_prompt = reedline::DefaultPromptSegment::Empty;
         let mut line_editor = Reedline::create();
 
-        println!("Welcome to Klaver");
+        println!("Welcome to Klaver!");
 
         loop {
             let sig = line_editor.read_line(&prompt);
