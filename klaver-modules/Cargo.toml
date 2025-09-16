@@ -35,8 +35,8 @@ tracing = { version = "0.1" }
 geenie = { git = "https://github.com/fairy-render/geenie.git" }
 
 ## Swc
-swc_ecma_codegen = { version = "16.0", optional = true }
-swc_ecma_transforms = { version = "26.0", features = [
+swc_ecma_codegen = { version = "17.0", optional = true }
+swc_ecma_transforms = { version = "33.0", features = [
   "proposal",
   "compat",
   "module",
@@ -45,11 +45,11 @@ swc_ecma_transforms = { version = "26.0", features = [
   "concurrent",
 ], optional = true }
 swc_common = { version = "14.0", features = ["sourcemap"], optional = true }
-swc_ecma_parser = { version = "21.0", optional = true }
-swc_ecma_ast = { version = "14.0", optional = true }
-swc_ecma_visit = { version = "14.0", optional = true }
+swc_ecma_parser = { version = "24.0", optional = true }
+swc_ecma_ast = { version = "15.0", optional = true }
+swc_ecma_visit = { version = "15.0", optional = true }
 swc_node_comments = { version = "14.0", optional = true }
-swc_sourcemap = { version = "9", optional = true }
+swc_sourcemap = { version = "9.3", optional = true }
 anyhow = { version = "1", optional = true }
 par-core = { version = "2", optional = true, features = ["chili"] }
 

@@ -44,22 +44,11 @@ impl Cli {
         klaver_runtime::set_promise_hook(vm.runtime()).await;
 
         vm.with(|ctx| {
-            let _ = BasePrimordials::get(&ctx)?;
-
             klaver_wintertc::backend::Tokio::default().set_runtime(&ctx)?;
             Ok(())
         })
         .await?;
 
-        // if let Some(cmd) = &cli.command {
-        //     match cmd {
-        //         Commands::Repl(e) => {
-        //             e.run(vm).await?;
-        //         }
-        //     }
-        // } else {
-        //     run::run(vm, cli.path.as_ref().map(|m| &**m), cli.exec).await?;
-        // }
         run::run(vm, cli.path.as_ref().map(|m| &**m), cli.exec).await?;
 
         Ok(())
