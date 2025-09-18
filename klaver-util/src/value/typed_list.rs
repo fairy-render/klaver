@@ -89,7 +89,6 @@ mod tests {
     use crate::NativeIteratorInterface;
 
     use super::*;
-    use rquickjs::Ctx;
 
     #[test]
     fn entries() {

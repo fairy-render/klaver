@@ -16,7 +16,6 @@ members = [
   "klaver-intl",
   "klaver-cli",
   "klaver-test",
-  # "klaver-task", 
   "klaver-runtime",
 ]
 

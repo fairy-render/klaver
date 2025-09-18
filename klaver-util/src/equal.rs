@@ -1,4 +1,4 @@
-use rquickjs::{Array, Ctx, Filter, FromIteratorJs, Object, Type, Value};
+use rquickjs::{Ctx, Filter, Object, Value};
 
 use crate::{ArrayExt, ObjectExt, StringExt};
 

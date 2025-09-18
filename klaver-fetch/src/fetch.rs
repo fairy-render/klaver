@@ -25,15 +25,15 @@ impl<'js> FetchInit<'js> {
         Option<Class<'js, AbortSignal<'js>>>,
     )> {
         match self {
-            Self::Request(req) => req.borrow().to_native(ctx),
+            Self::Request(req) => req.borrow_mut().to_native(ctx),
             Self::String(url) => {
                 //
-                let req = Request::new(ctx.clone(), Coerced(url), Opt(init))?;
+                let mut req = Request::new(ctx.clone(), Coerced(url), Opt(init))?;
                 req.to_native(ctx)
             }
             Self::Url(url) => {
                 let url = Coerced::from_js(ctx, url.into_value())?;
-                let req = Request::new(ctx.clone(), url, Opt(init))?;
+                let mut req = Request::new(ctx.clone(), url, Opt(init))?;
                 req.to_native(ctx)
             }
         }

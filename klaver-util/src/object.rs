@@ -2,8 +2,6 @@ use rquickjs::{
     Array, Filter, FromJs, Function, IntoAtom, Object, Value, function::Args, prelude::IntoArgs,
 };
 
-use crate::ArrayExt;
-
 pub trait ObjectExt<'js> {
     fn call_property<K: IntoAtom<'js>, A: IntoArgs<'js>, R: FromJs<'js>>(
         &self,

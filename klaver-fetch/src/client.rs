@@ -69,7 +69,7 @@ impl Client {
                         shared: None,
                         base_url: Uri::from_static("http://localhost:3000/"),
                     }),
-                });
+                })?;
 
                 Ok(ctx.userdata::<Client>().unwrap())
             }

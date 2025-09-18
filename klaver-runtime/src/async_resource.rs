@@ -26,7 +26,7 @@ unsafe impl<'js> JsLifetime<'js> for AsyncResource<'js> {
 #[rquickjs::methods(crate = "rquickjs")]
 impl<'js> AsyncResource<'js> {
     #[qjs(constructor)]
-    pub fn new(ctx: Ctx<'js>, ty: String<'js>) -> rquickjs::Result<AsyncResource<'js>> {
+    pub fn new(ctx: Ctx<'js>, _ty: String<'js>) -> rquickjs::Result<AsyncResource<'js>> {
         let runtime = Runtime::from_ctx(&ctx)?;
         let runtime = runtime.borrow();
         let id = runtime

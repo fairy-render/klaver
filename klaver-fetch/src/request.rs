@@ -41,7 +41,7 @@ unsafe impl<'js> JsLifetime<'js> for Request<'js> {
 
 impl<'js> Request<'js> {
     pub fn to_native(
-        &self,
+        &mut self,
         ctx: &Ctx<'js>,
     ) -> rquickjs::Result<(
         http::Request<JsBody<'js>>,
@@ -58,7 +58,10 @@ impl<'js> Request<'js> {
 
         let body = self.body.to_native_body(&ctx)?;
 
-        let req = throw_if!(ctx, builder.body(body));
+        let mut req = throw_if!(ctx, builder.body(body));
+        if let Some(ext) = self.ext.take() {
+            *req.extensions_mut() = ext;
+        }
 
         Ok((req, self.signal.clone()))
     }
