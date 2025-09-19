@@ -49,7 +49,7 @@ impl klaver_modules::Global for IntlModule {
 
             #[cfg(feature = "compiled")]
             if !ctx.userdata::<DynProvider>().is_none() {
-                ctx.store_userdata(crate::baked::Baked::new());
+                ctx.store_userdata(DynProvider::new(crate::baked::Baked::new()))?;
             }
 
             let obj = Object::new(ctx.clone())?;

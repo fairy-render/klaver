@@ -3,6 +3,16 @@ name = "klaver"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+swc = ["klaver-modules/swc-transform"]
+
+full = ["fetch", "crypto", "intl-backed"]
+
+fetch = ["klaver-wintertc/fetch"]
+crypto = ["klaver-wintertc/crypto"]
+intl = ["klaver-wintertc/intl"]
+intl-backed = ["klaver-wintertc/intl-backed"]
+
 [dependencies]
 klaver-wintertc = { path = "../klaver-wintertc", features = [
     "module",

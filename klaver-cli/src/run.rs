@@ -1,11 +1,11 @@
-use klaver_vm::Vm;
+use klaver::Vm;
 use reedline::{DefaultPrompt, Reedline, Signal};
 use rquickjs::{CatchResultExt, Value};
 
 pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result<()> {
     if let Some(source) = source {
         if exec {
-            klaver_vm::async_with!(vm => |ctx| {
+            klaver::async_with!(vm => |ctx| {
               ctx.eval_promise(source).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
               Ok(())
             })
@@ -30,7 +30,7 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result
             let sig = line_editor.read_line(&prompt);
             match sig {
                 Ok(Signal::Success(buffer)) => {
-                    let ret = klaver_vm::async_with!(vm => |ctx| {
+                    let ret = klaver::async_with!(vm => |ctx| {
                       let ret = ctx.eval_promise(buffer).catch(&ctx)?.into_future::<Value<'_>>().await.catch(&ctx)?;
                       println!("{}", klaver_util::format(&ctx, &ret, Default::default())?);
                       Ok(())
@@ -38,9 +38,8 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result
                     .await;
 
                     if let Err(err) = ret {
-                        eprintln!("{err:?}");
+                        eprintln!("{err}");
                     }
-                    // println!("We processed: {}", buffer);
                 }
                 Ok(Signal::CtrlD) | Ok(Signal::CtrlC) => {
                     println!("\nAborted!");

@@ -10,21 +10,22 @@ path = "src/main.rs"
 
 [features]
 default = ["swc"]
-swc = ["klaver-modules/swc-transform"]
+swc = ["klaver/swc"]
 debug = ["tracing-subscriber"]
 
 [dependencies]
 rquickjs.workspace = true
-klaver-wintertc = { path = "../klaver-wintertc", features = [
-  "fetch",
-  "intl",
-  "crypto",
-  "module",
-  "tokio",
-] }
+klaver = { path = "../klaver", features = ["full", "swc"] }
+# klaver-wintertc = { path = "../klaver-wintertc", features = [
+#   "fetch",
+#   "intl",
+#   "crypto",
+#   "module",
+#   "tokio",
+# ] }
 klaver-util = { path = "../klaver-util" }
 klaver-vm = { path = "../klaver-vm" }
-klaver-modules = { path = "../klaver-modules" }
+# klaver-modules = { path = "../klaver-modules" }
 klaver-runtime = { path = "../klaver-runtime", features = ["module"] }
 
 clap = { version = "4", features = ["derive"] }
