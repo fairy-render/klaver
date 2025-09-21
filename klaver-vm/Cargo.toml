@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["worker"]
+default = []
 worker = ["flume"]
 parallel = ["rquickjs/parallel"]
 pool = ["deadpool", "worker"]

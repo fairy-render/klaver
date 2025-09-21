@@ -43,12 +43,13 @@ impl JsVm {
         ctx: Ctx<'js>,
         script_path: StringRef<'js>,
     ) -> rquickjs::Result<Value<'js>> {
+        let script_path = script_path.as_str();
         let ret = async_with!(self.vm => |ctx| {
 
           let mut opts = EvalOptions::default();
           opts.promise = true;
 
-          let value = ctx.eval_file_with_options::<Promise, _>(script_path.as_str(), opts).catch(&ctx)?.into_future::<Value>().await.catch(&ctx)?;
+          let value = ctx.eval_file_with_options::<Promise, _>(script_path, opts).catch(&ctx)?.into_future::<Value>().await.catch(&ctx)?;
           let registry = Registry::instance(&ctx)?;
 
           let data = registry.serialize(&ctx, &value, &Default::default()).catch(&ctx)?;
@@ -71,9 +72,10 @@ impl JsVm {
         ctx: Ctx<'js>,
         script: StringRef<'js>,
     ) -> rquickjs::Result<Value<'js>> {
+        let script = script.as_str();
         let ret = async_with!(self.vm => |ctx| {
 
-          let value = ctx.eval_promise(script.as_str()).catch(&ctx)?.into_future::<Value>().await.catch(&ctx)?;
+          let value = ctx.eval_promise(script).catch(&ctx)?.into_future::<Value>().await.catch(&ctx)?;
           let registry = Registry::instance(&ctx)?;
           
           let data = registry.serialize(&ctx, &value, &Default::default()).catch(&ctx)?;
