@@ -1,7 +1,7 @@
 use futures::FutureExt;
 use klaver_util::{
     RuntimeError,
-    rquickjs::{self, AsyncContext, CatchResultExt, FromJs},
+    rquickjs::{self, AsyncContext, CatchResultExt, FromJs, markers::ParallelSend},
 };
 
 use crate::{AsyncState, Context};
@@ -17,8 +17,9 @@ impl<T> EventLoop<T> {
 
     pub async fn run<R>(self, context: &AsyncContext) -> Result<R, RuntimeError>
     where
+        T: ParallelSend,
         T: for<'js> Runner<'js, Output = R>,
-        R: 'static,
+        R: ParallelSend + 'static,
         R: for<'js> FromJs<'js>,
     {
         let work = rquickjs::async_with!(context => |ctx| {

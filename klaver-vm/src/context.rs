@@ -49,9 +49,10 @@ impl Context {
 
     pub async fn run<T, R>(&self, task: T) -> Result<R, RuntimeError>
     where
+        T: ParallelSend,
         T: for<'js> Runner<'js, Output = R>,
         R: for<'js> FromJs<'js>,
-        R: 'static,
+        R: 'static + ParallelSend,
     {
         EventLoop::new(task)
             .run(&self.context)
@@ -81,6 +82,8 @@ impl Context {
     where
         A: for<'js> IntoArgs<'js>,
         R: for<'js> FromJs<'js>,
+        A: ParallelSend,
+        R: ParallelSend,
     {
         let export = CallExport::<A, R> {
             module: module.to_string(),

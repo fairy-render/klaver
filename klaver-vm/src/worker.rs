@@ -2,8 +2,8 @@ use std::{any::Any, future::Future, pin::Pin};
 
 use futures::channel::oneshot;
 use klaver_modules::Environ;
+use klaver_util::RuntimeError;
 use rquickjs::{Ctx, runtime::MemoryUsage};
-use rquickjs_util::RuntimeError;
 
 use crate::{Vm, VmOptions};
 
@@ -63,7 +63,7 @@ impl Worker {
         self.sx
             .send_async(Request::Idle { returns: sx })
             .await
-            .map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
+            .map_err(|err| RuntimeError::new(err.to_string()))?;
 
         rx.await
             .map_err(|err| RuntimeError::Custom(Box::new(err)))?
@@ -73,7 +73,7 @@ impl Worker {
         self.sx
             .send_async(Request::RunGc)
             .await
-            .map_err(|err| RuntimeError::Message(Some(err.to_string())))
+            .map_err(|err| RuntimeError::new(err.to_string()))
             .ok();
     }
 
@@ -83,7 +83,7 @@ impl Worker {
         self.sx
             .send_async(Request::MemoryUsage { returns: sx })
             .await
-            .map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
+            .map_err(|err| RuntimeError::new(err.to_string()))?;
 
         let ret = rx
             .await
@@ -109,7 +109,7 @@ impl Worker {
                 returns: sx,
             })
             .await
-            .map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
+            .map_err(|err| RuntimeError::new(err.to_string()))?;
 
         let ret = rx
             .await
@@ -172,7 +172,7 @@ impl Worker {
                 returns: sx,
             })
             .await
-            .map_err(|err| RuntimeError::Message(Some(err.to_string())))?;
+            .map_err(|err| RuntimeError::new(err.to_string()))?;
 
         let ret = rx
             .await
@@ -234,7 +234,9 @@ async fn create_worker<T: WorkerRuntime + Send + 'static>(
         });
     });
 
-    ready.await.map_err(|_| RuntimeError::Message(None))?
+    ready
+        .await
+        .map_err(|_| RuntimeError::new("Channel closed"))?
 }
 
 async fn process(vm: &Vm, next: Request) {
