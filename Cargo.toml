@@ -17,8 +17,9 @@ members = [
   "klaver-cli",
   "klaver-test",
   "klaver-runtime",
+  "klaver-image",
+  "klaver-dom"
 ]
-
 
 [workspace.dependencies]
 rquickjs = { git = "https://github.com/DelSkayn/rquickjs.git", version = "0.9", features = [

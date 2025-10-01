@@ -1,6 +1,7 @@
 mod array;
 mod async_iterator;
 mod context;
+mod core;
 mod equal;
 mod error;
 mod extensions;
@@ -17,9 +18,9 @@ pub mod sync;
 mod value;
 
 pub use self::{
-    array::*, async_iterator::*, context::*, equal::equal, error::*, extensions::*, format::*,
-    func::*, helpers::*, inherit::*, iterator::*, object::*, primordials::*, proxy::*, string::*,
-    value::*,
+    array::*, async_iterator::*, context::*, core::Core, equal::equal, error::*, extensions::*,
+    format::*, func::*, helpers::*, inherit::*, iterator::*, object::*, primordials::*, proxy::*,
+    string::*, value::*,
 };
 
 pub use rquickjs;

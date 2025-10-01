@@ -25,6 +25,7 @@ impl<T> EventLoop<T> {
         let work = rquickjs::async_with!(context => |ctx| {
 
             let ret = AsyncState::run_async(&ctx, |ctx| async {
+
                 self.runner.run(ctx).await
             }).await.catch(&ctx)?;
 

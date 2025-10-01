@@ -1,0 +1,15 @@
+[package]
+name = "klaver-dom"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+parallel = ["rquickjs/parallel"]
+
+[dependencies]
+rquickjs.workspace = true
+klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules" }
+
+domjohnson = { git = "https://github.com/kildevaeld/domjohnson" }
+locket = { git = "https://github.com/kildevaeld/locket-rs" }

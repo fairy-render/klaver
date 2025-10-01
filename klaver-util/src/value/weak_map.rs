@@ -3,7 +3,7 @@ use rquickjs::{
     function::This,
 };
 
-use crate::{BasePrimordials, Iter, object::ObjectExt};
+use crate::{BasePrimordials, Iter, core::Core, object::ObjectExt};
 
 #[derive(Debug, Trace, Clone, PartialEq, Eq, JsLifetime)]
 pub struct WeakMap<'js> {
@@ -12,7 +12,9 @@ pub struct WeakMap<'js> {
 
 impl<'js> WeakMap<'js> {
     pub fn new(ctx: &Ctx<'js>) -> rquickjs::Result<WeakMap<'js>> {
-        let obj = BasePrimordials::get(ctx)?
+        let obj = Core::instance(ctx)?
+            .borrow()
+            .primordials()
             .constructor_weak_map
             .construct(())?;
         Ok(Self { object: obj })

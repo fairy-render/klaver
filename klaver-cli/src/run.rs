@@ -11,7 +11,7 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result
             })
             .await?;
         } else {
-            let path = if !(source.starts_with("../") || source.starts_with("./")) {
+            let path = if !(source.starts_with("../") || !source.starts_with("./")) {
                 format!("./{}", source)
             } else {
                 source.to_string()

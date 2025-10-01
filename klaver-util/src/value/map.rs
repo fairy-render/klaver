@@ -3,7 +3,7 @@ use rquickjs::{
     function::This,
 };
 
-use crate::{BasePrimordials, Iter, object::ObjectExt};
+use crate::{BasePrimordials, Iter, core::Core, object::ObjectExt};
 
 #[derive(Debug, Trace, Clone, PartialEq, Eq, JsLifetime)]
 pub struct Map<'js> {
@@ -12,7 +12,11 @@ pub struct Map<'js> {
 
 impl<'js> Map<'js> {
     pub fn new(ctx: &Ctx<'js>) -> rquickjs::Result<Map<'js>> {
-        let obj = BasePrimordials::get(ctx)?.constructor_map.construct(())?;
+        let obj = Core::instance(ctx)?
+            .borrow()
+            .primordials()
+            .constructor_map
+            .construct(())?;
         Ok(Self { object: obj })
     }
 
@@ -50,7 +54,11 @@ impl<'js> Map<'js> {
     }
 
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
-        let map_ctor = &BasePrimordials::get(ctx)?.constructor_map;
+        let map_ctor = Core::instance(ctx)?
+            .borrow()
+            .primordials()
+            .constructor_map
+            .clone();
 
         let Some(obj) = value.as_object() else {
             return Ok(false);
@@ -61,7 +69,9 @@ impl<'js> Map<'js> {
 
     pub fn entries(&self) -> rquickjs::Result<Iter<'js>> {
         let iter = self.object.call_property::<_, _, Value<'js>>(
-            BasePrimordials::get(self.object.ctx())?
+            Core::instance(self.object.ctx())?
+                .borrow()
+                .primordials()
                 .atom_entries
                 .clone(),
             (),
@@ -84,7 +94,11 @@ impl<'js> Map<'js> {
 
     pub fn keys(&self) -> rquickjs::Result<Iter<'js>> {
         let iter = self.object.call_property::<_, _, Value<'js>>(
-            BasePrimordials::get(self.object.ctx())?.atom_keys.clone(),
+            Core::instance(self.object.ctx())?
+                .borrow()
+                .primordials()
+                .atom_keys
+                .clone(),
             (),
         )?;
 

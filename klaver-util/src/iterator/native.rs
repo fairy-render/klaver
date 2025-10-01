@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use rquickjs::{
     Class, Ctx, IntoJs, JsLifetime, Object, Symbol, Value,
     atom::PredefinedAtom,
@@ -118,5 +120,35 @@ impl<'js> JsClass<'js> for NativeIterator<'js> {
 impl<'js> IntoJs<'js> for NativeIterator<'js> {
     fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         Ok(Class::instance(ctx.clone(), self)?.into_value())
+    }
+}
+
+pub struct NativeIter<T>(RefCell<T>);
+
+impl<T> NativeIter<T> {
+    pub fn new(item: T) -> NativeIter<T> {
+        NativeIter(RefCell::new(item))
+    }
+}
+
+impl<'js, T: Trace<'js>> Trace<'js> for NativeIter<T> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.0.borrow().trace(tracer);
+    }
+}
+
+impl<'js, T: Trace<'js>> NativeIteratorInterface<'js> for NativeIter<T>
+where
+    T: Iterator,
+    T::Item: IntoJs<'js>,
+{
+    type Item = T::Item;
+
+    fn next(&self, _ctx: &Ctx<'js>) -> rquickjs::Result<Option<Self::Item>> {
+        Ok(self.0.borrow_mut().next())
+    }
+
+    fn returns(&self, _ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+        Ok(())
     }
 }

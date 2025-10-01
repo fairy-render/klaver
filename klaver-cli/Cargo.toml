@@ -16,23 +16,17 @@ debug = ["tracing-subscriber"]
 [dependencies]
 rquickjs.workspace = true
 klaver = { path = "../klaver", features = ["full", "swc"] }
-# klaver-wintertc = { path = "../klaver-wintertc", features = [
-#   "fetch",
-#   "intl",
-#   "crypto",
-#   "module",
-#   "tokio",
-# ] }
 klaver-util = { path = "../klaver-util" }
 klaver-vm = { path = "../klaver-vm" }
-# klaver-modules = { path = "../klaver-modules" }
+klaver-image = { path = "../klaver-image" }
+klaver-dom = { path = "../klaver-dom" }
 klaver-runtime = { path = "../klaver-runtime", features = ["module"] }
 
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["net", "rt", "macros"] }
 color-eyre = { version = "0.6" }
 
-reedline = { version = "0.41" }
+reedline = { version = "0.42" }
 
 tracing-subscriber = { version = "0.3", optional = true }
 tracing.workspace = true

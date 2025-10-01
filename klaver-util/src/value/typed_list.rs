@@ -2,7 +2,9 @@ use std::marker::PhantomData;
 
 use rquickjs::{Array, Ctx, FromJs, IntoJs, Value, atom::PredefinedAtom, class::Trace};
 
-use crate::{ArrayExt, BasePrimordials, FromJsIter, Iter, NativeIteratorExt, ObjectExt, Pair};
+use crate::{
+    ArrayExt, BasePrimordials, FromJsIter, Iter, NativeIteratorExt, ObjectExt, Pair, core::Core,
+};
 
 pub type TypedListEntries<'js, T> = FromJsIter<Iter<'js>, Pair<usize, T>>;
 
@@ -44,9 +46,14 @@ where
     }
 
     pub fn entries(&self) -> rquickjs::Result<TypedListEntries<'js, T>> {
-        let iter: Iter<'js> = self
-            .i
-            .call_property(BasePrimordials::get(self.i.ctx())?.atom_entries.clone(), ())?;
+        let iter: Iter<'js> = self.i.call_property(
+            Core::instance(self.i.ctx())?
+                .borrow()
+                .primordials()
+                .atom_entries
+                .clone(),
+            (),
+        )?;
         Ok(iter.from_javascript())
     }
 
