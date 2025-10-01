@@ -42,7 +42,14 @@ where
     ) -> LocalBoxFuture<'a, rquickjs::Result<Response<Body>>> {
         Box::pin(async move {
             //
-            todo!()
+
+            let (parts, body) = req.into_parts();
+
+            let (body, producer) = body.into_remote();
+
+            AsyncState::push(ctx, producer)?;
+
+            self.0.send(ctx, Request::from_parts(parts, body)).await
         })
     }
 }
@@ -167,7 +174,8 @@ impl<'js> Resource<'js> for ClientResource<'js> {
     const INTERNAL: bool = true;
     const SCOPED: bool = true;
 
-    async fn run(self, _ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
-        self.body.await
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
+        throw_if!(ctx.ctx(), self.body.await);
+        Ok(())
     }
 }

@@ -54,7 +54,7 @@ impl Registry {
         registry.register::<Date>()?;
         registry.register::<rquickjs::String>()?;
         registry.register::<rquickjs::Object>()?;
-        // registry.register::<rquickjs::Value>()?;
+        registry.register::<rquickjs::Array>()?;
 
         Ok(registry)
     }

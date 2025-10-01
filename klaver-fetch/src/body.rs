@@ -3,6 +3,7 @@ use klaver_base::{
     Blob,
     streams::{ReadableStream, readable::One},
 };
+use klaver_runtime::{Resource, ResourceId};
 use klaver_util::{Buffer, Bytes, RuntimeError, Static, throw, throw_if};
 use pin_project_lite::pin_project;
 use reggie::{
@@ -228,7 +229,7 @@ impl<'js> JsBody<'js> {
                 while let Some(next) = stream.next().await {
                     sx.send_async(next.map(bytes::Bytes::from).map(Frame::data))
                         .await
-                        .map_err(|err| RuntimeError::Custom(Box::new(err)));
+                        .map_err(|err| RuntimeError::Custom(Box::new(err)))?;
                 }
 
                 Ok(())
@@ -283,14 +284,36 @@ impl http_body::Body for RemoteBody {
 pin_project! {
     pub struct RemoteBodyProducer<'js> {
         #[pin]
-        inner: LocalBoxFuture<'js, rquickjs::Result<()>>,
+        inner: LocalBoxFuture<'js, Result<(), RuntimeError>>,
     }
 }
 
 impl<'js> Future for RemoteBodyProducer<'js> {
-    type Output = rquickjs::Result<()>;
+    type Output = Result<(), RuntimeError>;
 
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         self.project().inner.poll(cx)
+    }
+}
+
+pub struct RemoteBodyProducerId;
+
+impl ResourceId for RemoteBodyProducerId {
+    fn name() -> &'static str {
+        "RemoteBodyProducer"
+    }
+}
+
+impl<'js> Resource<'js> for RemoteBodyProducer<'js> {
+    type Id = RemoteBodyProducerId;
+
+    const INTERNAL: bool = true;
+    const SCOPED: bool = true;
+
+    fn run(self, ctx: klaver_runtime::Context<'js>) -> impl Future<Output = rquickjs::Result<()>> {
+        async move {
+            throw_if!(ctx.ctx(), self.await);
+            Ok(())
+        }
     }
 }
