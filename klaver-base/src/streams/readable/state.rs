@@ -83,7 +83,7 @@ impl<'js> ReadableStreamData<'js> {
         self.queue.pop()
     }
 
-    pub fn close(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+    pub fn close(&mut self, _ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         if !self.is_locked() {
             todo!()
         }
@@ -94,7 +94,7 @@ impl<'js> ReadableStreamData<'js> {
         Ok(())
     }
 
-    pub fn fail(&mut self, ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
+    pub fn fail(&mut self, _ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
         if !self.is_locked() {
             todo!()
         }
@@ -106,7 +106,7 @@ impl<'js> ReadableStreamData<'js> {
         Ok(())
     }
 
-    pub fn cancel(&mut self, ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
+    pub fn cancel(&mut self, _ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
         if !self.is_locked() {
             todo!()
         }

@@ -1,19 +1,18 @@
 use std::sync::Arc;
 
 use crate::{
-    Clonable, Emitter, EventList, EventTarget, Exportable, NativeData, NativeObject, Registry,
+    Clonable, Emitter, EventList, EventTarget, Exportable, NativeData, Registry,
     SerializationOptions, StructuredClone, Tag, TransObject, TransferData,
     message::{MessageEvent, event::MessageEventOptions},
 };
 use flume::{Receiver, Sender};
-use futures::channel::{self, oneshot};
+use futures::channel::oneshot;
 use klaver_runtime::{AsyncState, Resource, ResourceId};
-use klaver_util::{RuntimeError, Subclass, throw};
+use klaver_util::{Subclass, throw};
 use rquickjs::{
-    CatchResultExt, Class, Ctx, Function, JsLifetime, String, Value,
+    Class, Ctx, Function, JsLifetime, String, Value,
     class::{JsClass, Trace},
     prelude::{Opt, This},
-    qjs,
 };
 
 pub struct Message {
@@ -82,7 +81,7 @@ impl<'js> MessagePort<'js> {
         };
 
         let registry = Registry::instance(&ctx)?;
-        let (sx, mut rx) = oneshot::channel();
+        let (sx, rx) = oneshot::channel();
 
         this.borrow_mut().kill = Some(sx);
 
@@ -94,7 +93,7 @@ impl<'js> MessagePort<'js> {
                 message_port: this,
                 kill: rx,
             },
-        );
+        )?;
 
         Ok(())
     }

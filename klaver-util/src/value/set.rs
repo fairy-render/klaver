@@ -2,7 +2,7 @@ use rquickjs::{
     Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Value, class::Trace, function::This,
 };
 
-use crate::{BasePrimordials, Iter, ObjectExt, core::Core};
+use crate::{Iter, ObjectExt, core::Core};
 
 #[derive(Debug, Trace, Clone, JsLifetime)]
 pub struct Set<'js> {
@@ -14,8 +14,7 @@ impl<'js> Set<'js> {
         let obj = Core::instance(ctx)?
             .borrow()
             .primordials()
-            .constructor_set
-            .construct(())?;
+            .construct_set(())?;
         Ok(Self { object: obj })
     }
 

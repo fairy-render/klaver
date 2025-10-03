@@ -3,9 +3,8 @@ use klaver_runtime::{Resource, ResourceId};
 use rquickjs::Class;
 
 use crate::streams::readable::{
-    controller::ReadableStreamDefaultController,
-    source::UnderlyingSource,
-    state::{ReadableStreamData, StreamState},
+    controller::ReadableStreamDefaultController, source::UnderlyingSource,
+    state::ReadableStreamData,
 };
 
 pub struct ReadableStreamResourceId;

@@ -1,5 +1,4 @@
 use klaver::Builder;
-use rquickjs::CatchResultExt;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> klaver_vm::Result<()> {

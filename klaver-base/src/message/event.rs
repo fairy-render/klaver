@@ -3,7 +3,6 @@ use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, String, Value,
     class::{JsClass, Trace},
     prelude::Opt,
-    qjs,
 };
 
 use crate::{DynEvent, Event, Exportable, IntoDynEvent, NativeEvent};

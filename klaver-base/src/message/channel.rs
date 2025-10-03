@@ -1,5 +1,5 @@
 use crate::message::port::MessagePort;
-use rquickjs::{Class, Ctx, JsLifetime, class::Trace, qjs};
+use rquickjs::{Class, Ctx, JsLifetime, class::Trace};
 
 #[derive(Trace)]
 #[rquickjs::class]

@@ -160,9 +160,9 @@ impl Registry {
 pub struct Cloner(Arc<dyn DynCloner + Send + Sync>);
 
 impl Cloner {
-    fn tag(&self) -> &Tag {
-        self.0.tag()
-    }
+    // fn tag(&self) -> &Tag {
+    //     self.0.tag()
+    // }
 
     pub fn from_transfer_object<'js>(
         &self,
@@ -182,7 +182,7 @@ impl Cloner {
 }
 
 pub trait DynCloner {
-    fn tag(&self) -> &Tag;
+    // fn tag(&self) -> &Tag;
     fn from_transfer_object<'js>(
         &self,
         ctx: &mut SerializationContext<'js, '_>,
@@ -202,9 +202,9 @@ impl<T> DynCloner for ClonerImpl<T>
 where
     T: StructuredClone,
 {
-    fn tag(&self) -> &Tag {
-        T::tag()
-    }
+    // fn tag(&self) -> &Tag {
+    //     T::tag()
+    // }
     fn from_transfer_object<'js>(
         &self,
         ctx: &mut SerializationContext<'js, '_>,

@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use klaver_util::{Inheritable, StringExt, StringRef, SuperClass};
 use rquickjs::{
-    Class, Ctx, FromJs, IntoJs, JsLifetime, String, Symbol, Value,
+    Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value,
     class::{JsClass, Trace},
     object::Accessor,
     prelude::This,

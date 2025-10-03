@@ -1,7 +1,7 @@
+use crate::{BasePrimordials, ObjectExt};
 use rquickjs::{Class, Ctx, FromJs, IntoJs, JsLifetime, Object, class::Trace};
 
-use crate::{BasePrimordials, ObjectExt};
-
+#[derive(Trace)]
 #[rquickjs::class]
 pub struct Core<'js> {
     primordials: BasePrimordials<'js>,
@@ -12,13 +12,6 @@ unsafe impl<'js> JsLifetime<'js> for Core<'js> {
     type Changed<'to> = Core<'to>;
 }
 
-impl<'js> Trace<'js> for Core<'js> {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.primordials.trace(tracer);
-        self.store.trace(tracer);
-    }
-}
-
 impl<'js> Core<'js> {
     const GLOBAL_KEY: &'static str = "Core";
 
@@ -27,7 +20,7 @@ impl<'js> Core<'js> {
             Ok(core)
         } else {
             let primordials = BasePrimordials::new(ctx)?;
-            let store: Object<'js> = primordials.constructor_map.construct(())?;
+            let store: Object<'js> = primordials.construct_map(())?;
 
             let core = Class::instance(ctx.clone(), Core { primordials, store })?;
 

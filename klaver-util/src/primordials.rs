@@ -1,9 +1,7 @@
 use rquickjs::{
-    Atom, Ctx, Function, JsLifetime, Object, Result, Symbol, atom::PredefinedAtom, class::Trace,
-    function::Constructor, runtime::UserDataGuard,
+    Atom, Ctx, Function, JsLifetime, Object, Result, String, atom::PredefinedAtom, class::Trace,
+    prelude::IntoArgs,
 };
-
-use crate::core::Core;
 
 // use crate::class::CUSTOM_INSPECT_SYMBOL_DESCRIPTION;
 
@@ -164,12 +162,12 @@ use crate::core::Core;
 //     }
 // }
 
-#[derive(JsLifetime)]
+#[derive(JsLifetime, Trace)]
 pub struct BasePrimordials<'js> {
     // // Constructors
-    pub constructor_map: Constructor<'js>,
-    pub constructor_weak_map: Constructor<'js>,
-    pub constructor_set: Constructor<'js>,
+    pub constructor_map: Function<'js>,
+    pub constructor_weak_map: Function<'js>,
+    pub constructor_set: Function<'js>,
     // pub constructor_date: Constructor<'js>,
     // pub constructor_error: Constructor<'js>,
     // pub constructor_type_error: Constructor<'js>,
@@ -205,39 +203,40 @@ pub struct BasePrimordials<'js> {
     // pub symbol_async_dispose: Symbol<'js>,
 
     // // Atoms
-    pub atom_entries: Atom<'js>,
-    pub atom_keys: Atom<'js>,
-}
-
-impl<'js> Trace<'js> for BasePrimordials<'js> {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
-        self.atom_entries.trace(tracer);
-        self.atom_keys.trace(tracer);
-
-        self.constructor_map.trace(tracer);
-        self.constructor_set.trace(tracer);
-        self.constructor_weak_map.trace(tracer);
-    }
+    pub atom_entries: String<'js>,
+    pub atom_keys: String<'js>,
 }
 
 impl<'js> BasePrimordials<'js> {
     pub fn new(ctx: &Ctx<'js>) -> Result<BasePrimordials<'js>> {
         let globals = ctx.globals();
 
-        let constructor_map: Constructor = globals.get(PredefinedAtom::Map)?;
-        let constructor_weak_map: Constructor = globals.get(PredefinedAtom::WeakMap)?;
+        let constructor_map: Function = globals.get(PredefinedAtom::Map)?;
+        let constructor_weak_map: Function = globals.get(PredefinedAtom::WeakMap)?;
 
         let atom_entries = Atom::from_str(ctx.clone(), "entries")?;
         let atom_keys = Atom::from_str(ctx.clone(), "keys")?;
 
-        let constructor_set: Constructor = globals.get(PredefinedAtom::Set)?;
+        let constructor_set: Function = globals.get(PredefinedAtom::Set)?;
 
         Ok(BasePrimordials {
             constructor_map,
             constructor_weak_map,
             constructor_set,
-            atom_entries,
-            atom_keys,
+            atom_entries: atom_entries.to_js_string()?,
+            atom_keys: atom_keys.to_js_string()?,
         })
+    }
+
+    pub fn construct_map<A: IntoArgs<'js>>(&self, args: A) -> rquickjs::Result<Object<'js>> {
+        unsafe { self.constructor_map.ref_constructor().construct(args) }
+    }
+
+    pub fn construct_weak_map<A: IntoArgs<'js>>(&self, args: A) -> rquickjs::Result<Object<'js>> {
+        unsafe { self.constructor_weak_map.ref_constructor().construct(args) }
+    }
+
+    pub fn construct_set<A: IntoArgs<'js>>(&self, args: A) -> rquickjs::Result<Object<'js>> {
+        unsafe { self.constructor_set.ref_constructor().construct(args) }
     }
 }
