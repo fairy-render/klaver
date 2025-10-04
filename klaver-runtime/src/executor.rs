@@ -248,12 +248,9 @@ impl<'js> TaskExecutor<'js> {
                     }
                 },
                 _ = kill.subscribe().fuse() => {
-                    // TaskStatus::Idle
                     TaskStatus::Killed
                 }
                 status = idle.fuse() => {
-
-                    // TaskStatus::Idle
                     status
                 }
                 _ = exception_future.fuse() => {

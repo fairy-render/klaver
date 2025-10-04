@@ -23,7 +23,7 @@ impl Cli {
 
         let vm = builder.build().await?;
 
-        // klaver_runtime::set_promise_hook(vm.runtime()).await;
+        klaver_runtime::set_promise_hook(vm.runtime()).await;
 
         run::run(vm, cli.path.as_ref().map(|m| &**m), cli.exec).await?;
 

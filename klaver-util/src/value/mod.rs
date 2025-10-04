@@ -1,4 +1,3 @@
-mod array_buffer;
 mod buffer;
 mod date;
 mod finalization_registry;
