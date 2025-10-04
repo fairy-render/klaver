@@ -4,7 +4,6 @@ mod macros;
 mod abort_controller;
 mod abort_signal;
 mod blob;
-mod buffer;
 mod console;
 mod dom_exception;
 mod encoding;
