@@ -1,4 +1,4 @@
-use rquickjs::{module::ModuleDef, prelude::Func};
+use rquickjs::module::ModuleDef;
 use sysinfo::System;
 
 pub struct OsModule {}

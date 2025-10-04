@@ -1,4 +1,4 @@
-use klaver_util::rquickjs::{self, Class, Ctx, FromJs, IntoJs, JsLifetime, Value, class::Trace};
+use klaver_util::rquickjs::{self, Class, Ctx, FromJs, IntoJs, Value, class::Trace};
 
 use crate::runner::{Suite, TestDesc};
 

@@ -1,5 +1,5 @@
 use klaver_util::throw;
-use rquickjs::{Class, Ctx, JsLifetime, Promise, String, Value, class::Trace, prelude::Opt};
+use rquickjs::{Class, Ctx, JsLifetime, Promise, Value, class::Trace, prelude::Opt};
 
 use crate::streams::data::{StreamData, WaitDone, WaitWriteReady};
 

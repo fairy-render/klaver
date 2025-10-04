@@ -1,6 +1,6 @@
 use crate::runner::TestRunner;
 use klaver_modules::module_info;
-use klaver_util::rquickjs::{Class, Module, class::JsClass, module::ModuleDef};
+use klaver_util::rquickjs::{Class, class::JsClass, module::ModuleDef};
 
 pub struct TestModule;
 
