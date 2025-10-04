@@ -3,21 +3,33 @@ name = "klaver-base"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-rquickjs.workspace = true
-rquickjs-util = { path = "../rquickjs-util" }
-async-channel = { version = "2" }
+[features]
+serde = ["dep:serde", "typetag", "module"]
+module = ["klaver-modules"]
 
-event-listener = { version = "5" }
-pin-project-lite = { version = "0.2" }
+[dependencies]
+klaver-modules = { path = "../klaver-modules", optional = true }
+klaver-runtime = { path = "../klaver-runtime" }
+klaver-util = { path = "../klaver-util" }
+rquickjs.workspace = true
+
+
+event-listener = { workspace = true }
+pin-project-lite = { workspace = true }
+futures = { workspace = true }
 
 async-trait = { version = "0.1" }
+async-stream = { version = "0.3" }
+flume = { workspace = true }
 
+## Encoding
 encoding_rs = { version = "0.8" }
 base64 = { version = "0.22" }
 
-futures-core = { version = "0.3" }
+## Structured Clone
+dyn-clone = { version = "1" }
+ordered-float = { version = "5", features = [] }
+indexmap = { version = "2" }
 
-
-[dev-dependencies]
-futures = { version = "0.3" }
+typetag = { version = "0.2", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }

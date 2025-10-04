@@ -1,8 +1,12 @@
-use klaver_base::streams::WritableStream;
-use rquickjs::{
-    AsyncContext, AsyncRuntime, CatchResultExt, Class, Module, class::JsClass, prelude::Func,
+use klaver_base::{
+    AbortSignal, Emitter, EventTarget, Exportable, Registry, streams::WritableStream,
 };
-use rquickjs_util::{RuntimeError, StringRef};
+use klaver_runtime::{EventLoop, Runner};
+use klaver_util::{Inheritable, RuntimeError, StringRef, Subclass, SuperClass, is_plain_object};
+use rquickjs::{
+    AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, Module, Value, class::JsClass,
+    prelude::Func,
+};
 
 fn main() -> Result<(), RuntimeError> {
     futures::executor::block_on(async move {
@@ -10,32 +14,34 @@ fn main() -> Result<(), RuntimeError> {
 
         let context = AsyncContext::full(&runtime).await?;
 
-        rquickjs::async_with!(context => |ctx| {
-          ctx.globals().set(
+        EventLoop::new(Base).run(&context).await?;
+
+        Ok(())
+    })
+}
+
+struct Base;
+
+impl<'js> Runner<'js> for Base {
+    type Output = ();
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<Self::Output> {
+        AbortSignal::inherit(&ctx)?;
+
+        ctx.globals().set(
             "print",
             Func::from(|msg: StringRef<'_>| {
                 println!("{}", msg);
                 rquickjs::Result::Ok(())
             }),
-          ).catch(&ctx)?;
+        )?;
 
+        klaver_base::BaseModule::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals())?;
 
+        let (_, promise) =
+            Module::declare(ctx.ctx().clone(), "main", include_str!("./test.js"))?.eval()?;
 
-          let (_, promise) = Module::evaluate_def::<klaver_base::BaseModule, _>(ctx.clone(), "quick:base").catch(&ctx)?;
-
-          promise.into_future::<()>().await.catch(&ctx)?;
-
-
-          let (_, promise) = Module::declare(ctx.clone(), "main", include_str!("./test.js"))?.eval().catch(&ctx)?;
-
-          promise.into_future::<()>().await.catch(&ctx)?;
-
-          Result::<_, RuntimeError>::Ok(())
-        })
-        .await?;
-
-        // runtime.idle().await;
+        promise.into_future::<()>().await?;
 
         Ok(())
-    })
+    }
 }

@@ -1,15 +1,11 @@
-use rquickjs::{class::JsClass, module::ModuleDef};
+use rquickjs::{Ctx, class::JsClass, module::ModuleDef, prelude::Func};
 
 pub struct BaseModule;
 
 use crate::{
-    Console, Emitter,
-    abort_controller::AbortController,
-    abort_signal::AbortSignal,
-    blob::Blob,
-    dom_exception::DOMException,
-    event_target::{Event, EventTarget},
-    file::File,
+    Console, EventTarget, Exportable, Registry, abort_controller::AbortController,
+    abort_signal::AbortSignal, blob::Blob, dom_exception::DOMException, events::Event, file::File,
+    serialize, structured_clone,
 };
 
 impl ModuleDef for BaseModule {
@@ -28,6 +24,10 @@ impl ModuleDef for BaseModule {
 
         crate::streams::declare(decl)?;
         crate::encoding::declare(decl)?;
+        crate::message::declare(decl)?;
+
+        decl.declare("structuredClone")?;
+        decl.declare("serialize")?;
 
         Ok(())
     }
@@ -36,25 +36,56 @@ impl ModuleDef for BaseModule {
         ctx: &rquickjs::Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
-        define!(
-            exports,
+        let registry = &Registry::instance(ctx)?;
+
+        Self::export(ctx, registry, exports)
+    }
+}
+
+impl<'js> Exportable<'js> for BaseModule {
+    fn export<T>(ctx: &Ctx<'js>, registry: &Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::ExportTarget<'js>,
+    {
+        export!(
             ctx,
+            registry,
+            target,
             AbortController,
             AbortSignal,
-            EventTarget,
             DOMException,
             Blob,
-            File,
             Console
         );
+        crate::events::exports(ctx, registry, target)?;
+        crate::encoding::export(ctx, registry, target)?;
+        crate::streams::export(ctx, registry, target)?;
+        crate::message::export(ctx, registry, target)?;
 
-        AbortSignal::add_event_target_prototype(ctx)?;
-        EventTarget::add_event_target_prototype(ctx)?;
-        DOMException::init(ctx)?;
-
-        crate::streams::evaluate(ctx, exports)?;
-        crate::encoding::evaluate(ctx, exports)?;
+        target.set(ctx, "structuredClone", Func::from(structured_clone))?;
+        target.set(ctx, "serialize", Func::from(serialize))?;
 
         Ok(())
+    }
+}
+
+#[cfg(feature = "module")]
+impl klaver_modules::Global for BaseModule {
+    async fn define<'a, 'js: 'a>(&'a self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+        Self::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals())?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "module")]
+impl klaver_modules::GlobalInfo for BaseModule {
+    fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
+        builder.register(BaseModule);
+    }
+
+    fn typings() -> Option<std::borrow::Cow<'static, str>> {
+        Some(std::borrow::Cow::Borrowed(include_str!(
+            "../klaver.base.d.ts"
+        )))
     }
 }

@@ -1,10 +1,9 @@
 use event_listener::Event;
 use event_listener::EventListener;
+use klaver_util::throw;
 use pin_project_lite::pin_project;
-use rquickjs::{Ctx, JsLifetime, String, Value, class::Class, class::Trace};
+use rquickjs::{Ctx, JsLifetime, Value, class::Class, class::Trace};
 use rquickjs::{Function, Promise};
-use rquickjs_util::StringRef;
-use rquickjs_util::throw;
 use std::task::{Poll, ready};
 use std::{rc::Rc, usize};
 
@@ -13,19 +12,21 @@ use super::{queue::Queue, queue_strategy::QueuingStrategy};
 
 #[derive(Trace, Debug)]
 pub enum ControllerState<'js> {
-    Aborted(Option<String<'js>>),
+    Aborted(Option<Value<'js>>),
     Failed(Value<'js>),
     Closed,
     Running,
     Done,
 }
 
+#[derive(Debug)]
 #[rquickjs::class]
 pub struct StreamData<'js> {
     pub queue: Queue<'js>,
     pub wait: Rc<Event>,
     pub state: ControllerState<'js>,
     pub locked: bool,
+    pub disturbed: bool,
 }
 
 impl<'js> Trace<'js> for StreamData<'js> {
@@ -46,15 +47,14 @@ impl<'js> StreamData<'js> {
             wait: Default::default(),
             state: ControllerState::Running,
             locked: false,
+            disturbed: false,
         }
     }
 
-    fn throw_state(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    fn throw_state(&self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         match &self.state {
             ControllerState::Aborted(err) => match err {
-                Some(err) => {
-                    throw!(@type ctx, format!("Stream is aborted: {}", StringRef::from_string(err.clone())?))
-                }
+                Some(err) => return Err(ctx.throw(err.clone())),
                 None => {
                     throw!(@type ctx, format!("Stream is aborted"))
                 }
@@ -76,9 +76,9 @@ impl<'js> StreamData<'js> {
         !self.queue.is_empty() && !(self.is_aborted() || self.is_failed())
     }
 
-    pub fn close(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    pub fn close(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
-            return self.throw_state(ctx);
+            return self.throw_state(&ctx);
         }
 
         self.state = ControllerState::Closed;
@@ -87,7 +87,7 @@ impl<'js> StreamData<'js> {
         Ok(())
     }
 
-    pub fn abort(&mut self, ctx: Ctx<'js>, reason: Option<String<'js>>) -> rquickjs::Result<()> {
+    pub fn abort(&mut self, ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
         if !self.is_running() {
             return self.throw_state(ctx);
         }
@@ -99,7 +99,7 @@ impl<'js> StreamData<'js> {
         Ok(())
     }
 
-    pub fn fail(&mut self, ctx: Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
+    pub fn fail(&mut self, ctx: &Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
             return self.throw_state(ctx);
         }
@@ -123,7 +123,7 @@ impl<'js> StreamData<'js> {
         self.locked
     }
 
-    pub fn lock(&mut self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+    pub fn lock(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
             return self.throw_state(ctx);
         }
@@ -158,7 +158,7 @@ impl<'js> StreamData<'js> {
         matches!(self.state, ControllerState::Done)
     }
 
-    pub fn abort_reason(&self) -> Option<String<'js>> {
+    pub fn abort_reason(&self) -> Option<Value<'js>> {
         match &self.state {
             ControllerState::Aborted(reason) => reason.clone(),
             _ => None,
@@ -178,6 +178,9 @@ impl<'js> StreamData<'js> {
     pub fn pop(&mut self) -> Option<Entry<'js>> {
         let ret = self.queue.pop()?;
         self.wait.notify(usize::MAX);
+
+        // Should only be set when readable stream
+        self.disturbed = true;
 
         Some(ret)
     }
@@ -230,10 +233,10 @@ impl<'js> Future for WaitDone<'js> {
                 WaiteStateProj::Idle => {
                     if this.state.borrow().is_failed() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_aborted() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_finished() {
                         return Poll::Ready(Ok(()));
                     } else {
@@ -283,10 +286,10 @@ impl<'js> Future for WaitWriteReady<'js> {
                 WaiteStateProj::Idle => {
                     if this.state.borrow().is_failed() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_aborted() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_write_ready() {
                         return Poll::Ready(Ok(()));
                     } else {
@@ -336,10 +339,10 @@ impl<'js> Future for WaitReadReady<'js> {
                 WaiteStateProj::Idle => {
                     if this.state.borrow().is_failed() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_aborted() {
                         let ctx = this.state.ctx().clone();
-                        return Poll::Ready(this.state.borrow().throw_state(ctx));
+                        return Poll::Ready(this.state.borrow().throw_state(&ctx));
                     } else if this.state.borrow().is_read_ready() || this.state.borrow().is_closed()
                     {
                         return Poll::Ready(Ok(()));

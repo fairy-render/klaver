@@ -1,4 +1,5 @@
 use domjohnson::NodeId;
+use klaver_util::Static;
 use locket::LockApi;
 use rquickjs::{
     atom::PredefinedAtom, class::Trace, function::MutFn, Array, Class, Ctx, Function, IntoJs,
@@ -91,26 +92,30 @@ impl NodeList {
 
     pub fn entries<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let dom = self.dom.clone();
-        rquickjs_util::iterator::NativeIter::new(self.nodes.clone().into_iter().enumerate().map(
-            move |(index, id)| Entry {
-                index,
-                element: JsElement {
-                    id,
-                    dom: dom.clone(),
-                },
-            },
-        ))
+        klaver_util::NativeIterator::new(klaver_util::NativeIter::new(Static(
+            self.nodes
+                .clone()
+                .into_iter()
+                .enumerate()
+                .map(move |(index, id)| Entry {
+                    index,
+                    element: JsElement {
+                        id,
+                        dom: dom.clone(),
+                    },
+                }),
+        )))
         .into_js(&ctx)
     }
 
     pub fn values<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let dom: std::rc::Rc<std::cell::RefCell<domjohnson::Document>> = self.dom.clone();
-        rquickjs_util::iterator::NativeIter::new(self.nodes.clone().into_iter().map(move |id| {
-            JsElement {
+        klaver_util::NativeIterator::new(klaver_util::NativeIter::new(Static(
+            self.nodes.clone().into_iter().map(move |id| JsElement {
                 id,
                 dom: dom.clone(),
-            }
-        }))
+            }),
+        )))
         .into_js(&ctx)
     }
 }

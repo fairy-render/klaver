@@ -1,4 +1,4 @@
-use rquickjs_modules::module_info;
+use klaver_modules::module_info;
 
 pub type Module = js_image_module;
 

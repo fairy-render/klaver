@@ -3,36 +3,43 @@
 resolver = "2"
 
 members = [
-
-  # "klaver-gerning",
-  "klaver-image",
-  # "klaver-os",
-  "rquickjs-util",
-  "klaver-fs",
-  "klaver-dom",
-  "klaver-wintercg",
-  "rquickjs-modules",
-  "klaver-cli",
+  "klaver-modules",
+  "klaver-base",
+  "klaver-timers",
+  "klaver-fetch",
+  "klaver-vm",
+  "klaver-wintertc",
   "klaver",
-  "klaver-handlebars",
-  "klaver-base", "klaver-timers", "klaver-worker",
-  # "klaver-http",
+  "klaver-os",
+  "klaver-util",
+  "klaver-crypto",
+  "klaver-intl",
+  "klaver-cli",
+  "klaver-test",
+  "klaver-runtime",
+  "klaver-image",
+  "klaver-dom"
 ]
 
-
 [workspace.dependencies]
-rquickjs = { version = "0.8", features = [
+rquickjs = { git = "https://github.com/DelSkayn/rquickjs.git", version = "0.9", features = [
   "futures",
   "macro",
   "classes",
   "array-buffer",
 ] }
-tokio = { version = "1" }
 futures = { version = "0.3" }
-
+event-listener = { version = "5" }
+pin-project-lite = { version = "0.2" }
+flume = { version = "0.11" }
+tracing = { version = "0.1" }
 
 [profile.release]
 lto = "fat"
 panic = "abort"
 codegen-units = 1
-strip = "debuginfo"
+debug = "full"              # No one needs an undebuggable release binary
+opt-level = "s"             # reduces binary size by ~25%
+split-debuginfo = "packed"  # generates a separate *.dwp/*.dSYM so the binary can get stripped
+strip = "symbols"           # See split-debuginfo - allows us to drop the size by ~65%
+incremental = true    

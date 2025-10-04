@@ -1,6 +1,6 @@
 use base64::prelude::*;
+use klaver_util::{StringRef, throw};
 use rquickjs::Ctx;
-use rquickjs_util::{StringRef, throw};
 
 pub fn atob(input: StringRef<'_>) -> rquickjs::Result<String> {
     Ok(BASE64_STANDARD.encode(input.as_str()))

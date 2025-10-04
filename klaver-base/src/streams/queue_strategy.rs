@@ -1,5 +1,5 @@
+use klaver_util::{Buffer, StringRef};
 use rquickjs::{Class, Ctx, FromJs, Function, Object, Value, class::Trace};
-use rquickjs_util::{Buffer, StringRef};
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
@@ -26,6 +26,8 @@ impl CountQueuingStrategy {
         1
     }
 }
+
+create_export!(CountQueuingStrategy);
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
@@ -62,6 +64,8 @@ impl ByteLengthQueuingStrategy {
     }
 }
 
+create_export!(ByteLengthQueuingStrategy);
+
 #[derive(Trace, Clone)]
 pub enum QueuingStrategy<'js> {
     Count(Class<'js, CountQueuingStrategy>),
@@ -73,9 +77,9 @@ pub enum QueuingStrategy<'js> {
 }
 
 impl<'js> QueuingStrategy<'js> {
-    pub fn create_default(ctx: Ctx<'js>) -> rquickjs::Result<QueuingStrategy<'js>> {
+    pub fn create_default(ctx: &Ctx<'js>) -> rquickjs::Result<QueuingStrategy<'js>> {
         Ok(Self::Count(Class::instance(
-            ctx,
+            ctx.clone(),
             CountQueuingStrategy { high_water_mark: 1 },
         )?))
     }

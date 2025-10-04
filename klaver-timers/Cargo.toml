@@ -3,10 +3,15 @@ name = "klaver-timers"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["module"]
+module = ["klaver-modules"]
+
 [dependencies]
-klaver-worker = { path = "../klaver-worker" }
+klaver-runtime = { path = "../klaver-runtime" }
+klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules", optional = true }
 rquickjs.workspace = true
-rquickjs-util = { path = "../rquickjs-util" }
 futures = { version = "0.3" }
 
 event-listener = { version = "5" }

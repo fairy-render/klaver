@@ -1,0 +1,25 @@
+[package]
+name = "klaver-intl"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+compiled = ["icu/compiled_data"]
+module = ["klaver-modules"]
+
+[dependencies]
+klaver-util = { path = "../klaver-util", features = ["chrono"] }
+klaver-base = { path = "../klaver-base" }
+klaver-modules = { path = "../klaver-modules", optional = true }
+rquickjs.workspace = true
+
+icu = { version = "1.5.0", default-features = false, features = [
+    "experimental",
+    "std",
+] }
+icu_provider = { version = "1.5.0" }
+localzone = { version = "0.3" }
+chrono-tz = { version = "0.10" }
+chrono = { version = "0.4" }
+sys-locale = { version = "0.3" }
+fixed_decimal = { version = "0.5", features = ["ryu"] }

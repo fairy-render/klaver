@@ -1,52 +1,16 @@
-use core::fmt;
-use rquickjs::{Class, Ctx, Exception, Result, Value, class::Trace, function::Opt};
-use rquickjs_util::{Buffer, StringRef};
+use klaver_util::{Buffer, StringRef};
+use rquickjs::{Ctx, Exception, Result, Value, class::Trace, function::Opt};
 
-pub fn init(ctx: &Ctx<'_>) -> rquickjs::Result<()> {
-    let globals = ctx.globals();
-    Class::<TextDecoder>::define(&globals)?;
-    Class::<TextEncoder>::define(&globals)?;
+// #[derive(Debug)]
+// pub struct UnknownEncoding;
 
-    Ok(())
-}
-
-// pub struct Encoding;
-
-// module_info!("@klaver/encoding" @types: include_str!("../module.d.ts") => Encoding);
-
-// impl ModuleDef for Encoding {
-//     fn declare<'js>(decl: &Declarations<'js>) -> Result<()> {
-//         decl.declare("TextDecoder")?;
-//         decl.declare("TextEncoder")?;
-//         decl.declare("atob")?;
-//         decl.declare("btoa")?;
-//         Ok(())
-//     }
-
-//     fn evaluate<'js>(ctx: &Ctx<'js>, exports: &Exports<'js>) -> Result<()> {
-//         Class::<TextDecoder>::register(ctx)?;
-//         Class::<TextEncoder>::register(ctx)?;
-
-//         exports.export("TextDecoder", Class::<TextDecoder>::create_constructor(ctx))?;
-//         exports.export("TextEncoder", Class::<TextEncoder>::create_constructor(ctx))?;
-
-//         exports.export("atob", Func::new(crate::b64::atob))?;
-//         exports.export("btoa", Func::new(crate::b64::btoa))?;
-
-//         Ok(())
+// impl fmt::Display for UnknownEncoding {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "unknown encoding")
 //     }
 // }
 
-#[derive(Debug)]
-pub struct UnknownEncoding;
-
-impl fmt::Display for UnknownEncoding {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "unknown encoding")
-    }
-}
-
-impl std::error::Error for UnknownEncoding {}
+// impl std::error::Error for UnknownEncoding {}
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
@@ -143,3 +107,6 @@ impl TextEncoder {
         rquickjs::TypedArray::<u8>::new(ctx.clone(), &*ret)
     }
 }
+
+create_export!(TextDecoder);
+create_export!(TextEncoder);

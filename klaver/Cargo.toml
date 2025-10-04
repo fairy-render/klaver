@@ -1,41 +1,30 @@
 [package]
 name = "klaver"
-version = "0.2.0"
-edition = "2021"
+version = "0.1.0"
+edition = "2024"
 
 [features]
-default = []
-transform = ["rquickjs-modules/swc-transform"]
-http = ["klaver-wintercg/http"]
-encoding = ["klaver-wintercg/encoding"]
-crypto = ["klaver-wintercg/crypto"]
-icu = ["klaver-wintercg/icu"]
-icu-compiled = ["klaver-wintercg/icu-compiled"]
+swc = ["klaver-modules/swc-transform"]
 
-pool = ["deadpool", "tokio/rt", "parallel", "worker"]
-parallel = ["rquickjs/parallel"]
-worker = ["tokio"]
+full = ["fetch", "crypto", "intl-backed"]
 
-
-[[example]]
-name = "pool"
-path = "examples/pool.rs"
-required-features = ["pool"]
-
-[[example]]
-name = "worker"
-path = "examples/worker.rs"
-required-features = ["pool"]
+fetch = ["klaver-wintertc/fetch"]
+crypto = ["klaver-wintertc/crypto"]
+intl = ["klaver-wintertc/intl"]
+intl-backed = ["klaver-wintertc/intl-backed"]
 
 [dependencies]
-tokio = { version = "1", features = ["sync"], optional = true }
+klaver-wintertc = { path = "../klaver-wintertc", features = [
+    "module",
+    "tokio",
+] }
+klaver-vm = { path = "../klaver-vm" }
+klaver-modules = { path = "../klaver-modules" }
+klaver-runtime = { path = "../klaver-runtime" }
+klaver-base = { path = "../klaver-base" }
+rquickjs = { workspace = true }
 futures.workspace = true
-rquickjs.workspace = true
-rquickjs-modules = { path = "../rquickjs-modules" }
-rquickjs-util = { path = "../rquickjs-util" }
-klaver-wintercg = { path = "../klaver-wintercg" }
-deadpool = { version = "0.12", optional = true }
 
 
 [dev-dependencies]
-tokio = { version = "1", features = ["sync", "macros", "rt"] }
+tokio = { version = "1", features = ["rt", "macros"] }

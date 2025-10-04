@@ -1,0 +1,37 @@
+[package]
+name = "klaver-wintertc"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+module = ["klaver-modules"]
+fetch = ["klaver-fetch"]
+crypto = ["klaver-crypto"]
+intl = ["klaver-intl"]
+intl-backed = ["intl", "klaver-intl/compiled"]
+
+
+tokio = ["dep:tokio", "klaver-fetch/reqwest"]
+
+[dependencies]
+klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules", optional = true }
+
+
+klaver-base = { path = "../klaver-base", features = ["module"] }
+klaver-timers = { path = "../klaver-timers", features = ["module"] }
+klaver-crypto = { path = "../klaver-crypto", features = [
+    "module",
+], optional = true }
+klaver-fetch = { path = "../klaver-fetch", features = [
+    "module",
+], optional = true }
+klaver-intl = { path = "../klaver-intl", features = [
+    "module",
+], optional = true }
+rquickjs.workspace = true
+
+tokio = { version = "1", features = ["time"], optional = true }
+
+
+futures.workspace = true

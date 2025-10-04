@@ -1,0 +1,57 @@
+[package]
+name = "klaver-modules"
+version = "0.2.0"
+edition = "2021"
+
+[features]
+oxc-transform = ["oxc"]
+swc-transform = [
+  "swc_node_comments",
+  "swc_ecma_codegen",
+  "swc_ecma_transforms",
+  "swc_common",
+  "swc_ecma_parser",
+  "swc_ecma_ast",
+  "swc_ecma_visit",
+  "swc_sourcemap",
+  "anyhow",
+  "par-core",
+]
+
+
+[dependencies]
+klaver-util = { path = "../klaver-util" }
+rquickjs = { workspace = true, features = ["loader", "futures"] }
+oxc_resolver = { version = "11.6" }
+oxc = { version = "0.77", features = [
+  "transformer",
+  "codegen",
+  "semantic",
+], optional = true }
+relative-path = { version = "2" }
+parking_lot = { version = "0.12" }
+
+tracing = { version = "0.1" }
+geenie = { git = "https://github.com/fairy-render/geenie.git" }
+
+## Swc
+swc_ecma_codegen = { version = "17.0", optional = true }
+swc_ecma_transforms = { version = "33.0", features = [
+  "proposal",
+  "compat",
+  "module",
+  "typescript",
+  "react",
+  "concurrent",
+], optional = true }
+swc_common = { version = "14.0", features = ["sourcemap"], optional = true }
+swc_ecma_parser = { version = "24.0", optional = true }
+swc_ecma_ast = { version = "15.0", optional = true }
+swc_ecma_visit = { version = "15.0", optional = true }
+swc_node_comments = { version = "14.0", optional = true }
+swc_sourcemap = { version = "9.3", optional = true }
+anyhow = { version = "1", optional = true }
+par-core = { version = "2", optional = true, features = ["chili"] }
+
+[dev-dependencies]
+futures = { version = "0.3" }

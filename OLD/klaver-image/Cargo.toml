@@ -1,0 +1,21 @@
+[package]
+name = "klaver-image"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+webp = ["dep:webp", "image/webp"]
+
+
+[dependencies]
+rquickjs-util = { path = "../rquickjs-util" }
+rquickjs-modules = { path = "../rquickjs-modules" }
+rquickjs.workspace = true
+image = { version = "0.25", features = [
+  "png",
+  "jpeg",
+  "pnm",
+], default-features = false }
+webp = { version = "0.3", features = ["img"], optional = true }
+tokio = { version = "1", features = ["fs"] }

@@ -1,12 +1,20 @@
 mod controller;
 mod from;
+mod queue;
 mod reader;
+mod resource;
+mod source;
+mod state;
 mod stream;
-mod underlying_source;
+
+use crate::ExportTarget;
 
 pub use self::{
-    controller::ReadableStreamDefaultController, reader::ReadableStreamDefaultReader,
-    stream::ReadableStream, underlying_source::*,
+    controller::ReadableStreamDefaultController,
+    from::from,
+    reader::ReadableStreamDefaultReader,
+    source::{AsyncIteratorSource, IteratorSource, NativeSource, One, UnderlyingSource},
+    stream::ReadableStream,
 };
 
 use rquickjs::class::JsClass;
@@ -21,13 +29,15 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
+pub fn export<'js, T: ExportTarget<'js>>(
     ctx: &rquickjs::Ctx<'js>,
-    exports: &rquickjs::module::Exports<'js>,
+    registry: &crate::Registry,
+    exports: &T,
 ) -> rquickjs::Result<()> {
-    define!(
-        exports,
+    export!(
         ctx,
+        registry,
+        exports,
         ReadableStream,
         ReadableStreamDefaultController,
         ReadableStreamDefaultReader

@@ -1,13 +1,11 @@
 [package]
 name = "klaver-os"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-klaver = { path = "../klaver" }
-klaver-streams = { path = "../klaver-streams" }
 rquickjs.workspace = true
-tokio = { version = "1", features = ["fs", "process"] }
-tokio-stream = { version = "0.1" }
-tokio-util = { version = "0.7", features = ["io"] }
-futures.workspace = true
+klaver-util = { path = "../klaver-util" }
+klaver-base = { path = "../klaver-base" }
+
+sysinfo = { version = "0.37" }

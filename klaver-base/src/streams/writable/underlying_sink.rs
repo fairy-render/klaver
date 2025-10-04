@@ -1,15 +1,29 @@
-use rquickjs::{Class, Ctx, FromJs, Function, Object, String, Value, class::Trace};
+use std::rc::Rc;
+
+use async_trait::async_trait;
+use rquickjs::{Class, Ctx, FromJs, Function, Object, Value, class::Trace};
 
 use super::controller::WritableStreamDefaultController;
 
-#[derive(Trace, Debug, Clone)]
+#[derive(Clone)]
 pub enum UnderlyingSink<'js> {
     Quick(JsUnderlyingSink<'js>),
+    Native(Rc<dyn NativeSink<'js>>),
+}
+
+impl<'js> Trace<'js> for UnderlyingSink<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        match self {
+            Self::Quick(m) => m.trace(tracer),
+            Self::Native(m) => m.trace(tracer),
+        }
+    }
 }
 
 impl<'js> UnderlyingSink<'js> {
     pub async fn start(
         &self,
+        ctx: &Ctx<'js>,
         ctrl: Class<'js, WritableStreamDefaultController<'js>>,
     ) -> rquickjs::Result<()> {
         match self {
@@ -21,22 +35,25 @@ impl<'js> UnderlyingSink<'js> {
                     }
                 }
             }
+            Self::Native(native) => native.start(ctx, ctrl).await?,
         }
         Ok(())
     }
-    pub async fn abort(&self, reason: Option<String<'js>>) -> rquickjs::Result<()> {
+    pub async fn abort(&self, ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
         match self {
             Self::Quick(quick) => {
                 if let Some(abort) = &quick.abort {
                     abort.call::<_, ()>((reason,))?;
                 }
             }
+            Self::Native(native) => native.abort(ctx, reason).await?,
         }
         Ok(())
     }
 
     pub async fn close(
         &self,
+        ctx: &Ctx<'js>,
         ctrl: Class<'js, WritableStreamDefaultController<'js>>,
     ) -> rquickjs::Result<()> {
         match self {
@@ -48,12 +65,14 @@ impl<'js> UnderlyingSink<'js> {
                     }
                 }
             }
+            Self::Native(native) => native.close(ctx, ctrl).await?,
         }
         Ok(())
     }
 
     pub async fn write(
         &self,
+        ctx: &Ctx<'js>,
         chunk: Value<'js>,
         ctrl: Class<'js, WritableStreamDefaultController<'js>>,
     ) -> rquickjs::Result<()> {
@@ -63,10 +82,62 @@ impl<'js> UnderlyingSink<'js> {
                     write.call::<_, ()>((chunk, ctrl))?;
                 }
             }
+            Self::Native(native) => native.write(ctx, chunk, ctrl).await?,
         }
         Ok(())
     }
 }
+
+#[async_trait(?Send)]
+pub trait NativeSink<'js>: Trace<'js> {
+    async fn start(
+        &self,
+        ctx: &Ctx<'js>,
+        ctrl: Class<'js, WritableStreamDefaultController<'js>>,
+    ) -> rquickjs::Result<()>;
+
+    async fn write(
+        &self,
+        ctx: &Ctx<'js>,
+        chunk: Value<'js>,
+        ctrl: Class<'js, WritableStreamDefaultController<'js>>,
+    ) -> rquickjs::Result<()>;
+
+    async fn close(
+        &self,
+        ctx: &Ctx<'js>,
+        ctrl: Class<'js, WritableStreamDefaultController<'js>>,
+    ) -> rquickjs::Result<()>;
+
+    async fn abort(&self, ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()>;
+}
+
+// pub trait DynNativeSink<'js>: Trace<'js> {
+//     fn start(
+//         &self,
+//         ctx: &Ctx<'js>,
+//         ctrl: Class<'js, WritableStreamDefaultController<'js>>,
+//     ) -> LocalBoxFuture<'js, rquickjs::Result<()>>;
+
+//     fn write(
+//         &self,
+//         ctx: &Ctx<'js>,
+//         chunk: Value<'js>,
+//         ctrl: Class<'js, WritableStreamDefaultController<'js>>,
+//     ) -> LocalBoxFuture<'js, rquickjs::Result<()>>;
+
+//     fn close(
+//         &self,
+//         ctx: &Ctx<'js>,
+//         ctrl: Class<'js, WritableStreamDefaultController<'js>>,
+//     ) -> LocalBoxFuture<'js, rquickjs::Result<()>>;
+
+//     fn abort(
+//         &self,
+//         ctx: &Ctx<'js>,
+//         reason: Option<Value<'js>>,
+//     ) -> LocalBoxFuture<'js, rquickjs::Result<()>>;
+// }
 
 #[derive(Debug, Clone, Trace)]
 pub struct JsUnderlyingSink<'js> {

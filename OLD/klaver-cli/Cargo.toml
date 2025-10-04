@@ -1,0 +1,36 @@
+[package]
+name = "klaver-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "klaver"
+path = "src/main.rs"
+
+[features]
+cross = ["openssl"]
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+color-eyre = "0.6"
+
+tokio = { version = "1", features = ["rt", "macros", "fs"] }
+rquickjs.workspace = true
+
+klaver = { path = "../klaver", features = [
+  "http",
+  "encoding",
+  "crypto",
+  "transform",
+  "icu-compiled",
+] }
+klaver-dom = { path = "../klaver-dom" }
+klaver-fs = { path = "../klaver-fs" }
+klaver-image = { path = "../klaver-image" }
+klaver-handlebars = { path = "../klaver-handlebars" }
+# klaver-http = { path = "../klaver-http" }
+
+
+openssl = { version = "0.10", features = ["vendored"], optional = true }
+
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

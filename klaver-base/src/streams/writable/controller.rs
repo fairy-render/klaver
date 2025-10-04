@@ -1,6 +1,6 @@
 use crate::streams::data::StreamData;
+use klaver_util::throw;
 use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace};
-use rquickjs_util::throw;
 
 #[rquickjs::class]
 #[derive(Trace)]
@@ -23,8 +23,10 @@ impl<'js> WritableStreamDefaultController<'js> {
     }
 
     fn error(&self, ctx: Ctx<'js>, error: Value<'js>) -> rquickjs::Result<()> {
-        self.data.borrow_mut().fail(ctx, error)?;
+        self.data.borrow_mut().fail(&ctx, error)?;
 
         Ok(())
     }
 }
+
+create_export!(WritableStreamDefaultController<'js>);

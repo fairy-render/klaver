@@ -1,9 +1,15 @@
 use core::fmt;
 use std::{collections::HashMap, time::Instant};
 
-use rquickjs::{Ctx, Function, JsLifetime, Value, class::Trace, function::Rest};
+use rquickjs::{
+    Class, Ctx, Function, JsLifetime, Value,
+    class::{JsClass, Trace},
+    function::Rest,
+};
 
-use rquickjs_util::format::{FormatOptions, format_value};
+use klaver_util::{FormatOptions, format_to};
+
+use crate::export::Exportable;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Level {
@@ -27,7 +33,7 @@ impl fmt::Display for Level {
 }
 
 pub trait ConsoleWriter<'js>: Trace<'js> {
-    fn write(&self, level: Level, message: String) -> rquickjs::Result<()>;
+    fn write(&self, ctx: &Ctx<'js>, level: Level, message: String) -> rquickjs::Result<()>;
 }
 
 #[derive(Debug, Default)]
@@ -38,7 +44,7 @@ impl<'js> Trace<'js> for StdConsoleWriter {
 }
 
 impl<'js> ConsoleWriter<'js> for StdConsoleWriter {
-    fn write(&self, level: Level, message: String) -> rquickjs::Result<()> {
+    fn write(&self, _ctx: &Ctx<'js>, level: Level, message: String) -> rquickjs::Result<()> {
         if level == Level::Error || level == Level::Warn {
             eprintln!("{} {}", level, message);
         } else if level == Level::Log {
@@ -51,8 +57,17 @@ impl<'js> ConsoleWriter<'js> for StdConsoleWriter {
     }
 }
 
+#[derive(Trace, Default)]
+pub struct NullWriter;
+
+impl<'js> ConsoleWriter<'js> for NullWriter {
+    fn write(&self, _ctx: &Ctx<'js>, _level: Level, _message: String) -> rquickjs::Result<()> {
+        Ok(())
+    }
+}
+
 impl<'js> ConsoleWriter<'js> for Function<'js> {
-    fn write(&self, level: Level, message: String) -> rquickjs::Result<()> {
+    fn write(&self, _ctx: &Ctx<'js>, level: Level, message: String) -> rquickjs::Result<()> {
         self.call::<_, ()>((level.to_string(), message))
     }
 }
@@ -100,15 +115,14 @@ impl<'js> Console<'js> {
     ) -> rquickjs::Result<()> {
         let mut output = String::new();
 
-        let opts = FormatOptions::default();
         for (idx, v) in values.0.into_iter().enumerate() {
             if idx != 0 {
                 output.push(' ');
             }
-            format_value(&ctx, v, &mut output, &opts)?;
+            format_to(&ctx, &v, &mut output, Some(FormatOptions::default()))?;
         }
 
-        self.writer.write(level, output)?;
+        self.writer.write(&ctx, level, output)?;
 
         Ok(())
     }
@@ -147,10 +161,10 @@ impl<'js> Console<'js> {
     }
 
     #[qjs(rename = "timeEnd")]
-    pub fn time_end(&mut self, name: String) -> rquickjs::Result<()> {
+    pub fn time_end(&mut self, ctx: Ctx<'js>, name: String) -> rquickjs::Result<()> {
         if let Some(timer) = self.timers.remove(&name) {
             self.writer
-                .write(Level::Log, format!("{name}: {:?}", timer.elapsed()))?;
+                .write(&ctx, Level::Log, format!("{name}: {:?}", timer.elapsed()))?;
         }
         Ok(())
     }
@@ -169,5 +183,18 @@ impl<'js> Console<'js> {
         }
 
         Ok(())
+    }
+}
+
+impl<'js> Exportable<'js> for Console<'js> {
+    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::export::ExportTarget<'js>,
+    {
+        target.set(
+            ctx,
+            Console::NAME,
+            Class::<Console<'js>>::create_constructor(ctx)?,
+        )
     }
 }

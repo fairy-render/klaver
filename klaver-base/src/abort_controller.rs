@@ -1,13 +1,13 @@
 use rquickjs::{
-    Class, Ctx, JsLifetime,
+    Class, Ctx, JsLifetime, String,
     class::Trace,
-    function::{Args, Opt, This},
+    function::{Args, Opt},
 };
 
 use crate::{
     AbortSignal,
     dom_exception::DOMException,
-    event_target::{Emitter, Event},
+    events::{Emitter, Event},
 };
 
 #[derive(Trace)]
@@ -38,14 +38,16 @@ impl<'js> AbortController<'js> {
         self.signal.borrow_mut().reason = Some(if let Some(value) = reason.0 {
             value
         } else {
+            let error = String::from_str(ctx.clone(), "AbortError")?;
+
             Class::instance(
                 ctx.clone(),
-                DOMException::new(ctx.clone(), Opt(None), Opt(Some("AbortError".to_string())))?,
+                DOMException::new(ctx.clone(), Opt(None), Opt(Some(error)))?,
             )?
             .into_value()
         });
 
-        let event = Class::instance(ctx.clone(), Event::new("abort".to_string())?)?;
+        let event = Class::instance(ctx.clone(), Event::new_native(&ctx, "abort")?)?;
 
         if let Some(onabort) = self.signal.borrow().onabort.as_ref().cloned() {
             let mut args = Args::new(ctx.clone(), 1);
@@ -54,11 +56,12 @@ impl<'js> AbortController<'js> {
             onabort.call_arg::<()>(args)?;
         }
 
-        Emitter::dispatch_event(
-            This(self.signal.clone()),
-            ctx.clone(),
-            Class::instance(ctx, Event::new("abort".to_string())?)?,
-        )?;
+        self.signal
+            .borrow()
+            .dispatch_native(&ctx, Event::new_native(&ctx, "abort")?)?;
+
         Ok(())
     }
 }
+
+create_export!(AbortController<'js>);

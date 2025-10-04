@@ -4,12 +4,16 @@ const timer = new Timers();
 
 timer.createTimeout(() => {
     print("!")
-}, 100, false)
+}, 600, false)
 
+
+timer.createTimeout(() => {
+    print("World")
+}, 200, false)
 
 const id = timer.createTimeout(() => {
-    print("World")
-}, 800, false)
+    print("Butt")
+}, 700, false)
 
 timer.createTimeout(() => {
     timer.clearTimeout(id)
@@ -17,7 +21,7 @@ timer.createTimeout(() => {
 
 print("Hello")
 
-setTimeout(() => {
-    throw new Error("Ger")
-    print("Timeout!")
-}, 2000)
+// setTimeout(() => {
+//     throw new Error("Ger")
+//     print("Timeout!")
+// }, 2000)

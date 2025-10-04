@@ -1,0 +1,24 @@
+[package]
+name = "klaver-util"
+version = "0.1.0"
+edition = "2024"
+
+
+[dependencies]
+rquickjs.workspace = true
+futures.workspace = true
+
+async-stream = { version = "0.3" }
+pin-project-lite = { version = "0.2" }
+
+# Stack trace
+udled = { version = "0.4" }
+udled-tokenizers = { version = "0.3.0" }
+
+chrono = { version = "0.4", optional = true }
+
+event-listener = { version = "5" }
+
+
+[dev-dependencies]
+tokio = { version = "1", features = ["time", "macros", "rt"] }

@@ -1,6 +1,10 @@
-use rquickjs::{Class, Ctx, Function, JsLifetime, class::Trace};
+use klaver_util::Subclass;
+use rquickjs::{
+    Class, Ctx, Function, JsLifetime,
+    class::{JsClass, Trace},
+};
 
-use crate::{Emitter, Event, EventList};
+use crate::{DynEvent, Emitter, EventList, EventTarget, export::Exportable};
 
 #[rquickjs::class]
 pub struct AbortSignal<'js> {
@@ -56,11 +60,30 @@ impl<'js> Emitter<'js> for AbortSignal<'js> {
         &mut self.listeners
     }
 
-    fn dispatch(&mut self, event: Class<'js, Event<'js>>) -> rquickjs::Result<()> {
-        if let Some(onabort) = &self.onabort {
-            onabort.call::<_, ()>((event,))?;
+    fn dispatch(&self, ctx: &Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
+        if event.ty(ctx)? == "abort" {
+            if let Some(onabort) = &self.onabort {
+                onabort.defer((event,))?;
+            }
         }
 
+        Ok(())
+    }
+}
+
+impl<'js> Subclass<'js, EventTarget<'js>> for AbortSignal<'js> {}
+
+impl<'js> Exportable<'js> for AbortSignal<'js> {
+    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: crate::export::ExportTarget<'js>,
+    {
+        AbortSignal::inherit(ctx)?;
+        target.set(
+            ctx,
+            AbortSignal::NAME,
+            Class::<AbortSignal>::create_constructor(ctx)?,
+        )?;
         Ok(())
     }
 }

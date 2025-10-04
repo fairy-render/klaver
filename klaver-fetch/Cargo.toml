@@ -1,0 +1,32 @@
+[package]
+name = "klaver-fetch"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+reqwest = ["dep:reqwest"]
+module = ["klaver-modules"]
+
+[dependencies]
+klaver-base = { path = "../klaver-base" }
+klaver-runtime = { path = "../klaver-runtime" }
+klaver-util = { path = "../klaver-util" }
+klaver-modules = { path = "../klaver-modules", optional = true }
+rquickjs.workspace = true
+
+bytes = { version = "1" }
+http = { version = "1" }
+serde_json = { version = "1" }
+url = { version = "2" }
+form_urlencoded = { version = "1" }
+urlencoding = { version = "2" }
+multer = { version = "3" }
+reggie = { git = "https://github.com/fairy-render/reggie", features = ["json"] }
+
+futures.workspace = true
+
+pin-project-lite = { version = "0.2" }
+flume.workspace = true
+
+
+reqwest = { version = "0.12", optional = true }

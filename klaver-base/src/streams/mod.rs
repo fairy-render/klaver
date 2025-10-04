@@ -2,12 +2,15 @@ mod data;
 mod queue;
 mod queue_strategy;
 pub mod readable;
+mod transform;
 pub mod writable;
 
 use rquickjs::class::JsClass;
 
+use crate::{ExportTarget, Registry};
+
 pub use self::{
-    queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy},
+    queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy, QueuingStrategy},
     readable::{ReadableStream, ReadableStreamDefaultController, ReadableStreamDefaultReader},
     writable::{WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter},
 };
@@ -22,16 +25,21 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn evaluate<'js>(
+pub fn export<'js, T>(
     ctx: &rquickjs::Ctx<'js>,
-    exports: &rquickjs::module::Exports<'js>,
-) -> rquickjs::Result<()> {
-    writable::evaluate(ctx, exports)?;
-    readable::evaluate(ctx, exports)?;
+    registry: &Registry,
+    exports: &T,
+) -> rquickjs::Result<()>
+where
+    T: ExportTarget<'js>,
+{
+    writable::export(ctx, registry, exports)?;
+    readable::export(ctx, registry, exports)?;
 
-    define!(
-        exports,
+    export!(
         ctx,
+        registry,
+        exports,
         ByteLengthQueuingStrategy,
         CountQueuingStrategy
     );

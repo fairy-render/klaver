@@ -1,5 +1,5 @@
-use rquickjs::{Class, Ctx, JsLifetime, Promise, String, Value, class::Trace, prelude::Opt};
-use rquickjs_util::throw;
+use klaver_util::throw;
+use rquickjs::{Class, Ctx, JsLifetime, Promise, Value, class::Trace, prelude::Opt};
 
 use crate::streams::data::{StreamData, WaitDone, WaitWriteReady};
 
@@ -57,7 +57,7 @@ impl<'js> WritableStreamDefaultWriter<'js> {
             throw!(@type ctx, "The stream youare trying to close is not owned by the writer")
         };
 
-        ctrl.borrow_mut().close(ctx.clone())?;
+        ctrl.borrow_mut().close(&ctx)?;
 
         WaitDone::new(ctrl.clone()).await?;
 
@@ -67,14 +67,16 @@ impl<'js> WritableStreamDefaultWriter<'js> {
     pub fn abort(
         &self,
         ctx: Ctx<'js>,
-        reason: Opt<String<'js>>,
-    ) -> rquickjs::Result<Option<String<'js>>> {
+        reason: Opt<Value<'js>>,
+    ) -> rquickjs::Result<Option<Value<'js>>> {
         let Some(ctrl) = self.ctrl.as_ref() else {
             throw!(@type ctx, "The stream youare trying to abort is not owned by the writer")
         };
 
-        ctrl.borrow_mut().abort(ctx, reason.0.clone())?;
+        ctrl.borrow_mut().abort(&ctx, reason.0.clone())?;
 
         Ok(reason.0)
     }
 }
+
+create_export!(WritableStreamDefaultWriter<'js>);
