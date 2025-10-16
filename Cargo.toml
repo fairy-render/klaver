@@ -2,6 +2,8 @@
 
 resolver = "2"
 
+exclude = ["OLD"]
+
 members = [
   "klaver-modules",
   "klaver-base",
