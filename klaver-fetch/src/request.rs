@@ -1,6 +1,7 @@
 use http::Extensions;
 use klaver_base::{AbortSignal, Blob, create_export, streams::ReadableStream};
 use klaver_util::{NativeIteratorExt, StringExt, throw_if};
+use reggie::Body;
 use rquickjs::{
     ArrayBuffer, Class, Coerced, Ctx, JsLifetime, String, TypedArray, Value, class::Trace,
     prelude::Opt,
@@ -64,6 +65,27 @@ impl<'js> Request<'js> {
         }
 
         Ok((req, self.signal.clone()))
+    }
+
+    pub fn from_native(
+        ctx: &Ctx<'js>,
+        resp: http::Request<Body>,
+    ) -> rquickjs::Result<Request<'js>> {
+        let (parts, body) = resp.into_parts();
+
+        let body = BodyMixin::from(body);
+        let headers = Headers::from_native(&ctx, parts.headers)?;
+
+        let url = String::from_str(ctx.clone(), &parts.uri.to_string())?;
+
+        Ok(Request {
+            headers,
+            body,
+            method: Method(parts.method),
+            url,
+            signal: None,
+            ext: parts.extensions.into(),
+        })
     }
 }
 
