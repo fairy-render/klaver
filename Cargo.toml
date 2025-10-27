@@ -24,11 +24,9 @@ members = [
 ]
 
 [workspace.dependencies]
-rquickjs = { git = "https://github.com/DelSkayn/rquickjs.git", version = "0.9", features = [
+rquickjs = { version = "0.10", features = [
   "futures",
   "macro",
-  "classes",
-  "array-buffer",
 ] }
 futures = { version = "0.3" }
 event-listener = { version = "5" }
