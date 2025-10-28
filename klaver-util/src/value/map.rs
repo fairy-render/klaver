@@ -67,7 +67,7 @@ impl<'js> Map<'js> {
     }
 
     pub fn entries(&self) -> rquickjs::Result<Iter<'js>> {
-        let iter = self.object.call_property::<_, _, Value<'js>>(
+        let iter = self.object.call_property::<_, _, Iter<'js>>(
             Core::instance(self.object.ctx())?
                 .borrow()
                 .primordials()
@@ -75,8 +75,6 @@ impl<'js> Map<'js> {
                 .clone(),
             (),
         )?;
-
-        let iter = Iter::from_js(self.object.ctx(), iter)?;
 
         Ok(iter)
     }
