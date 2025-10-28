@@ -1,7 +1,7 @@
 use rquickjs::{FromJs, Function, IntoJs, Object, Value, atom::PredefinedAtom, class::Trace};
 
 use super::native::NativeIteratorInterface;
-use crate::{IteratorResult, func::FunctionExt};
+use crate::{IteratorIter, IteratorResult, func::FunctionExt};
 
 #[derive(Trace)]
 pub struct Iter<'js> {
@@ -48,6 +48,16 @@ impl<'js> FromJs<'js> for Iter<'js> {
             returns,
             target: value,
         })
+    }
+}
+
+impl<'js> IntoIterator for Iter<'js> {
+    type IntoIter = IteratorIter<'js, Self>;
+
+    type Item = rquickjs::Result<Value<'js>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IteratorIter::new(self.target.ctx().clone(), self)
     }
 }
 
