@@ -38,7 +38,10 @@ impl<'js> From<CaughtError<'js>> for CaugthException {
                 let stack = if let Some(stack) = e.stack() {
                     let traces = match super::stack_trace::parse(&stack) {
                         Ok(ret) => ret,
-                        Err(_err) => Vec::default(),
+                        Err(_err) => {
+                            println!("ERROR {}", _err);
+                            Vec::default()
+                        }
                     };
                     traces
                 } else {

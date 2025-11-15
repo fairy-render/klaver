@@ -12,8 +12,8 @@ async-stream = { version = "0.3" }
 pin-project-lite = { version = "0.2" }
 
 # Stack trace
-udled = { version = "0.4" }
-udled-tokenizers = { version = "0.3.0" }
+udled = { version = "0.6" }
+udled-tokenizers = { version = "0.4" }
 
 chrono = { version = "0.4", optional = true }
 

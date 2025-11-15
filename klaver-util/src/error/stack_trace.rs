@@ -1,12 +1,10 @@
 use core::fmt;
 
 use udled::{
-    Input, Lex, Span, Tokenizer, WithSpan, any,
-    token::{Char, Many, Ws},
+    Char, EOF, Input, Next, Tokenizer, any, buffer::StringBuffer, prelude::*,
+    tokenizers::WhiteSpace,
 };
-use udled_tokenizers::{Ident, Int};
-
-const WS: Many<Ws> = Many(Ws);
+use udled_tokenizers::{Ident, Integer};
 
 #[derive(Debug, Clone)]
 pub struct StackTrace {
@@ -31,17 +29,11 @@ pub fn parse(input: &str) -> Result<Vec<StackTrace>, udled::Error> {
 
     let mut files = Vec::default();
 
-    while !input.eos() {
-        input.eat(WS)?;
+    while !input.is(EOF) {
+        input.eat(Next.until(LineParser.or(EOF)))?;
 
-        if input.eos() {
-            break;
-        }
-
-        if input.peek("at")? {
+        if input.is(LineParser) {
             files.push(input.parse(LineParser)?);
-        } else {
-            input.eat(Char)?;
         }
     }
 
@@ -50,56 +42,37 @@ pub fn parse(input: &str) -> Result<Vec<StackTrace>, udled::Error> {
 
 struct LineParser;
 
-impl Tokenizer for LineParser {
-    type Token<'a> = StackTrace;
+impl<'input> Tokenizer<'input, StringBuffer<'input>> for LineParser {
+    type Token = StackTrace;
 
-    fn to_token<'a>(
+    fn to_token(
         &self,
-        reader: &mut udled::Reader<'_, 'a>,
-    ) -> Result<Self::Token<'a>, udled::Error> {
-        reader.eat(("at", WS))?;
+        reader: &mut udled::Reader<'_, 'input, StringBuffer<'input>>,
+    ) -> Result<Self::Token, udled::Error> {
+        let ws = WhiteSpace.many();
 
-        let func = if reader.peek('<')? {
-            let span = reader.parse("<anonymous>")?;
-            Lex::new(span.slice(reader.source()).unwrap(), span)
+        reader.eat(("at", &ws))?;
+
+        let func = if reader.is('<') {
+            reader.parse("<anonymous>")?
         } else {
             reader.parse(Ident)?
         };
 
-        reader.eat(WS)?;
+        reader.eat(&ws)?;
 
-        let (file, line, column) = if reader.peek('(')? {
-            reader.eat((WS, "("))?;
+        let (file, line, column) = if reader.is('(') {
+            reader.eat("(")?;
 
-            let path_start = reader.parse(any!("./", "/", Char))?.span();
+            let path = reader.parse((any!("./", "/", Char), Next.until(':')).slice())?;
 
-            let path_end = loop {
-                if reader.eof() {
-                    return Err(reader.error("Reached EOS"));
-                }
-
-                if reader.peek(':')? {
-                    let end = reader.position();
-                    reader.eat(':')?;
-                    break end;
-                }
-
-                reader.eat_ch()?;
-            };
-
-            let fn_span = Span::new(path_start.start, path_end);
-
-            let line = reader.parse(Int)?;
             reader.eat(':')?;
-            let column = reader.parse(Int)?;
+
+            let (line, column) = reader.parse(LineColumn)?;
 
             reader.eat(")")?;
 
-            (
-                fn_span.slice(reader.source()).unwrap().to_string(),
-                line.value as u32,
-                column.value as u32,
-            )
+            (path.value.to_string(), line, column)
         } else {
             reader.eat(':')?;
             let (line, col) = reader.parse(LineColumn)?;
@@ -110,27 +83,27 @@ impl Tokenizer for LineParser {
             file,
             line,
             column,
-            function: func.as_str().to_string(),
+            function: func.value.to_string(),
         })
     }
 
-    fn peek<'a>(&self, reader: &mut udled::Reader<'_, '_>) -> Result<bool, udled::Error> {
-        reader.peek("as")
+    fn peek<'a>(&self, reader: &mut udled::Reader<'_, 'input, StringBuffer<'input>>) -> bool {
+        reader.is("at")
     }
 }
 
 pub struct LineColumn;
 
-impl Tokenizer for LineColumn {
-    type Token<'a> = (u32, u32);
+impl<'input> Tokenizer<'input, StringBuffer<'input>> for LineColumn {
+    type Token = (u32, u32);
 
-    fn to_token<'a>(
+    fn to_token(
         &self,
-        reader: &mut udled::Reader<'_, 'a>,
-    ) -> Result<Self::Token<'a>, udled::Error> {
-        let line = reader.parse(Int)?;
+        reader: &mut udled::Reader<'_, 'input, StringBuffer<'input>>,
+    ) -> Result<Self::Token, udled::Error> {
+        let line = reader.parse(Integer)?;
         reader.eat(':')?;
-        let column = reader.parse(Int)?;
+        let column = reader.parse(Integer)?;
 
         Ok((line.value as u32, column.value as u32))
     }
