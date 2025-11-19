@@ -1,7 +1,6 @@
 use http::Extensions;
 use klaver_base::{AbortSignal, Blob, create_export, streams::ReadableStream};
 use klaver_util::{NativeIteratorExt, StringExt, throw_if};
-use reggie::Body;
 use rquickjs::{
     ArrayBuffer, Class, Coerced, Ctx, JsLifetime, String, TypedArray, Value, class::Trace,
     prelude::Opt,
@@ -10,6 +9,7 @@ use rquickjs::{
 use crate::{
     Headers, Method,
     body::{BodyMixin, JsBody},
+    body_static::Body,
     request_init::RequestInit,
 };
 

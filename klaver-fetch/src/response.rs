@@ -1,7 +1,7 @@
+use crate::body_static::Body;
 use http::{Extensions, StatusCode};
 use klaver_base::{Blob, streams::ReadableStream};
 use klaver_util::{NativeIteratorExt, StringExt, throw_if};
-use reggie::Body;
 use rquickjs::{
     ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, Value, class::Trace, prelude::Opt,
 };

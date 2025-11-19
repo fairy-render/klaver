@@ -2179,13 +2179,14 @@ dependencies = [
  "form_urlencoded",
  "futures",
  "http",
+ "http-body",
+ "http-body-util",
  "klaver-base",
  "klaver-modules",
  "klaver-runtime",
  "klaver-util",
  "multer",
  "pin-project-lite",
- "reggie",
  "reqwest",
  "rquickjs",
  "serde_json",
@@ -3677,20 +3678,6 @@ name = "regex-syntax"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
-
-[[package]]
-name = "reggie"
-version = "0.1.0"
-source = "git+https://github.com/fairy-render/reggie#8d1f522b7960faf5f300cf1daf7583fc22be95af"
-dependencies = [
- "bytes",
- "futures-core",
- "http",
- "http-body",
- "http-body-util",
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "relative-path"

@@ -1,5 +1,6 @@
 mod body;
 mod body_init;
+mod body_static;
 mod client;
 mod fetch;
 mod headers;
@@ -17,7 +18,7 @@ pub use self::{
     response::Response, url::Url, url_search_params::URLSearchParams,
 };
 
-pub use reggie::Body;
+pub use body_static::Body;
 
 #[cfg(feature = "reqwest")]
 pub use reqwest;

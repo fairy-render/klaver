@@ -2,7 +2,6 @@ use std::cell::RefCell;
 
 use futures::future::LocalBoxFuture;
 use klaver_runtime::{AsyncState, Resource, ResourceId};
-use reggie::{Body, http_body_util::BodyExt};
 
 use http::{Request, Response, Uri};
 use klaver_util::{throw, throw_if};
@@ -11,6 +10,7 @@ use rquickjs::{Ctx, JsLifetime, runtime::UserDataGuard};
 use crate::{
     RemoteBodyProducer,
     body::{JsBody, RemoteBody},
+    body_static::Body,
 };
 
 pub trait LocalClient {
@@ -133,8 +133,6 @@ impl SharedClient for reqwest::Client {
         req: Request<RemoteBody>,
     ) -> LocalBoxFuture<'a, rquickjs::Result<Response<Body>>> {
         Box::pin(async {
-            //
-
             let (parts, body) = req.into_parts();
 
             let output = reqwest::Body::wrap(body);
@@ -148,8 +146,7 @@ impl SharedClient for reqwest::Client {
 
             let resp: Response<_> = throw_if!(ctx, ret).into();
 
-            let resp = resp
-                .map(|b| Body::from_streaming(b.map_err(|err| reggie::Error::Body(Box::new(err)))));
+            let resp = resp.map(|b| Body::from_streaming(b));
 
             Ok(resp)
         })

@@ -1,4 +1,5 @@
 use futures::{Stream, StreamExt, TryStreamExt, future::LocalBoxFuture, stream::LocalBoxStream};
+use http_body::Frame;
 use klaver_base::{
     Blob,
     streams::{ReadableStream, readable::One},
@@ -6,15 +7,14 @@ use klaver_base::{
 use klaver_runtime::{Resource, ResourceId};
 use klaver_util::{Buffer, Bytes, RuntimeError, Static, throw, throw_if};
 use pin_project_lite::pin_project;
-use reggie::{
-    Body,
-    http_body::{self, Frame},
-};
+
 use rquickjs::{ArrayBuffer, Class, Ctx, String, TypedArray, Value, class::Trace};
 use std::{
     cell::RefCell,
     task::{Poll, ready},
 };
+
+use crate::body_static::Body;
 
 pub enum BodyState<'js> {
     Empty,
@@ -70,7 +70,7 @@ impl<'js> BodyMixin<'js> {
 
                 let stream = ReadableStream::from_stream(
                     ctx,
-                    Static(reggie::body::to_stream(body).map_ok(|m| Bytes(m.to_vec()))),
+                    Static(http_body_util::BodyDataStream::new(body).map_ok(|m| Bytes(m.to_vec()))),
                     None,
                 )?;
 
