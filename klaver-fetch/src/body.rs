@@ -70,7 +70,11 @@ impl<'js> BodyMixin<'js> {
 
                 let stream = ReadableStream::from_stream(
                     ctx,
-                    Static(http_body_util::BodyDataStream::new(body).map_ok(|m| Bytes(m.to_vec()))),
+                    Static(
+                        http_body_util::BodyDataStream::new(body)
+                            .map_ok(|m| Bytes(m.to_vec()))
+                            .m,
+                    ),
                     None,
                 )?;
 
