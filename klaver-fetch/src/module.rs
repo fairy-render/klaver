@@ -5,7 +5,7 @@ use rquickjs::{
     prelude::{Async, Func},
 };
 
-use crate::{Headers, URLSearchParams, Url, fetch::fetch, request::Request};
+use crate::{Headers, URLSearchParams, Url, fetch::fetch, request::Request, response::Response};
 
 pub struct FetchModule;
 
@@ -40,6 +40,7 @@ impl<'js> Exportable<'js> for FetchModule {
         Url::export(ctx, registry, target)?;
         URLSearchParams::export(ctx, registry, target)?;
         Request::export(ctx, registry, target)?;
+        Response::export(ctx, registry, target)?;
 
         target.set(ctx, "fetch", Func::from(Async(fetch)))?;
 
