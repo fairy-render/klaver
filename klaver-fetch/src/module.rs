@@ -14,6 +14,7 @@ impl ModuleDef for FetchModule {
         decl.declare(Headers::NAME)?;
         decl.declare(Url::NAME)?;
         decl.declare(Request::NAME)?;
+        decl.declare(Response::NAME)?;
         decl.declare(URLSearchParams::NAME)?;
         decl.declare("fetch")?;
         Ok(())

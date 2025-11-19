@@ -91,6 +91,7 @@ impl<'js> Request<'js> {
 
 #[rquickjs::methods]
 impl<'js> Request<'js> {
+    #[qjs(constructor)]
     pub fn new(
         ctx: Ctx<'js>,
         Coerced(url): Coerced<String<'js>>,
