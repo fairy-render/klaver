@@ -15,7 +15,8 @@ mod url_search_params;
 
 pub use self::{
     body::*, body_init::BodyInit, client::*, headers::Headers, method::Method, module::FetchModule,
-    request::Request, response::Response, url::Url, url_search_params::URLSearchParams,
+    request::Request, request_init::RequestInit, response::Response, response_init::ResponseInit,
+    url::Url, url_search_params::URLSearchParams,
 };
 
 pub use body_static::Body;
