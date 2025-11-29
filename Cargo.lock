@@ -2195,6 +2195,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-fs"
+version = "0.1.0"
+dependencies = [
+ "klaver-base",
+ "klaver-util",
+ "rquickjs",
+]
+
+[[package]]
 name = "klaver-image"
 version = "0.1.0"
 dependencies = [

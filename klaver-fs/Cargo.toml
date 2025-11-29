@@ -1,0 +1,9 @@
+[package]
+name = "klaver-fs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rquickjs.workspace = true
+klaver-util = { path = "../klaver-util" }
+klaver-base = { path = "../klaver-base" }

@@ -20,7 +20,8 @@ members = [
   "klaver-test",
   "klaver-runtime",
   "klaver-image",
-  "klaver-dom"
+  "klaver-dom",
+ "klaver-fs"
 ]
 
 [workspace.dependencies]
