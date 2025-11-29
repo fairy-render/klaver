@@ -143,6 +143,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-compat"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1ba85bc55464dcbf728b56d97e119d673f4cf9062be330a9a26f3acf504a590"
+dependencies = [
+ "futures-core",
+ "futures-io",
+ "once_cell",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
 name = "async-lock"
 version = "3.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2201,6 +2214,8 @@ dependencies = [
  "klaver-base",
  "klaver-util",
  "rquickjs",
+ "vfs",
+ "vfs-tokio",
 ]
 
 [[package]]
@@ -5650,6 +5665,31 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vfs"
+version = "0.1.0"
+source = "git+https://github.com/kildevaeld/vfs-rs#18f293bc2490e4f23305283efee47b5809512c95"
+dependencies = [
+ "dyn-clone",
+ "futures",
+ "futures-core",
+ "pin-project-lite",
+]
+
+[[package]]
+name = "vfs-tokio"
+version = "0.1.0"
+source = "git+https://github.com/kildevaeld/vfs-rs#18f293bc2490e4f23305283efee47b5809512c95"
+dependencies = [
+ "async-compat",
+ "futures-core",
+ "futures-io",
+ "pin-project-lite",
+ "relative-path",
+ "tokio",
+ "vfs",
+]
 
 [[package]]
 name = "virtue"

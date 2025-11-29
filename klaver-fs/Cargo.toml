@@ -7,3 +7,5 @@ edition = "2024"
 rquickjs.workspace = true
 klaver-util = { path = "../klaver-util" }
 klaver-base = { path = "../klaver-base" }
+vfs = { git = "https://github.com/kildevaeld/vfs-rs" }
+vfs-tokio = { git = "https://github.com/kildevaeld/vfs-rs" }
