@@ -2352,6 +2352,7 @@ dependencies = [
  "klaver-runtime",
  "klaver-util",
  "rquickjs",
+ "tokio",
 ]
 
 [[package]]

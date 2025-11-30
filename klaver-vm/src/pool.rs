@@ -2,10 +2,10 @@ use std::{future::Future, option, pin::Pin, sync::Arc};
 
 use deadpool::managed::{Metrics, RecycleResult};
 use klaver_modules::Environ;
+use klaver_util::RuntimeError;
 use rquickjs::{AsyncContext, AsyncRuntime, Ctx, runtime::MemoryUsage};
-use rquickjs_util::RuntimeError;
 
-use crate::{Options, Vm, worker::Worker};
+use crate::{Options, Vm, VmOptions, worker::Worker};
 
 pub type CustomizeFn = Arc<
     dyn for<'a> Fn(
@@ -73,24 +73,38 @@ impl deadpool::managed::Manager for Manager {
 
     fn create(&self) -> impl std::future::Future<Output = Result<Self::Type, Self::Error>> + Send {
         async move {
-            let vm = if self.options.worker_thread {
-                let vm = Worker::new(
-                    self.options.modules.clone(),
-                    self.options.max_stack_size,
-                    self.options.memory_limit,
-                )
-                .await?;
-                PooledVm::Worker(vm)
-            } else {
-                let vm = Vm::new_with(
-                    &self.options.modules,
-                    self.options.max_stack_size,
-                    self.options.memory_limit,
-                )
-                .await?;
+            // let vm = if self.options.worker_thread {
+            //     let vm = Worker::new(
+            //         self.options.modules.clone(),
+            //         VmOptions {
+            //             max_stack_size: self.options.max_stack_size,
+            //             memory_limit: self.options.memory_limit,
+            //         },
+            //     )
+            //     .await?;
+            //     PooledVm::Worker(vm)
+            // } else {
+            //     let vm = Vm::new(
+            //         &self.options.modules,
+            //         VmOptions {
+            //             max_stack_size: self.options.max_stack_size,
+            //             memory_limit: self.options.memory_limit,
+            //         },
+            //     )
+            //     .await?;
 
-                PooledVm::Vm(vm)
-            };
+            //     PooledVm::Vm(vm)
+            // };
+            let vm = Vm::new(
+                &self.options.modules,
+                VmOptions {
+                    max_stack_size: self.options.max_stack_size,
+                    memory_limit: self.options.memory_limit,
+                },
+            )
+            .await?;
+
+            let vm = PooledVm::Vm(vm);
 
             if let Some(init) = &self.init {
                 init(&vm).await?;
@@ -156,7 +170,7 @@ impl PooledVm {
 
     pub async fn idle(&self) -> Result<(), RuntimeError> {
         match self {
-            PooledVm::Vm(vm) => vm.idle().await,
+            PooledVm::Vm(vm) => Ok(vm.idle().await),
             PooledVm::Worker(worker) => worker.idle().await,
         }
     }

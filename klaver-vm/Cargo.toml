@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = []
+# default = ["pool"]
 worker = ["flume"]
 parallel = ["rquickjs/parallel"]
-pool = ["deadpool", "worker"]
+pool = ["deadpool", "worker", "parallel", "tokio"]
 
 [dependencies]
 klaver-modules = { path = "../klaver-modules" }
@@ -22,3 +22,5 @@ flume = { workspace = true, features = ["async"], optional = true }
 
 ## Pool
 deadpool = { version = "0.12", optional = true }
+
+tokio = { version = "1", features = ["rt"], optional = true }

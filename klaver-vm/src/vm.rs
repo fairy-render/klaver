@@ -1,6 +1,6 @@
 use klaver_modules::Environ;
 use klaver_util::RuntimeError;
-use rquickjs::AsyncContext;
+use rquickjs::{AsyncContext, runtime::MemoryUsage};
 
 use crate::context::Context;
 
@@ -36,6 +36,18 @@ impl Vm {
                 env: env.clone(),
             },
         })
+    }
+
+    pub async fn memory_usage(&self) -> MemoryUsage {
+        self.context.runtime().memory_usage().await
+    }
+
+    pub async fn run_gc(&self) {
+        self.context.runtime().run_gc().await
+    }
+
+    pub async fn idle(&self) {
+        self.context.runtime().idle().await
     }
 
     pub async fn create_context(&self) -> Result<Context, RuntimeError> {
