@@ -21,6 +21,7 @@ klaver-vm = { path = "../klaver-vm" }
 klaver-image = { path = "../klaver-image" }
 klaver-dom = { path = "../klaver-dom" }
 klaver-runtime = { path = "../klaver-runtime", features = ["module"] }
+klaver-fs = { path = "../klaver-fs" }
 
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["net", "rt", "macros"] }

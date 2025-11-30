@@ -9,3 +9,5 @@ klaver-util = { path = "../klaver-util" }
 klaver-base = { path = "../klaver-base" }
 vfs = { git = "https://github.com/kildevaeld/vfs-rs" }
 vfs-tokio = { git = "https://github.com/kildevaeld/vfs-rs" }
+mime_guess = { version = "2" }
+futures = { version = "0.3" }
