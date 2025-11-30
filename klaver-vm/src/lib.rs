@@ -5,7 +5,7 @@ mod builder;
 mod context;
 mod module;
 #[cfg(feature = "pool")]
-mod pool;
+pub mod pool;
 mod util;
 mod vm;
 #[cfg(feature = "worker")]

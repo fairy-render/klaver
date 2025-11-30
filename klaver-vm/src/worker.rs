@@ -13,6 +13,17 @@ pub trait WorkerRuntime {
         T: Future;
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Tokio;
+
+impl WorkerRuntime for Tokio {
+    fn block_on<T>(self, future: T) -> T::Output
+        where
+            T: Future {
+        tokio
+    }
+}
+
 enum Request {
     With {
         func: Box<dyn for<'a> FnOnce(Ctx<'a>) -> Result<Box<dyn Any + Send>, RuntimeError> + Send>,
