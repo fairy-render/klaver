@@ -1,10 +1,15 @@
-use klaver_util::{Buffer, throw, throw_if};
-use rquickjs::{ArrayBuffer, Class, Ctx, JsLifetime, String, class::Trace, prelude::This};
-use vfs::{VFileExt, boxed::BoxVFile};
+use klaver_base::Exportable;
+use klaver_util::{Buffer, sync::AsyncLock, throw, throw_if};
+use rquickjs::{
+    ArrayBuffer, Class, Ctx, JsLifetime, String,
+    class::{JsClass, Trace},
+    prelude::This,
+};
+use vfs::{SeekFrom, VFileExt, boxed::BoxVFile};
 
 #[rquickjs::class]
 pub struct File<'js> {
-    pub inner: BoxVFile,
+    pub inner: AsyncLock<BoxVFile>,
     #[qjs(get, rename = "fileName")]
     pub file_name: String<'js>,
     #[qjs(get, rename = "type")]
@@ -32,10 +37,25 @@ impl<'js> File<'js> {
         let mut buffer = Vec::with_capacity(len);
         buffer.resize(len, 0);
 
-        let ret = throw_if!(ctx, this.borrow_mut().inner.read(&mut buffer).await);
+        let ret = throw_if!(
+            ctx,
+            this.borrow().inner.write().await.read(&mut buffer).await
+        );
         buffer.resize(ret, 0);
 
         ArrayBuffer::new(ctx, buffer)
+    }
+
+    #[qjs(rename = "arrayBuffer")]
+    async fn array_buffer(&self, ctx: Ctx<'js>) -> rquickjs::Result<ArrayBuffer<'js>> {
+        let mut file = self.inner.write().await;
+        throw_if!(ctx, file.seek(SeekFrom::Start(0)).await);
+
+        let mut vec = Vec::new();
+
+        throw_if!(ctx, file.read_to_end(&mut vec).await);
+
+        ArrayBuffer::new(ctx, vec)
     }
 
     async fn write(
@@ -48,8 +68,25 @@ impl<'js> File<'js> {
             throw!(ctx, "Buffer is detached")
         };
 
-        throw_if!(ctx, this.borrow_mut().inner.write_all(slice).await);
+        throw_if!(
+            ctx,
+            this.borrow().inner.write().await.write_all(slice).await
+        );
 
+        Ok(())
+    }
+}
+
+impl<'js> Exportable<'js> for File<'js> {
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_base::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
+    where
+        T: klaver_base::ExportTarget<'js>,
+    {
+        target.set(ctx, File::NAME, Class::<File>::create_constructor(ctx))?;
         Ok(())
     }
 }

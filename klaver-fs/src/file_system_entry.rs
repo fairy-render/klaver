@@ -1,7 +1,14 @@
-use futures::TryStreamExt;
-use klaver_util::{StringRef, throw, throw_if};
+use std::pin::Pin;
+
+use futures::{Stream, TryStreamExt, stream::BoxStream};
+use klaver_base::Exportable;
+use klaver_util::{StringRef, sync::AsyncLock, throw, throw_if};
+use pin_project_lite::pin_project;
 use rquickjs::{
-    Class, Ctx, FromJs, JsLifetime, Object, String, Value, class::Trace, prelude::This,
+    Class, Ctx, FromJs, JsLifetime, Object, String, Value,
+    atom::PredefinedAtom,
+    class::{JsClass, Trace},
+    prelude::This,
 };
 use vfs::boxed::BoxVPath;
 
@@ -20,6 +27,14 @@ impl<'js> Trace<'js> for FileSystemEntry {
     fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
 
+// impl<'js> klaver_util::AsyncIterableProtocol<'js> for FileSystemEntry {
+//     type Iterator = klaver_util::StreamAsyncIterator<ListMap>;
+
+//     fn create_stream(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Self::Iterator> {
+//         todo!()
+//     }
+// }
+
 #[rquickjs::methods]
 impl FileSystemEntry {
     #[qjs(constructor)]
@@ -37,7 +52,12 @@ impl FileSystemEntry {
         Ok(self.path.extension().map(|m| m.to_string()))
     }
 
-    async fn resolve<'js>(
+    #[qjs(rename = PredefinedAtom::ToString)]
+    fn to_string(&self) -> rquickjs::Result<std::string::String> {
+        Ok(self.path.to_string())
+    }
+
+    fn resolve<'js>(
         &self,
         ctx: Ctx<'js>,
         path: StringRef<'js>,
@@ -101,10 +121,28 @@ impl FileSystemEntry {
         let mime = String::from_str(ctx, &mime.to_string())?;
 
         Ok(File {
-            inner,
+            inner: AsyncLock::new(inner),
             file_name,
             mime,
         })
+    }
+}
+
+impl<'js> Exportable<'js> for FileSystemEntry {
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_base::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
+    where
+        T: klaver_base::ExportTarget<'js>,
+    {
+        target.set(
+            ctx,
+            FileSystemEntry::NAME,
+            Class::<FileSystemEntry>::create_constructor(ctx),
+        )?;
+        Ok(())
     }
 }
 
@@ -125,5 +163,25 @@ impl<'js> FromJs<'js> for OpenOptions {
                 append: obj.get::<_, Option<bool>>("append")?.unwrap_or_default(),
             },
         })
+    }
+}
+
+pin_project! {
+    pub struct ListMap {
+        #[pin]
+        stream: BoxStream<'static, Result<BoxVPath, vfs::Error>>,
+    }
+}
+
+impl Stream for ListMap {
+    type Item = Result<FileSystemEntry, vfs::Error>;
+    fn poll_next(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        self.project()
+            .stream
+            .poll_next(cx)
+            .map_ok(|path| FileSystemEntry { path })
     }
 }

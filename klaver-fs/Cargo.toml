@@ -7,7 +7,10 @@ edition = "2024"
 rquickjs.workspace = true
 klaver-util = { path = "../klaver-util" }
 klaver-base = { path = "../klaver-base" }
+klaver-modules = { path = "../klaver-modules" }
+
 vfs = { git = "https://github.com/kildevaeld/vfs-rs" }
 vfs-tokio = { git = "https://github.com/kildevaeld/vfs-rs" }
 mime_guess = { version = "2" }
 futures = { version = "0.3" }
+pin-project-lite = { version = "0.2" }

@@ -832,7 +832,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -880,7 +880,7 @@ checksum = "0ce92ff622d6dadf7349484f42c93271a0d49b7cc4d466a936405bacbe10aa78"
 dependencies = [
  "cfg-if",
  "rustix 1.1.2",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2214,8 +2214,10 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "klaver-base",
+ "klaver-modules",
  "klaver-util",
  "mime_guess",
+ "pin-project-lite",
  "rquickjs",
  "vfs",
  "vfs-tokio",
@@ -3868,7 +3870,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3881,7 +3883,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3986,7 +3988,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b55fb86dfd3a2f5f76ea78310a88f96c4ea21a3031f8d212443d56123fd0521"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4288,6 +4290,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
+ "windows-sys 0.52.0",
  "windows-sys 0.59.0",
 ]
 
@@ -5191,7 +5194,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5688,7 +5691,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "vfs"
 version = "0.1.0"
-source = "git+https://github.com/kildevaeld/vfs-rs#18f293bc2490e4f23305283efee47b5809512c95"
+source = "git+https://github.com/kildevaeld/vfs-rs#c660adee514f6a57dee9136d775e07ec9ed489ac"
 dependencies = [
  "dyn-clone",
  "futures",
@@ -5699,7 +5702,7 @@ dependencies = [
 [[package]]
 name = "vfs-tokio"
 version = "0.1.0"
-source = "git+https://github.com/kildevaeld/vfs-rs#18f293bc2490e4f23305283efee47b5809512c95"
+source = "git+https://github.com/kildevaeld/vfs-rs#c660adee514f6a57dee9136d775e07ec9ed489ac"
 dependencies = [
  "async-compat",
  "futures-core",

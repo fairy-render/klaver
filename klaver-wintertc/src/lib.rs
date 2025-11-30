@@ -10,6 +10,8 @@ pub struct WinterCG;
 #[cfg(feature = "module")]
 impl<'js> klaver_modules::GlobalInfo for WinterCG {
     fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
+        builder.global_dependency::<klaver_base::BaseModule>();
+
         #[cfg(feature = "intl")]
         builder.global_dependency::<klaver_intl::IntlModule>();
         #[cfg(feature = "crypto")]

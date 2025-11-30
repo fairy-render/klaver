@@ -1,7 +1,11 @@
 use std::path::Path;
 
+use klaver_base::Exportable;
 use klaver_util::{throw, throw_if};
-use rquickjs::{Class, Ctx, JsLifetime, String, class::Trace};
+use rquickjs::{
+    Class, Ctx, JsLifetime, String,
+    class::{JsClass, Trace},
+};
 use vfs::{VFS, VPathExt, boxed::BoxVFS};
 
 use crate::file_system_entry::FileSystemEntry;
@@ -56,5 +60,23 @@ impl<'js> FileSystem<'js> {
     #[qjs(constructor)]
     fn ctor(ctx: Ctx<'js>) -> rquickjs::Result<FileSystem<'js>> {
         throw!(@type ctx, "FileSystem cannot be instantiated directly")
+    }
+}
+
+impl<'js> Exportable<'js> for FileSystem<'js> {
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        registry: &klaver_base::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
+    where
+        T: klaver_base::ExportTarget<'js>,
+    {
+        target.set(
+            ctx,
+            FileSystem::NAME,
+            Class::<FileSystem>::create_constructor(ctx),
+        )?;
+        Ok(())
     }
 }
