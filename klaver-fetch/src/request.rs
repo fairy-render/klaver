@@ -7,7 +7,7 @@ use rquickjs::{
 };
 
 use crate::{
-    Headers, Method,
+    Headers, Method, StaticBody,
     body::{BodyMixin, JsBody},
     body_static::Body,
     request_init::RequestInit,
@@ -58,6 +58,32 @@ impl<'js> Request<'js> {
         }
 
         let body = self.body.to_native_body(&ctx)?;
+
+        let mut req = throw_if!(ctx, builder.body(body));
+        if let Some(ext) = self.ext.take() {
+            *req.extensions_mut() = ext;
+        }
+
+        Ok((req, self.signal.clone()))
+    }
+
+    pub fn to_owned_native(
+        &mut self,
+        ctx: &Ctx<'js>,
+    ) -> rquickjs::Result<(
+        http::Request<StaticBody>,
+        Option<Class<'js, AbortSignal<'js>>>,
+    )> {
+        let mut builder = http::Request::builder().uri(self.url.str_ref()?.as_str());
+
+        let headers = self.headers.borrow();
+
+        for pair in headers.inner.entries()?.into_iter(ctx) {
+            let pair = pair?;
+            builder = builder.header(pair.0.str_ref()?.as_str(), pair.1.str_ref()?.as_str());
+        }
+
+        let body = self.body.to_native_static_body(&ctx)?;
 
         let mut req = throw_if!(ctx, builder.body(body));
         if let Some(ext) = self.ext.take() {

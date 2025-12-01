@@ -1,4 +1,4 @@
-use crate::body_static::Body;
+use crate::{StaticBody, body_static::Body};
 use http::{Extensions, StatusCode};
 use klaver_base::{Blob, create_export, streams::ReadableStream};
 use klaver_util::{NativeIteratorExt, StringExt, throw_if};
@@ -45,6 +45,22 @@ impl<'js> Response<'js> {
         }
 
         let body = self.body.to_native_body(&ctx)?;
+
+        let req = throw_if!(ctx, builder.body(body));
+        Ok(req)
+    }
+
+    pub fn to_owned_native(&self, ctx: &Ctx<'js>) -> rquickjs::Result<http::Response<StaticBody>> {
+        let mut builder = http::Response::builder().status(self.status.clone());
+
+        let headers = self.headers.borrow();
+
+        for pair in headers.inner.entries()?.into_iter(ctx) {
+            let pair = pair?;
+            builder = builder.header(pair.0.str_ref()?.as_str(), pair.1.str_ref()?.as_str());
+        }
+
+        let body = self.body.to_native_static_body(&ctx)?;
 
         let req = throw_if!(ctx, builder.body(body));
         Ok(req)

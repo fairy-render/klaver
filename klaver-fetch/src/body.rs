@@ -4,17 +4,18 @@ use klaver_base::{
     Blob,
     streams::{ReadableStream, readable::One},
 };
-use klaver_runtime::{Resource, ResourceId};
+use klaver_runtime::{AsyncState, Resource, ResourceId};
 use klaver_util::{Buffer, Bytes, RuntimeError, Static, throw, throw_if};
 use pin_project_lite::pin_project;
 
+use http_body::Body as _;
 use rquickjs::{ArrayBuffer, Class, Ctx, String, TypedArray, Value, class::Trace};
 use std::{
     cell::RefCell,
     task::{Poll, ready},
 };
 
-use crate::body_static::Body;
+use crate::body_static::{Body, to_bytes};
 
 pub enum BodyState<'js> {
     Empty,
@@ -104,10 +105,46 @@ impl<'js> BodyMixin<'js> {
     }
 
     pub async fn to_bytes(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Vec<u8>> {
-        let Some(body) = self.body(ctx)? else {
-            throw!(ctx, "Body already ready")
+        let mut state = self.state.borrow_mut();
+
+        let bytes = match &mut *state {
+            BodyState::Empty => {
+                throw!(ctx, "Body is None")
+            }
+            BodyState::HttpBody(body) => {
+                let Some(body) = body.take() else {
+                    throw!(ctx, "Body is None")
+                };
+
+                let bytes = throw_if!(ctx, to_bytes(body).await);
+
+                drop(state);
+
+                self.state.replace(BodyState::Empty);
+
+                bytes.to_vec()
+            }
+            BodyState::Bytes(bytes) => {
+                let Some(data) = bytes.as_bytes() else {
+                    throw!(ctx, "ArrayBuffer detached")
+                };
+
+                let data = data.to_vec();
+
+                drop(state);
+                self.state.replace(BodyState::Empty);
+
+                data
+            }
+            BodyState::ReadableStream(stream) => {
+                let bytes = stream.borrow().to_bytes(ctx).await?;
+                drop(state);
+                self.state.replace(BodyState::Empty);
+                bytes
+            }
         };
-        body.borrow().to_bytes(ctx).await
+
+        Ok(bytes)
     }
 
     pub async fn to_text(&self, ctx: &Ctx<'js>) -> rquickjs::Result<String<'js>> {
@@ -118,8 +155,40 @@ impl<'js> BodyMixin<'js> {
     }
 
     pub async fn array_buffer(&self, ctx: &Ctx<'js>) -> rquickjs::Result<ArrayBuffer<'js>> {
-        let bytes = self.to_bytes(ctx).await?;
-        ArrayBuffer::new(ctx.clone(), bytes)
+        let mut state = self.state.borrow_mut();
+
+        match &mut *state {
+            BodyState::Empty => {
+                throw!(ctx, "Body is None")
+            }
+            BodyState::HttpBody(body) => {
+                let Some(body) = body.take() else {
+                    throw!(ctx, "Body is None")
+                };
+
+                let bytes = throw_if!(ctx, to_bytes(body).await);
+
+                drop(state);
+
+                self.state.replace(BodyState::Empty);
+
+                ArrayBuffer::new(ctx.clone(), bytes.to_vec())
+            }
+            BodyState::Bytes(bytes) => {
+                let bytes = bytes.clone();
+                drop(state);
+                self.state.replace(BodyState::Empty);
+
+                Ok(bytes)
+            }
+            BodyState::ReadableStream(stream) => {
+                let bytes = stream.borrow().to_bytes(ctx).await?;
+                drop(state);
+                self.state.replace(BodyState::Empty);
+
+                ArrayBuffer::new(ctx.clone(), bytes)
+            }
+        }
     }
 
     pub async fn bytes(&self, ctx: &Ctx<'js>) -> rquickjs::Result<TypedArray<'js, u8>> {
@@ -153,6 +222,53 @@ impl<'js> BodyMixin<'js> {
             None => Ok(JsBody {
                 inner: JsBodyState::Empty,
             }),
+        }
+    }
+
+    pub fn to_native_static_body(&self, ctx: &Ctx<'js>) -> rquickjs::Result<StaticBody> {
+        let mut state = self.state.borrow_mut();
+
+        match &mut *state {
+            BodyState::Empty => Ok(StaticBody::Done),
+            BodyState::HttpBody(body) => {
+                let Some(body) = body.take() else {
+                    throw!(ctx, "Body is None")
+                };
+
+                drop(state);
+
+                self.state.replace(BodyState::Empty);
+
+                Ok(StaticBody::Body { body })
+            }
+            BodyState::Bytes(bytes) => {
+                let Some(data) = bytes.as_bytes() else {
+                    throw!(ctx, "ArrayBuffer detached")
+                };
+
+                let bytes = bytes::Bytes::copy_from_slice(data);
+
+                drop(state);
+                self.state.replace(BodyState::Empty);
+
+                Ok(StaticBody::Bytes { bytes: Some(bytes) })
+            }
+            BodyState::ReadableStream(stream) => {
+                let body = JsBody {
+                    inner: JsBodyState::Stream {
+                        stream: stream.borrow().to_byte_stream(ctx.clone())?,
+                    },
+                };
+
+                drop(state);
+                self.state.replace(BodyState::Empty);
+
+                let (body, producer) = body.into_remote();
+
+                AsyncState::push(ctx, producer)?;
+
+                Ok(StaticBody::RemoteBody { body })
+            }
         }
     }
 }
@@ -314,6 +430,48 @@ impl<'js> Resource<'js> for RemoteBodyProducer<'js> {
         async move {
             throw_if!(ctx.ctx(), self.await);
             Ok(())
+        }
+    }
+}
+
+pin_project! {
+    #[project = StaticBodyProj]
+    pub enum StaticBody {
+        Bytes { bytes: Option<bytes::Bytes> },
+        RemoteBody {
+            #[pin]
+            body: RemoteBody
+        },
+        Body {
+            #[pin]
+            body: Body
+        },
+        Done
+    }
+}
+
+impl http_body::Body for StaticBody {
+    type Data = bytes::Bytes;
+
+    type Error = RuntimeError;
+
+    fn poll_frame(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
+        let this = self.as_mut().project();
+
+        match this {
+            StaticBodyProj::Bytes { bytes } => {
+                let bytes = bytes.take().unwrap();
+                self.set(StaticBody::Done);
+                Poll::Ready(Some(Ok(Frame::data(bytes))))
+            }
+            StaticBodyProj::RemoteBody { body } => body.poll_frame(cx),
+            StaticBodyProj::Body { body } => body
+                .poll_frame(cx)
+                .map_err(|err| RuntimeError::Custom(err.into())),
+            StaticBodyProj::Done => Poll::Ready(None),
         }
     }
 }
