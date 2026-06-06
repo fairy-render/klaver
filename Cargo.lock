@@ -2364,7 +2364,20 @@ dependencies = [
  "rquickjs",
  "tokio",
  "udled",
- "udled-tokenizers",
+ "udled-tokenizers 0.4.0",
+]
+
+[[package]]
+name = "klaver-value"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "chrono",
+ "futures",
+ "pin-project-lite",
+ "rquickjs",
+ "udled",
+ "udled-tokenizers 0.5.0",
 ]
 
 [[package]]
@@ -5629,6 +5642,15 @@ name = "udled-tokenizers"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99da2eba91025d12ccbfa26a624a064529d108edae14ac123b84458919b9ab9a"
+dependencies = [
+ "udled",
+]
+
+[[package]]
+name = "udled-tokenizers"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94b402a8f3d502dd808aea153b7796548301beffa36b84cb5fb9379c5632daa4"
 dependencies = [
  "udled",
 ]

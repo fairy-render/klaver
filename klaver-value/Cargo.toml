@@ -1,0 +1,20 @@
+[package]
+name = "klaver-value"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["async"]
+chrono = ["dep:chrono"]
+async = ["dep:futures", "dep:pin-project-lite", "dep:async-stream"]
+
+[dependencies]
+rquickjs.workspace = true
+chrono = { version = "0.4", optional = true }
+futures = { version = "0.3", optional = true }
+pin-project-lite = { version = "0.2", optional = true }
+async-stream = { version = "0.3", optional = true }
+
+# Stack trace
+udled = { version = "0.6" }
+udled-tokenizers = { version = "0.5" }
