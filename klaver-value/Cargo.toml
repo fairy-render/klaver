@@ -4,17 +4,26 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["async"]
+default = ["async", "structured-clone"]
 chrono = ["dep:chrono"]
 async = ["dep:futures", "dep:pin-project-lite", "dep:async-stream"]
+structured-clone = ["dep:dyn-clone", "dep:ordered-float", "dep:indexmap"]
+serde = ["dep:typetag", "dep:serde"]
 
 [dependencies]
+klaver-core = { path = "../klaver-core" }
 rquickjs.workspace = true
 chrono = { version = "0.4", optional = true }
+# Async iterators
 futures = { version = "0.3", optional = true }
 pin-project-lite = { version = "0.2", optional = true }
 async-stream = { version = "0.3", optional = true }
 
-# Stack trace
-udled = { version = "0.6" }
-udled-tokenizers = { version = "0.5" }
+
+## Structured Clone
+dyn-clone = { version = "1", optional = true }
+ordered-float = { version = "5", features = [], optional = true }
+indexmap = { version = "2", optional = true }
+
+typetag = { version = "0.2", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }

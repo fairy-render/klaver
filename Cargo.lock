@@ -2187,6 +2187,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-core"
+version = "0.1.0"
+dependencies = [
+ "rquickjs",
+ "udled",
+ "udled-tokenizers 0.5.0",
+]
+
+[[package]]
 name = "klaver-crypto"
 version = "0.1.0"
 dependencies = [
@@ -2373,11 +2382,15 @@ version = "0.1.0"
 dependencies = [
  "async-stream",
  "chrono",
+ "dyn-clone",
  "futures",
+ "indexmap",
+ "klaver-core",
+ "ordered-float",
  "pin-project-lite",
  "rquickjs",
- "udled",
- "udled-tokenizers 0.5.0",
+ "serde",
+ "typetag",
 ]
 
 [[package]]

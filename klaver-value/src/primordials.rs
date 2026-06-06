@@ -1,6 +1,7 @@
+use klaver_core::{Core, throw};
 use rquickjs::{
-    Atom, Ctx, Function, JsLifetime, Object, Result, String, atom::PredefinedAtom, class::Trace,
-    prelude::IntoArgs,
+    Atom, Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Result, atom::PredefinedAtom,
+    class::Trace, prelude::IntoArgs,
 };
 
 // use crate::class::CUSTOM_INSPECT_SYMBOL_DESCRIPTION;
@@ -168,6 +169,7 @@ pub struct BasePrimordials<'js> {
     pub constructor_map: Function<'js>,
     pub constructor_weak_map: Function<'js>,
     pub constructor_set: Function<'js>,
+    pub constructor_date: Function<'js>,
     // pub constructor_date: Constructor<'js>,
     // pub constructor_error: Constructor<'js>,
     // pub constructor_type_error: Constructor<'js>,
@@ -203,23 +205,20 @@ pub struct BasePrimordials<'js> {
     // pub symbol_async_dispose: Symbol<'js>,
 
     // // Atoms
-    pub atom_entries: String<'js>,
-    pub atom_keys: String<'js>,
+    pub atom_entries: Atom<'js>,
+    pub atom_keys: Atom<'js>,
 }
 
 impl<'js> BasePrimordials<'js> {
     pub fn from_ctx(ctx: &Ctx<'js>) -> Result<Self> {
-        if let Some(primordials) = ctx.userdata::<Self>() {
-            return Ok(primordials.clone());
-        }
-
-        let primoridals = Self::new(ctx)?;
-
-        _ = ctx.store_userdata(primoridals.clone())?;
-        Ok(primoridals)
+        let core = Core::from_ctx(ctx)?;
+        let primordials: BasePrimordials<'js> = core.borrow().get("primordials")?;
+        Ok(primordials)
     }
 
     pub fn new(ctx: &Ctx<'js>) -> Result<BasePrimordials<'js>> {
+        let core = Core::from_ctx(ctx)?;
+
         let globals = ctx.globals();
 
         let constructor_map: Function = globals.get(PredefinedAtom::Map)?;
@@ -230,12 +229,15 @@ impl<'js> BasePrimordials<'js> {
 
         let constructor_set: Function = globals.get(PredefinedAtom::Set)?;
 
+        let constructor_date: Function = globals.get(PredefinedAtom::Date)?;
+
         Ok(BasePrimordials {
             constructor_map,
             constructor_weak_map,
             constructor_set,
-            atom_entries: atom_entries.to_js_string()?,
-            atom_keys: atom_keys.to_js_string()?,
+            constructor_date,
+            atom_entries: atom_entries,
+            atom_keys: atom_keys,
         })
     }
 
@@ -249,5 +251,46 @@ impl<'js> BasePrimordials<'js> {
 
     pub fn construct_set<A: IntoArgs<'js>>(&self, args: A) -> rquickjs::Result<Object<'js>> {
         unsafe { self.constructor_set.ref_constructor().construct(args) }
+    }
+
+    pub fn construct_date<A: IntoArgs<'js>>(&self, args: A) -> rquickjs::Result<Object<'js>> {
+        unsafe { self.constructor_date.ref_constructor().construct(args) }
+    }
+}
+
+impl<'js> FromJs<'js> for BasePrimordials<'js> {
+    fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+        if let Some(obj) = value.as_object() {
+            let constructor_map: Function = obj.get("constructorMap")?;
+            let constructor_weak_map: Function = obj.get("constructorWeakMap")?;
+            let constructor_set: Function = obj.get("constructorSet")?;
+            let constructor_date: Function = obj.get("constructorDate")?;
+
+            let atom_entries = Atom::from_str(ctx.clone(), "entries")?;
+            let atom_keys = Atom::from_str(ctx.clone(), "keys")?;
+
+            Ok(Self {
+                constructor_map,
+                constructor_weak_map,
+                constructor_set,
+                constructor_date,
+                atom_entries,
+                atom_keys,
+            })
+        } else {
+            throw!(@type ctx, "Expected object")
+        }
+    }
+}
+
+impl<'js> IntoJs<'js> for BasePrimordials<'js> {
+    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
+        let obj = Object::new(ctx.clone())?;
+        obj.set("constructorMap", self.constructor_map)?;
+        obj.set("constructorWeakMap", self.constructor_weak_map)?;
+        obj.set("constructorSet", self.constructor_set)?;
+        obj.set("constructorDate", self.constructor_date)?;
+
+        Ok(obj.into())
     }
 }

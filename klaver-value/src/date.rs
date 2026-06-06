@@ -2,9 +2,11 @@ use rquickjs::{
     Ctx, FromJs, Function, IntoJs, JsLifetime, Object, Value, class::Trace, function::This,
 };
 
+use crate::primordials::BasePrimordials;
+
 use super::StringRef;
 
-#[derive(Debug, Trace, JsLifetime)]
+#[derive(Debug, Clone, Trace, JsLifetime)]
 pub struct Date<'js> {
     object: Object<'js>,
 }
@@ -76,7 +78,10 @@ impl<'js> Date<'js> {
     }
 
     pub fn is(ctx: &Ctx<'js>, value: &rquickjs::Value<'js>) -> rquickjs::Result<bool> {
-        let date_ctor: Value<'_> = ctx.globals().get::<_, Value>("Date")?;
+        let date_ctor: Value<'_> = BasePrimordials::from_ctx(ctx)?
+            .constructor_date
+            .clone()
+            .into();
 
         let Some(obj) = value.as_object() else {
             return Ok(false);
@@ -127,7 +132,10 @@ impl<'js> FromJs<'js> for Date<'js> {
         ctx: &rquickjs::prelude::Ctx<'js>,
         value: rquickjs::Value<'js>,
     ) -> rquickjs::Result<Self> {
-        let date_ctor: Value<'_> = ctx.globals().get::<_, Value>("Date")?;
+        let date_ctor: Value<'_> = BasePrimordials::from_ctx(ctx)?
+            .constructor_date
+            .clone()
+            .into();
 
         let obj = value
             .try_into_object()

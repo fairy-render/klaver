@@ -4,8 +4,8 @@ use futures::{Stream, StreamExt, TryStream, TryStreamExt, stream::LocalBoxStream
 use pin_project_lite::pin_project;
 use rquickjs::{Ctx, IntoJs, class::Trace};
 
-use crate::{async_iterator::native::NativeAsyncIteratorInterface, throw_if};
-
+use crate::async_iterator::native::NativeAsyncIteratorInterface;
+use klaver_core::throw_if;
 pin_project! {
   pub struct AsyncIteratorStream<'js, T>
   where
@@ -111,7 +111,7 @@ mod test {
                 rquickjs::async_with!(ctx => |$ctx| {
                     $test
 
-                    Result::<_, RuntimeError>::Ok(())
+                    Result::<_, klaver_core::error::RuntimeError>::Ok(())
                 }).await
             }).unwrap();
 
@@ -121,7 +121,6 @@ mod test {
 
     use crate::{
         FunctionExt, async_iterator::NativeAsyncIterator, async_iterator::StreamAsyncIterator,
-        error::RuntimeError,
     };
     use futures::StreamExt;
     use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Class, Function};

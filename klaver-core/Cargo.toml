@@ -1,0 +1,11 @@
+[package]
+name = "klaver-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rquickjs.workspace = true
+
+# Stack trace
+udled = { version = "0.6" }
+udled-tokenizers = { version = "0.5" }
