@@ -12,6 +12,12 @@ struct ModulesInner {
     transformer: Option<crate::transformer::Transformer>,
 }
 
+/**
+ * Modules is a struct that contains the resolvers and loaders for the module system.
+ * It also contains an optional transformer that can be used to transform the code before it is executed.
+ * The Modules struct is used to attach the resolvers and loaders to the runtime,
+ * and it is also used to store the transformer for later use.
+ */
 #[derive(Clone)]
 pub struct Modules(Arc<ModulesInner>);
 

@@ -2,6 +2,8 @@ use rquickjs::Ctx;
 
 use crate::global_info::DynamicGlobal;
 
+/// Globals is a struct that contains the globals for the modules.
+/// It is used to attach the globals to the context.
 pub struct Globals {
     globals: Vec<Box<dyn DynamicGlobal + Send + Sync>>,
 }

@@ -8,6 +8,8 @@ use crate::{
     types::Typings,
 };
 
+/// GlobalBuilder is a struct that contains the modules and typings for the global info.
+/// It is used to register the globals and their dependencies, and it is also used to generate the typings for the globals.
 pub struct GlobalBuilder<'a, M> {
     modules: &'a mut ModulesBuilder,
     typings: &'a mut Typings,
@@ -26,6 +28,7 @@ impl<'a, M: GlobalInfo> GlobalBuilder<'a, M> {
         }
     }
 
+    /// Registers a dependency on another module. This will ensure that the module is loaded before the global is defined.
     pub fn dependency<T: ModuleInfo>(&mut self) {
         T::register(&mut ModuleBuilder::new(self.modules, self.typings));
         if let Some(typings) = T::typings() {
@@ -33,6 +36,7 @@ impl<'a, M: GlobalInfo> GlobalBuilder<'a, M> {
         }
     }
 
+    /// Registers a dependency on another global. This will ensure that the global is defined before the global is defined.
     pub fn global_dependency<T: GlobalInfo>(&mut self) {
         T::register(&mut GlobalBuilder::new(self.modules, self.typings));
         if let Some(typings) = T::typings() {
@@ -40,6 +44,7 @@ impl<'a, M: GlobalInfo> GlobalBuilder<'a, M> {
         }
     }
 
+    /// Registers a global. This will ensure that the global is defined before it is used.
     pub fn register<T: Global + Send + Sync + 'static>(&mut self, global: T) {
         self.modules.register_global(global);
     }
@@ -52,6 +57,8 @@ pub trait GlobalInfo: Sized {
     }
 }
 
+/// Global is a trait that defines the interface for defining globals.
+/// It is used to define globals that can be attached to the context.
 pub trait Global {
     fn define<'a, 'js: 'a>(
         &'a self,

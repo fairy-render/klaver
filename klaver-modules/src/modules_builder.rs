@@ -13,7 +13,7 @@ pub(crate) struct ModulesBuilder {
 }
 
 impl ModulesBuilder {
-    pub fn load_func<'js, D: ModuleDef>(
+    pub(crate) fn load_func<'js, D: ModuleDef>(
         ctx: Ctx<'js>,
         name: Vec<u8>,
     ) -> rquickjs::Result<Module<'js>> {

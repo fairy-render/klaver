@@ -2,6 +2,10 @@ use geenie::{File, FileList};
 use relative_path::RelativePathBuf;
 use std::{borrow::Cow, collections::HashMap};
 
+/**
+ * Typings is a struct that contains the typings for the modules and globals.
+ * It is used to generate the typings for the modules and globals, and it is also used to store the typings for later use.
+ */
 #[derive(Debug, Default, Clone)]
 pub struct Typings {
     modules: HashMap<Cow<'static, str>, Cow<'static, str>>,

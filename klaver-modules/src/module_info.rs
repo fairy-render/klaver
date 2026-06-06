@@ -55,6 +55,7 @@ pub trait ModuleInfo: Sized {
 
 #[macro_export]
 /// module_info!("module" => Module);
+/// module_info!("module" @types: "types" => Module);
 macro_rules! module_info {
     ($name: literal => $module: ident) => {
         impl $crate::ModuleInfo for $module {
