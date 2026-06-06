@@ -1,5 +1,5 @@
 use base64::prelude::*;
-use klaver_util::{StringRef, throw};
+use klaver_core::{throw, value::StringRef};
 use rquickjs::Ctx;
 
 pub fn atob(input: StringRef<'_>) -> rquickjs::Result<String> {

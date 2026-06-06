@@ -1,11 +1,9 @@
-use klaver_util::{Inheritable, SuperClass};
+use klaver_core::{ExportTarget, Exportable, Inheritable, SuperClass};
 use rquickjs::{
     Class, Ctx, JsLifetime, Object,
     class::{JsClass, Trace},
     prelude::Func,
 };
-
-use crate::export::Exportable;
 
 use super::emitter::{Emitter, EventList};
 
@@ -55,9 +53,13 @@ impl<'js> Emitter<'js> for EventTarget<'js> {
 }
 
 impl<'js> Exportable<'js> for EventTarget<'js> {
-    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_core::value::structured_clone::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
     where
-        T: crate::export::ExportTarget<'js>,
+        T: ExportTarget<'js>,
     {
         target.set(
             ctx,

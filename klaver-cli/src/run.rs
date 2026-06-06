@@ -2,7 +2,7 @@ use klaver::Vm;
 use reedline::{DefaultPrompt, Reedline, Signal};
 use rquickjs::{CatchResultExt, Value};
 
-pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result<()> {
+pub async fn run(vm: Vm, source: Option<&str>, exec: bool, types: bool) -> color_eyre::Result<()> {
     if let Some(source) = source {
         if exec {
             klaver::async_with!(vm => |ctx| {
@@ -10,8 +10,10 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result
               Ok(())
             })
             .await?;
+        } else if types {
+            vm.env().typings().files().write_to(source, false).await?;
         } else {
-            let path = if !(source.starts_with("../") || !source.starts_with("./")) {
+            let path = if !(source.starts_with("../") && !source.starts_with("./")) {
                 format!("./{}", source)
             } else {
                 source.to_string()
@@ -32,7 +34,7 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool) -> color_eyre::Result
                 Ok(Signal::Success(buffer)) => {
                     let ret = klaver::async_with!(vm => |ctx| {
                       let ret = ctx.eval_promise(buffer).catch(&ctx)?.into_future::<Value<'_>>().await.catch(&ctx)?;
-                      println!("{}", klaver_util::format(&ctx, &ret, Default::default())?);
+                      println!("{}", klaver_core::value::format(&ctx, &ret, Default::default())?);
                       Ok(())
                     })
                     .await;

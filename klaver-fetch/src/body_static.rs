@@ -2,7 +2,7 @@ use bytes::Bytes;
 use core::{fmt, pin::Pin, task::Poll};
 use futures::ready;
 use http_body_util::combinators::BoxBody;
-use klaver_util::BoxError;
+use klaver_core::error::BoxError;
 
 #[derive(Debug)]
 pub struct BodyError {

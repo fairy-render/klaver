@@ -9,7 +9,7 @@ webp = ["dep:webp", "image/webp"]
 
 
 [dependencies]
-klaver-util = { path = "../klaver-util" }
+klaver-core = { path = "../klaver-core" }
 klaver-modules = { path = "../klaver-modules" }
 rquickjs.workspace = true
 image = { version = "0.25", features = [

@@ -20,7 +20,7 @@ swc-transform = [
 
 
 [dependencies]
-klaver-util = { path = "../klaver-util" }
+klaver-core = { path = "../klaver-core" }
 rquickjs = { workspace = true, features = ["loader", "futures"] }
 oxc_resolver = { version = "11.21" }
 oxc = { version = "0.77", features = [
@@ -32,7 +32,9 @@ relative-path = { version = "2" }
 parking_lot = { version = "0.12" }
 
 tracing = { version = "0.1" }
-geenie = { git = "https://github.com/fairy-render/geenie.git" }
+geenie = { git = "https://github.com/fairy-render/geenie.git", features = [
+  "fs",
+] }
 
 ## Swc
 swc_ecma_codegen = { version = "17.0", optional = true }

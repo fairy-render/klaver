@@ -1,7 +1,7 @@
 use fixed_decimal::{FixedDecimal, FloatPrecision};
 use icu::decimal::DecimalError;
-use klaver_base::create_export;
-use klaver_util::{throw, throw_if};
+use klaver_core::create_export;
+use klaver_core::{throw, throw_if};
 use rquickjs::{Ctx, FromJs, JsLifetime, Value, class::Trace, prelude::Opt};
 
 use crate::provider::DynProvider;

@@ -1,5 +1,5 @@
-use klaver_base::{Exportable, Registry};
-use klaver_util::Buffer;
+use klaver_core::value::Buffer;
+use klaver_core::{Exportable, Registry};
 use rquickjs::{
     Ctx, Object,
     module::ModuleDef,
@@ -30,11 +30,11 @@ impl ModuleDef for CryptoModule {
 impl<'js> Exportable<'js> for CryptoModule {
     fn export<T>(
         ctx: &rquickjs::Ctx<'js>,
-        registry: &klaver_base::Registry,
+        registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         let subtle = Object::new(ctx.clone())?;
 

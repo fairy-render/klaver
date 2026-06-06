@@ -1,4 +1,4 @@
-use klaver_util::sync::{Observable, ObservableCell};
+use klaver_core::sync::{Observable, ObservableCell};
 use rquickjs::{Ctx, JsLifetime, Value, class::Trace};
 
 use crate::streams::queue_strategy::QueuingStrategy;

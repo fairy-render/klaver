@@ -1,4 +1,4 @@
-use klaver_util::FunctionExt;
+use klaver_core::FunctionExt;
 use rquickjs::{
     Class, Ctx, Function, IntoJs,
     class::JsClass,

@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use klaver_util::{Inheritable, StringExt, StringRef, SuperClass};
+use klaver_core::{Inheritable, StringExt, SuperClass, value::StringRef};
 use rquickjs::{
     Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value,
     class::{JsClass, Trace},
@@ -8,7 +8,7 @@ use rquickjs::{
     prelude::This,
 };
 
-use crate::Exportable;
+use klaver_core::Exportable;
 
 #[derive(Debug, Trace)]
 pub struct EventKey<'js> {
@@ -93,9 +93,13 @@ where
 }
 
 impl<'js> Exportable<'js> for Event<'js> {
-    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_core::value::structured_clone::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
     where
-        T: crate::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(ctx, Event::NAME, Class::<Self>::create_constructor(ctx)?)?;
         Event::add_event_prototype(ctx)?;

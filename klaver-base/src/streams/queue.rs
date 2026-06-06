@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, fmt::Debug};
 
-use event_listener::Event;
+use klaver_core::sync::Event;
 use rquickjs::{Ctx, Function, Promise, Value, class::Trace};
 
 use crate::streams::queue_strategy::QueuingStrategy;

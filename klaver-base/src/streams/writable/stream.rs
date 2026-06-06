@@ -1,6 +1,5 @@
-use event_listener::listener;
+use klaver_core::{sync::listener, throw};
 use klaver_runtime::{AsyncState, Resource, ResourceId};
-use klaver_util::throw;
 use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace, prelude::Opt};
 
 use crate::streams::{data::StreamData, queue_strategy::QueuingStrategy};
@@ -110,7 +109,7 @@ impl<'js> WritableStream<'js> {
     }
 }
 
-create_export!(WritableStream<'js>);
+klaver_core::create_export!(WritableStream<'js>);
 
 struct WritableStreamResourceKey;
 

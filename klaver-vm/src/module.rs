@@ -1,4 +1,4 @@
-use klaver_base::{Exportable, Registry};
+use klaver_core::Exportable;
 use klaver_modules::module_info;
 use rquickjs::module::ModuleDef;
 
@@ -16,7 +16,7 @@ impl ModuleDef for VmModule {
         ctx: &rquickjs::Ctx<'js>,
         exports: &rquickjs::module::Exports<'js>,
     ) -> rquickjs::Result<()> {
-        JsVm::export(ctx, &Registry::instance(ctx)?, exports)?;
+        JsVm::export(ctx, &klaver_core::Registry::instance(ctx)?, exports)?;
         Ok(())
     }
 }

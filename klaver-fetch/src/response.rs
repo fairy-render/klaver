@@ -1,7 +1,7 @@
 use crate::{StaticBody, body_static::Body};
 use http::{Extensions, StatusCode};
-use klaver_base::{Blob, create_export, streams::ReadableStream};
-use klaver_util::{NativeIteratorExt, StringExt, throw_if};
+use klaver_base::{Blob, streams::ReadableStream};
+use klaver_core::{throw_if, value::StringExt, value::iterable::NativeIteratorExt};
 use rquickjs::{
     ArrayBuffer, Class, Ctx, JsLifetime, String, TypedArray, Value, class::Trace, prelude::Opt,
 };
@@ -164,4 +164,4 @@ impl<'js> Response<'js> {
     }
 }
 
-create_export!(Response<'js>);
+klaver_core::create_export!(Response<'js>);

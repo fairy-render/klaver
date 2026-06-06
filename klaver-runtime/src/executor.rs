@@ -8,8 +8,8 @@ use futures::{
     FutureExt,
     future::{Either, pending},
 };
-use klaver_util::{
-    CaugthException,
+use klaver_core::{
+    error::CaugthException,
     rquickjs::{
         self, CatchResultExt, Class, Ctx, Function, IntoJs, JsLifetime, Value, class::Trace,
         function::Args, prelude::Rest,
@@ -381,7 +381,7 @@ pin_project! {
       Init,
       Waiting {
           #[pin]
-          future: klaver_util::sync::Listener
+          future: klaver_core::sync::Listener
       }
   }
 }

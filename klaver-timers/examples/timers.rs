@@ -1,6 +1,6 @@
+use klaver_core::{FunctionExt, RuntimeError, value::StringRef};
 use klaver_runtime::{AsyncState, Context, Execution, ExitMode};
 use klaver_timers::{TimeId, Timers, TimingBackend};
-use klaver_util::{FunctionExt, RuntimeError, StringRef};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, Function, IntoJs, Module,
     prelude::{Func, Opt},

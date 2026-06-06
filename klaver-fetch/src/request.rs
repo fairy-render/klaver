@@ -1,6 +1,6 @@
 use http::Extensions;
-use klaver_base::{AbortSignal, Blob, create_export, streams::ReadableStream};
-use klaver_util::{NativeIteratorExt, StringExt, throw_if};
+use klaver_base::{AbortSignal, Blob, streams::ReadableStream};
+use klaver_core::{throw_if, value::StringExt, value::iterable::NativeIteratorExt};
 use rquickjs::{
     ArrayBuffer, Class, Coerced, Ctx, JsLifetime, String, TypedArray, Value, class::Trace,
     prelude::Opt,
@@ -188,4 +188,4 @@ impl<'js> Request<'js> {
     }
 }
 
-create_export!(Request<'js>);
+klaver_core::create_export!(Request<'js>);

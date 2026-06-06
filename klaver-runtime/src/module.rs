@@ -2,16 +2,12 @@ use crate::{
     ResourceKind, async_hook::AsyncHook, async_locale_storage::AsyncLocalStorage,
     async_resource::AsyncResource, listener::ScriptListener, runtime::Runtime,
 };
-use klaver_util::rquickjs::{
-    self, Class, Ctx, String, Value, class::JsClass, module::ModuleDef, prelude::Func,
-};
+use rquickjs::{self, Class, Ctx, String, Value, class::JsClass, module::ModuleDef, prelude::Func};
 
 pub struct TaskModule;
 
 impl ModuleDef for TaskModule {
-    fn declare<'js>(
-        decl: &klaver_util::rquickjs::module::Declarations<'js>,
-    ) -> klaver_util::rquickjs::Result<()> {
+    fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
         decl.declare("triggerAsyncId")?;
         decl.declare("executionAsyncId")?;
         decl.declare("createHook")?;
@@ -23,9 +19,9 @@ impl ModuleDef for TaskModule {
     }
 
     fn evaluate<'js>(
-        ctx: &klaver_util::rquickjs::Ctx<'js>,
-        exports: &klaver_util::rquickjs::module::Exports<'js>,
-    ) -> klaver_util::rquickjs::Result<()> {
+        ctx: &rquickjs::Ctx<'js>,
+        exports: &rquickjs::module::Exports<'js>,
+    ) -> rquickjs::Result<()> {
         exports.export(
             "triggerAsyncId",
             Func::new(|ctx: Ctx<'js>| {

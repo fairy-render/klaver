@@ -1,5 +1,5 @@
 use futures::FutureExt;
-use klaver_util::{
+use klaver_core::{
     RuntimeError,
     rquickjs::{self, AsyncContext, CatchResultExt, FromJs, markers::ParallelSend},
 };

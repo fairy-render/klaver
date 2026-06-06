@@ -1,5 +1,5 @@
+use klaver_core::RuntimeError;
 use klaver_modules::Environ;
-use klaver_util::RuntimeError;
 use rquickjs::{AsyncContext, runtime::MemoryUsage};
 
 use crate::context::Context;

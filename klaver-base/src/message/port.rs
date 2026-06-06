@@ -1,14 +1,19 @@
 use std::sync::Arc;
 
 use crate::{
-    Clonable, Emitter, EventList, EventTarget, Exportable, NativeData, Registry,
-    SerializationOptions, StructuredClone, Tag, TransObject, TransferData,
+    Emitter, EventList, EventTarget, Registry,
     message::{MessageEvent, event::MessageEventOptions},
 };
 use flume::{Receiver, Sender};
 use futures::channel::oneshot;
+use klaver_core::{
+    Exportable, Subclass, throw,
+    value::structured_clone::{
+        Clonable, NativeData, SerializationContext, SerializationOptions, StructuredClone, Tag,
+        TransObject, TransferData,
+    },
+};
 use klaver_runtime::{AsyncState, Resource, ResourceId};
-use klaver_util::{Subclass, throw};
 use rquickjs::{
     Class, Ctx, Function, JsLifetime, String, Value,
     class::{JsClass, Trace},
@@ -189,9 +194,13 @@ impl<'js> Emitter<'js> for MessagePort<'js> {
 impl<'js> Subclass<'js, EventTarget<'js>> for MessagePort<'js> {}
 
 impl<'js> Exportable<'js> for MessagePort<'js> {
-    fn export<T>(ctx: &Ctx<'js>, registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        registry: &klaver_core::value::structured_clone::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
     where
-        T: crate::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(
             ctx,
@@ -201,7 +210,7 @@ impl<'js> Exportable<'js> for MessagePort<'js> {
 
         MessagePort::inherit(ctx)?;
 
-        registry.register::<Self>().unwrap();
+        registry.register::<Self>(ctx)?;
 
         Ok(())
     }
@@ -218,22 +227,22 @@ impl StructuredClone for MessagePortCloner {
 
     const TRANSFERBLE: bool = true;
 
-    fn tag() -> &'static crate::Tag {
+    fn tag() -> &'static Tag {
         static TAG: Tag = Tag::new();
         &TAG
     }
 
     fn from_transfer_object<'js>(
-        ctx: &mut crate::SerializationContext<'js, '_>,
-        obj: crate::TransferData,
+        ctx: &mut SerializationContext<'js, '_>,
+        obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         todo!()
     }
 
     fn to_transfer_object<'js>(
-        ctx: &mut crate::SerializationContext<'js, '_>,
+        ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
-    ) -> rquickjs::Result<crate::TransferData> {
+    ) -> rquickjs::Result<TransferData> {
         if !ctx.should_move(value.as_value()) {
             throw!(ctx, "Move")
         }

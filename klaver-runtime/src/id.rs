@@ -1,5 +1,5 @@
 use core::fmt;
-use klaver_util::rquickjs::{self, FromJs, IntoJs, Value, class::Trace};
+use rquickjs::{self, FromJs, IntoJs, Value, class::Trace};
 use std::usize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -18,14 +18,11 @@ impl fmt::Display for AsyncId {
 }
 
 impl<'js> Trace<'js> for AsyncId {
-    fn trace<'a>(&self, _tracer: klaver_util::rquickjs::class::Tracer<'a, 'js>) {}
+    fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
 
 impl<'js> IntoJs<'js> for AsyncId {
-    fn into_js(
-        self,
-        ctx: &klaver_util::rquickjs::Ctx<'js>,
-    ) -> klaver_util::rquickjs::Result<klaver_util::rquickjs::Value<'js>> {
+    fn into_js(self, ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
         Ok(Value::new_int(ctx.clone(), self.0 as _))
     }
 }

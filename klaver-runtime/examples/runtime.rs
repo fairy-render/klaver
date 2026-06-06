@@ -1,12 +1,12 @@
-use klaver_runtime::{
-    AsyncState, Context, Execution, ExitMode, Resource, ResourceId, set_promise_hook,
-};
-use klaver_util::{
+use klaver_core::{
     RuntimeError,
     rquickjs::{
         self, AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module, Value,
         prelude::{Func, Opt, Rest},
     },
+};
+use klaver_runtime::{
+    AsyncState, Context, Execution, ExitMode, Resource, ResourceId, set_promise_hook,
 };
 
 #[tokio::main(flavor = "current_thread")]
@@ -49,7 +49,7 @@ async fn run_inner<'js>(ctx: Ctx<'js>) -> rquickjs::Result<()> {
                     output.push_str(" ");
                 }
 
-                klaver_util::format_to(&ctx, v, &mut output, Default::default())?;
+                klaver_core::value::format_to(&ctx, v, &mut output, Default::default())?;
             }
 
             println!("{output}");
@@ -107,86 +107,6 @@ async fn run_inner<'js>(ctx: Ctx<'js>) -> rquickjs::Result<()> {
 
     promise.into_future().await
 }
-
-// pub struct TestRunner;
-
-// impl<'js> Runner<'js> for TestRunner {
-//     type Output = ();
-//     async fn run(
-//         self,
-//         ctx: klaver_runtime::TaskCtx<'js>,
-//     ) -> klaver_util::rquickjs::Result<Self::Output> {
-//         ctx.globals().set(
-//             "print",
-//             Func::new(|ctx: Ctx<'js>, value: Rest<Value<'js>>| {
-//                 let mut output = String::new();
-//                 for (k, v) in value.0.iter().enumerate() {
-//                     if k > 0 {
-//                         output.push_str(" ");
-//                     }
-
-//                     klaver_util::format_to(&ctx, v, &mut output, Default::default())?;
-//                 }
-
-//                 println!("{output}");
-
-//                 rquickjs::Result::Ok(())
-//             }),
-//         )?;
-
-//         ctx.globals().set(
-//             "gc",
-//             Func::new(|ctx: Ctx<'js>| {
-//                 ctx.run_gc();
-//             }),
-//         )?;
-
-//         ctx.globals().set(
-//             "testAsync",
-//             Func::new(|ctx: Ctx<'js>, cb: Function<'js>| {
-//                 //
-
-//                 AsyncState::push(&ctx, TestResource { callback: cb })?;
-
-//                 rquickjs::Result::Ok(())
-//             }),
-//         )?;
-
-//         ctx.globals().set(
-//             "setTimeout",
-//             Func::new(|ctx: Ctx<'js>, cb: Function<'js>, timeout: Opt<u64>| {
-//                 //
-
-//                 AsyncState::push(
-//                     &ctx,
-//                     TimeResource {
-//                         callback: cb,
-//                         timeout: timeout.unwrap_or_default(),
-//                     },
-//                 )?;
-
-//                 rquickjs::Result::Ok(())
-//             }),
-//         )?;
-
-//         Module::declare_def::<klaver_runtime::TaskModule, _>(
-//             ctx.ctx().clone(),
-//             "node:async_hooks",
-//         )?;
-
-//         let module = Module::declare(ctx.ctx().clone(), "main", include_str!("./test.js"))?;
-
-//         module.meta()?.set("main", true)?;
-
-//         let (module, promise) = module.eval()?;
-
-//         // let ret = Module::evaluate(ctx.ctx().clone(), "main", include_str!("./test.js"))?
-//         //     .into_future::<()>()
-//         //     .await;
-
-//         promise.into_future().await
-//     }
-// }
 
 struct TestResource<'js> {
     callback: Function<'js>,

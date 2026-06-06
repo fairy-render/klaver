@@ -1,16 +1,19 @@
-use klaver_util::{Buffer, Inheritable, StringRef, SuperClass, throw, throw_if};
+use klaver_core::{
+    Inheritable, SuperClass, throw, throw_if,
+    value::{
+        Buffer, StringRef,
+        structured_clone::{
+            self, Clonable, Registry, SerializationContext, StructuredClone, Tag, TransferData,
+        },
+    },
+};
 use rquickjs::{
     ArrayBuffer, Class, Ctx, FromJs, JsLifetime, Object, String,
     class::{JsClass, Trace},
     prelude::Opt,
 };
 
-use crate::{
-    Clonable, Registry, SerializationContext, StructuredClone, Tag, TransferData,
-    export::{ExportTarget, Exportable},
-    register,
-    streams::{QueuingStrategy, ReadableStream, readable::One},
-};
+use crate::streams::{QueuingStrategy, ReadableStream, readable::One};
 
 #[derive(Debug, JsLifetime)]
 #[rquickjs::class]
@@ -156,7 +159,7 @@ impl StructuredClone for BlobCloner {
 
     fn from_transfer_object<'js>(
         ctx: &mut SerializationContext<'js, '_>,
-        obj: crate::TransferData,
+        obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         match obj {
             TransferData::Bytes(bytes) => {
@@ -173,7 +176,7 @@ impl StructuredClone for BlobCloner {
     fn to_transfer_object<'js>(
         _ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
-    ) -> rquickjs::Result<crate::TransferData> {
+    ) -> rquickjs::Result<TransferData> {
         Ok(TransferData::Bytes(
             value.borrow().buffer.as_slice()?.to_vec(),
         ))
@@ -186,12 +189,12 @@ impl<'js> Clonable for Blob<'js> {
 
 // Export
 
-impl<'js> Exportable<'js> for Blob<'js> {
+impl<'js> klaver_core::Exportable<'js> for Blob<'js> {
     fn export<T>(ctx: &Ctx<'js>, registry: &Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
-        register::<Blob>(ctx, registry)?;
+        structured_clone::register::<Blob>(ctx, registry)?;
         target.set(ctx, Blob::NAME, Class::<Blob>::create_constructor(ctx)?)?;
         Ok(())
     }

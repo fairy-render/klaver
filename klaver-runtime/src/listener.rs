@@ -1,9 +1,7 @@
 use std::rc::Rc;
 
-use klaver_util::{
-    TypedMap,
-    rquickjs::{self, Ctx, FromJs, Function, JsLifetime, Object, class::Trace},
-};
+use klaver_core::value::TypedMap;
+use rquickjs::{self, Ctx, FromJs, Function, JsLifetime, Object, class::Trace};
 
 use crate::{id::AsyncId, resource::ResourceKind};
 

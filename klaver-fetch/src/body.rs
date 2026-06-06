@@ -4,8 +4,8 @@ use klaver_base::{
     Blob,
     streams::{ReadableStream, readable::One},
 };
+use klaver_core::{RuntimeError, throw, throw_if, value::Buffer, value::Bytes, value::Static};
 use klaver_runtime::{AsyncState, Resource, ResourceId};
-use klaver_util::{Buffer, Bytes, RuntimeError, Static, throw, throw_if};
 use pin_project_lite::pin_project;
 
 use http_body::Body as _;

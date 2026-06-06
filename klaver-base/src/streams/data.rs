@@ -1,6 +1,6 @@
-use event_listener::Event;
-use event_listener::EventListener;
-use klaver_util::throw;
+use klaver_core::sync::Event;
+use klaver_core::sync::EventListener;
+use klaver_core::throw;
 use pin_project_lite::pin_project;
 use rquickjs::{Ctx, JsLifetime, Value, class::Class, class::Trace};
 use rquickjs::{Function, Promise};

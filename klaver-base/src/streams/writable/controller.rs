@@ -1,5 +1,5 @@
 use crate::streams::data::StreamData;
-use klaver_util::throw;
+use klaver_core::throw;
 use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace};
 
 #[rquickjs::class]
@@ -29,4 +29,4 @@ impl<'js> WritableStreamDefaultController<'js> {
     }
 }
 
-create_export!(WritableStreamDefaultController<'js>);
+klaver_core::create_export!(WritableStreamDefaultController<'js>);

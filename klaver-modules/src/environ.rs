@@ -1,6 +1,6 @@
 use std::sync::{Arc, Weak};
 
-use klaver_util::{throw, RuntimeError};
+use klaver_core::{throw, RuntimeError};
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, JsLifetime};
 
 use crate::{globals::Globals, Modules, Typings};
@@ -45,6 +45,7 @@ impl Environ {
     /// Initializes the environment by attaching the globals to the context and storing the environment in the context.
     pub async fn init(&self, context: &AsyncContext) -> Result<(), RuntimeError> {
         rquickjs::async_with!(context => |ctx| {
+          klaver_core::register(&ctx).catch(&ctx)?;
           self.0.globals.attach(ctx.clone()).await.catch(&ctx)?;
           ctx.store_userdata(self.downgrade()).map_err(|err| RuntimeError::Custom(Box::from(err.to_string())))?;
           Result::<_, RuntimeError>::Ok(())

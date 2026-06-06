@@ -7,7 +7,7 @@ mod source;
 mod state;
 mod stream;
 
-use crate::ExportTarget;
+use klaver_core::ExportTarget;
 
 pub use self::{
     controller::ReadableStreamDefaultController,

@@ -1,7 +1,7 @@
 mod b64;
 mod encoding;
 
-use crate::ExportTarget;
+use klaver_core::ExportTarget;
 
 pub use self::{
     b64::{atob, btoa},

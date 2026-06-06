@@ -4,17 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-serde = ["dep:serde", "typetag", "module"]
+serde = ["dep:serde", "module"]
 module = ["klaver-modules"]
 
 [dependencies]
 klaver-modules = { path = "../klaver-modules", optional = true }
 klaver-runtime = { path = "../klaver-runtime" }
-klaver-util = { path = "../klaver-util" }
+klaver-core = { path = "../klaver-core" }
 rquickjs.workspace = true
 
 
-event-listener = { workspace = true }
 pin-project-lite = { workspace = true }
 futures = { workspace = true }
 
@@ -26,10 +25,4 @@ flume = { workspace = true }
 encoding_rs = { version = "0.8" }
 base64 = { version = "0.22" }
 
-## Structured Clone
-dyn-clone = { version = "1" }
-ordered-float = { version = "5", features = [] }
-indexmap = { version = "2" }
-
-typetag = { version = "0.2", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }

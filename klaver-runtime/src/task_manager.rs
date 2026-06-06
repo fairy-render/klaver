@@ -1,4 +1,4 @@
-use klaver_util::{
+use klaver_core::{
     rquickjs::{self, Class, Ctx},
     sync::{Notify, ObservableCell},
 };

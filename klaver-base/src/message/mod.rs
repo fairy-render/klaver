@@ -2,7 +2,7 @@ mod channel;
 mod event;
 mod port;
 
-use crate::{ExportTarget, Exportable};
+use klaver_core::{ExportTarget, Exportable};
 
 pub use self::{channel::MessageChannel, event::MessageEvent, port::Channel, port::MessagePort};
 
@@ -15,7 +15,7 @@ pub fn declare<'js>(module: &rquickjs::module::Declarations<'js>) -> rquickjs::R
 
 pub fn export<'js, T>(
     ctx: &Ctx<'js>,
-    registry: &crate::Registry,
+    registry: &klaver_core::value::structured_clone::Registry,
     target: &T,
 ) -> rquickjs::Result<()>
 where

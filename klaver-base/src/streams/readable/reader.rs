@@ -1,5 +1,5 @@
 use futures::FutureExt;
-use klaver_util::{IteratorResult, throw};
+use klaver_core::{throw, value::iterable::IteratorResult};
 use rquickjs::{
     Class, Ctx, JsLifetime, Value,
     class::Trace,
@@ -188,4 +188,4 @@ impl<'js> ReadableStreamDefaultReader<'js> {
     }
 }
 
-create_export!(ReadableStreamDefaultReader<'js>);
+klaver_core::create_export!(ReadableStreamDefaultReader<'js>);

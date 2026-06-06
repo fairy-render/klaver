@@ -1,31 +1,32 @@
-use std::{cell::RefCell, rc::Rc};
-
-use futures::{TryStream, stream::LocalBoxStream};
-use klaver_runtime::AsyncState;
-use klaver_util::{
-    AsyncIterableProtocol, Buffer, IteratorResult, NativeAsyncIteratorInterface, RuntimeError,
-    StreamAsyncIterator, StringRef, throw,
+use crate::streams::{
+    WritableStream,
+    queue_strategy::QueuingStrategy,
+    readable::{
+        AsyncIteratorSource, NativeSource, from,
+        reader::ReadableStreamDefaultReader,
+        resource::ReadableStreamResource,
+        source::{JsUnderlyingSource, UnderlyingSource},
+        state::ReadableStreamData,
+    },
 };
+use futures::{TryStream, stream::LocalBoxStream};
+use klaver_core::{
+    RuntimeError, throw,
+    value::{
+        Buffer, StringRef,
+        async_iterator::{
+            AsyncIterableProtocol, NativeAsyncIteratorInterface, StreamAsyncIterator,
+        },
+        iterable::IteratorResult,
+    },
+};
+use klaver_runtime::AsyncState;
 use rquickjs::{
     CatchResultExt, Class, Ctx, FromJs, IntoJs, JsLifetime, Value,
     class::{JsClass, Trace},
     prelude::{Opt, This},
 };
-
-use crate::{
-    Exportable,
-    streams::{
-        WritableStream,
-        queue_strategy::QueuingStrategy,
-        readable::{
-            AsyncIteratorSource, NativeSource, from,
-            reader::ReadableStreamDefaultReader,
-            resource::ReadableStreamResource,
-            source::{JsUnderlyingSource, UnderlyingSource},
-            state::ReadableStreamData,
-        },
-    },
-};
+use std::{cell::RefCell, rc::Rc};
 
 #[derive(Trace, JsLifetime)]
 #[rquickjs::class]
@@ -290,10 +291,10 @@ impl<'js> NativeAsyncIteratorInterface<'js> for ReadableStreamIterator<'js> {
     }
 }
 
-impl<'js> Exportable<'js> for ReadableStream<'js> {
+impl<'js> klaver_core::Exportable<'js> for ReadableStream<'js> {
     fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: crate::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(
             ctx,

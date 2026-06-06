@@ -1,8 +1,8 @@
-use klaver_base::Exportable;
+use klaver_core::Exportable;
 
-use klaver_util::{
-    Iter, IterableProtocol, NativeIterator, NativeIteratorExt, Pair, StringRef, TypedList,
-    TypedMultiMap, TypedMultiMapEntries,
+use klaver_core::value::{
+    Pair, StringRef, TypedList, TypedMultiMap, TypedMultiMapEntries,
+    iterable::{FromJsIter, IterableProtocol, JsIterator, JsNativeIterator, NativeIteratorExt},
 };
 use rquickjs::{
     Class, Ctx, FromJs, Function, JsLifetime, String,
@@ -46,7 +46,7 @@ impl<'js> FromJs<'js> for URLSearchParamsInit<'js> {
             }
 
             map
-        } else if let Ok(iter) = Iter::from_js(ctx, value.clone()) {
+        } else if let Ok(iter) = JsIterator::from_js(ctx, value.clone()) {
             // We got a iterator of key/value pairs
             let map = TypedMultiMap::new(ctx.clone())?;
 
@@ -136,16 +136,16 @@ impl<'js> URLSearchParams<'js> {
         self.map.delete(key)
     }
 
-    pub fn entries(&self, _ctx: Ctx<'js>) -> rquickjs::Result<NativeIterator<'js>> {
-        Ok(NativeIterator::new(self.map.entries()?))
+    pub fn entries(&self, _ctx: Ctx<'js>) -> rquickjs::Result<JsNativeIterator<'js>> {
+        Ok(JsNativeIterator::new(self.map.entries()?))
     }
 
-    pub fn keys(&self) -> rquickjs::Result<NativeIterator<'js>> {
-        Ok(NativeIterator::new(self.map.keys()?))
+    pub fn keys(&self) -> rquickjs::Result<JsNativeIterator<'js>> {
+        Ok(JsNativeIterator::new(self.map.keys()?))
     }
 
-    pub fn values(&self) -> rquickjs::Result<NativeIterator<'js>> {
-        Ok(NativeIterator::new(self.map.values()?))
+    pub fn values(&self) -> rquickjs::Result<JsNativeIterator<'js>> {
+        Ok(JsNativeIterator::new(self.map.values()?))
     }
 
     #[qjs(rename = "forEach")]
@@ -195,11 +195,11 @@ impl<'js> IterableProtocol<'js> for URLSearchParams<'js> {
 impl<'js> Exportable<'js> for URLSearchParams<'js> {
     fn export<T>(
         ctx: &Ctx<'js>,
-        _registry: &klaver_base::Registry,
+        _registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(
             ctx,

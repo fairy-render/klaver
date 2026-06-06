@@ -1,11 +1,11 @@
+use klaver_core::{Exportable, value::structured_clone};
 use rquickjs::{Ctx, class::JsClass, module::ModuleDef, prelude::Func};
 
 pub struct BaseModule;
 
 use crate::{
-    Console, EventTarget, Exportable, Registry, abort_controller::AbortController,
-    abort_signal::AbortSignal, blob::Blob, dom_exception::DOMException, events::Event, file::File,
-    serialize, structured_clone,
+    Console, EventTarget, Registry, abort_controller::AbortController, abort_signal::AbortSignal,
+    blob::Blob, dom_exception::DOMException, events::Event, file::File,
 };
 
 impl ModuleDef for BaseModule {
@@ -42,10 +42,10 @@ impl ModuleDef for BaseModule {
     }
 }
 
-impl<'js> Exportable<'js> for BaseModule {
+impl<'js> klaver_core::Exportable<'js> for BaseModule {
     fn export<T>(ctx: &Ctx<'js>, registry: &Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: crate::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         export!(
             ctx,
@@ -62,8 +62,12 @@ impl<'js> Exportable<'js> for BaseModule {
         crate::streams::export(ctx, registry, target)?;
         crate::message::export(ctx, registry, target)?;
 
-        target.set(ctx, "structuredClone", Func::from(structured_clone))?;
-        target.set(ctx, "serialize", Func::from(serialize))?;
+        target.set(
+            ctx,
+            "structuredClone",
+            Func::from(structured_clone::structured_clone),
+        )?;
+        target.set(ctx, "serialize", Func::from(structured_clone::serialize))?;
 
         Ok(())
     }

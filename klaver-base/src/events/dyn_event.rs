@@ -1,5 +1,5 @@
 use super::{Event, EventKey};
-use klaver_util::{SuperClass, throw};
+use klaver_core::{SuperClass, throw};
 use rquickjs::{Class, Ctx, FromJs, IntoJs, Value, class::Trace};
 
 #[derive(Trace, Clone)]

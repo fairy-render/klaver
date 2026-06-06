@@ -1,4 +1,4 @@
-use klaver_util::throw;
+use klaver_core::throw;
 use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace};
 
 use crate::streams::readable::state::ReadableStreamData;
@@ -44,4 +44,4 @@ impl<'js> ReadableStreamDefaultController<'js> {
     }
 }
 
-create_export!(ReadableStreamDefaultController<'js>);
+klaver_core::create_export!(ReadableStreamDefaultController<'js>);

@@ -1,4 +1,7 @@
-use klaver_util::{AsyncIterable, Buffer, Iterable, is_async_iterable, is_iteratable};
+use klaver_core::value::{
+    Buffer, async_iterator::AsyncIterable, async_iterator::is_async_iterable, iterable::JsIterable,
+    iterable::is_iteratable,
+};
 use rquickjs::{Class, Ctx, FromJs, Value};
 
 use crate::streams::readable::{AsyncIteratorSource, IteratorSource, One};
@@ -18,7 +21,7 @@ pub fn from<'js>(
             ReadableStream::from_native(ctx, AsyncIteratorSource(iter.async_iterator()?), None)?,
         )?
     } else if is_iteratable(&value) {
-        let iter = value.get::<Iterable>()?.iterator()?;
+        let iter = value.get::<JsIterable>()?.iterator()?;
         Class::instance(
             ctx.clone(),
             ReadableStream::from_native(ctx, IteratorSource(iter), None)?,

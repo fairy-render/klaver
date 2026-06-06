@@ -1,5 +1,5 @@
-use klaver_base::Exportable;
-use klaver_util::throw_if;
+use klaver_core::Exportable;
+use klaver_core::throw_if;
 use rquickjs::Ctx;
 
 use crate::{
@@ -24,11 +24,11 @@ impl IntlModule {
 impl<'js> Exportable<'js> for IntlModule {
     fn export<T>(
         ctx: &rquickjs::Ctx<'js>,
-        registry: &klaver_base::Registry,
+        registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         DateTimeFormat::export(ctx, registry, target)?;
         NumberFormat::export(ctx, registry, target)?;
@@ -44,7 +44,7 @@ impl klaver_modules::Global for IntlModule {
         ctx: Ctx<'js>,
     ) -> impl Future<Output = rquickjs::Result<()>> + 'a {
         async move {
-            use klaver_base::Registry;
+            use klaver_core::Registry;
             use rquickjs::Object;
 
             #[cfg(feature = "compiled")]

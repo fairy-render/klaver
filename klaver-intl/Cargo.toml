@@ -8,8 +8,10 @@ compiled = ["icu/compiled_data"]
 module = ["klaver-modules"]
 
 [dependencies]
-klaver-util = { path = "../klaver-util", features = ["chrono"] }
-klaver-base = { path = "../klaver-base" }
+klaver-core = { path = "../klaver-core", features = [
+    "chrono",
+    "structured-clone",
+] }
 klaver-modules = { path = "../klaver-modules", optional = true }
 rquickjs.workspace = true
 

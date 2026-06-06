@@ -1,7 +1,7 @@
-use klaver_base::{Exportable, Registry};
+use klaver_base::{ Registry};
 use klaver_modules::WeakEnviron;
 use rquickjs::{class::{JsClass, Trace}, context::EvalOptions,  CatchResultExt, Class, Ctx, JsLifetime, Promise, Value};
-use klaver_util::{StringRef, throw, throw_if};
+use klaver_core::{value::StringRef, throw, throw_if};
 
 use crate::{Vm, async_with};
 
@@ -94,10 +94,10 @@ impl JsVm {
 }
 
 
-impl<'js> Exportable<'js> for JsVm {
+impl<'js> klaver_core::Exportable<'js> for JsVm {
     fn export<T>(ctx: &Ctx<'js>, _registry: &Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js> {
+        T: klaver_core::ExportTarget<'js> {
         target.set(ctx, JsVm::NAME, Class::<JsVm>::create_constructor(ctx)?)?;
         Ok(())
     }

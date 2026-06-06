@@ -1,10 +1,10 @@
-use klaver_util::Subclass;
+use klaver_core::Subclass;
 use rquickjs::{
     Class, Ctx, Function, JsLifetime,
     class::{JsClass, Trace},
 };
 
-use crate::{DynEvent, Emitter, EventList, EventTarget, export::Exportable};
+use crate::{DynEvent, Emitter, EventList, EventTarget};
 
 #[rquickjs::class]
 pub struct AbortSignal<'js> {
@@ -73,10 +73,10 @@ impl<'js> Emitter<'js> for AbortSignal<'js> {
 
 impl<'js> Subclass<'js, EventTarget<'js>> for AbortSignal<'js> {}
 
-impl<'js> Exportable<'js> for AbortSignal<'js> {
+impl<'js> klaver_core::Exportable<'js> for AbortSignal<'js> {
     fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: crate::export::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         AbortSignal::inherit(ctx)?;
         target.set(

@@ -1,7 +1,7 @@
 use chrono::{Local, Offset as _, TimeZone as _};
 use icu::calendar::{DateTime, Iso};
 use icu::timezone::{CustomTimeZone, GmtOffset, MetazoneCalculator, TimeZoneIdMapper};
-use klaver_util::{throw, throw_if};
+use klaver_core::{throw, throw_if};
 use rquickjs::{Ctx, FromJs};
 
 use crate::provider::DynProvider;

@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use klaver_util::{
+use klaver_core::{
     CaugthException,
     rquickjs::{
         self, Class, Ctx, FromJs, Function, class::Trace, function::Args, prelude::IntoArgs,

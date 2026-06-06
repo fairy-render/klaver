@@ -1,4 +1,4 @@
-use klaver_util::rquickjs::{self, Ctx, FromJs};
+use rquickjs::{self, Ctx, FromJs};
 
 use crate::{
     context::Context,

@@ -1,7 +1,7 @@
 use core::fmt;
 use std::rc::Rc;
 
-use klaver_util::sync::ObservableCell;
+use klaver_core::sync::ObservableCell;
 
 use crate::{id::AsyncId, resource::ResourceKind};
 

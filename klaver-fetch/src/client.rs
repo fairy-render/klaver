@@ -4,7 +4,7 @@ use futures::future::LocalBoxFuture;
 use klaver_runtime::{AsyncState, Resource, ResourceId};
 
 use http::{Request, Response, Uri};
-use klaver_util::{throw, throw_if};
+use klaver_core::{throw, throw_if};
 use rquickjs::{Ctx, JsLifetime, runtime::UserDataGuard};
 
 use crate::{

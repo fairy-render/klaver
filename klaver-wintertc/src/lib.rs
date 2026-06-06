@@ -1,8 +1,6 @@
 pub mod backend;
-// mod event_target;
-// mod timers;
-
-use klaver_base::{Console, Exportable, Registry, StdConsoleWriter};
+use klaver_base::{Console, StdConsoleWriter};
+use klaver_core::{Exportable, Registry};
 use rquickjs::Ctx;
 
 pub struct WinterCG;
@@ -44,11 +42,11 @@ impl klaver_modules::Global for WinterCG {
 impl<'js> Exportable<'js> for WinterCG {
     fn export<T>(
         ctx: &Ctx<'js>,
-        _registry: &klaver_base::Registry,
+        _registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         // Console
         let console = Console::new_with(StdConsoleWriter::default());

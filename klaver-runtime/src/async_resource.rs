@@ -1,4 +1,4 @@
-use klaver_util::rquickjs::{
+use rquickjs::{
     self, Class, Ctx, Function, JsLifetime, String, Value,
     class::Trace,
     function::Args,
@@ -14,7 +14,7 @@ pub struct AsyncResource<'js> {
 }
 
 impl<'js> Trace<'js> for AsyncResource<'js> {
-    fn trace<'a>(&self, tracer: klaver_util::rquickjs::class::Tracer<'a, 'js>) {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.context.trace(tracer);
     }
 }

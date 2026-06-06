@@ -1,5 +1,4 @@
-use klaver_base::create_export;
-use klaver_util::{Buffer, throw};
+use klaver_core::{create_export, throw, value::Buffer};
 use rquickjs::{ArrayBuffer, Ctx, FromJs, IntoJs, class::Trace};
 use sha1::{Sha1, digest::Digest as _};
 use sha2::{Sha256, Sha384, Sha512};

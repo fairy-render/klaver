@@ -1,5 +1,5 @@
 use klaver_base::{Blob, streams::ReadableStream};
-use klaver_util::{Buffer, StringExt};
+use klaver_core::value::{Buffer, StringExt};
 use rquickjs::{ArrayBuffer, Class, Coerced, Ctx, FromJs, String, class::Trace};
 
 use crate::{Headers, URLSearchParams, body::BodyMixin};

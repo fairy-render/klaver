@@ -1,5 +1,7 @@
 use async_trait::async_trait;
-use klaver_util::{NativeAsyncIteratorInterface, NativeIteratorInterface};
+use klaver_core::value::{
+    async_iterator::NativeAsyncIteratorInterface, iterable::NativeIteratorInterface,
+};
 use rquickjs::{
     CatchResultExt, CaughtError, Class, Ctx, FromJs, Function, IntoJs, Object, Value, class::Trace,
 };

@@ -3,7 +3,7 @@ mod id;
 mod module;
 mod timers;
 
-use klaver_util::throw_if;
+use klaver_core::throw_if;
 use rquickjs::Ctx;
 
 pub use self::{

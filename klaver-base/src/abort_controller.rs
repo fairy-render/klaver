@@ -64,4 +64,4 @@ impl<'js> AbortController<'js> {
     }
 }
 
-create_export!(AbortController<'js>);
+klaver_core::create_export!(AbortController<'js>);

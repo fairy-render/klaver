@@ -7,7 +7,7 @@ pub mod writable;
 
 use rquickjs::class::JsClass;
 
-use crate::{ExportTarget, Registry};
+use crate::Registry;
 
 pub use self::{
     queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy, QueuingStrategy},
@@ -31,7 +31,7 @@ pub fn export<'js, T>(
     exports: &T,
 ) -> rquickjs::Result<()>
 where
-    T: ExportTarget<'js>,
+    T: klaver_core::ExportTarget<'js>,
 {
     writable::export(ctx, registry, exports)?;
     readable::export(ctx, registry, exports)?;

@@ -9,7 +9,7 @@ use icu::datetime::{
     },
 };
 use icu_provider::DataLocale;
-use klaver_util::{throw, throw_if};
+use klaver_core::{throw, throw_if};
 use rquickjs::{Ctx, FromJs, IntoJs, Object};
 
 use crate::provider::DynProvider;

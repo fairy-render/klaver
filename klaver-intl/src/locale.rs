@@ -1,6 +1,6 @@
 use icu::locid::{Locale, locale};
-use klaver_base::create_export;
-use klaver_util::throw_if;
+use klaver_core::create_export;
+use klaver_core::throw_if;
 use rquickjs::{Ctx, FromJs, Object, class::Trace};
 
 pub struct LocalOptions {

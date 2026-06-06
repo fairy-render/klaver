@@ -1,10 +1,8 @@
-use klaver_util::{
-    FunctionExt,
-    rquickjs::{
-        self, Class, Ctx, Function, IntoJs, JsLifetime, String, Value,
-        class::Trace,
-        prelude::{Func, Rest},
-    },
+use klaver_core::FunctionExt;
+use rquickjs::{
+    self, Class, Ctx, Function, IntoJs, JsLifetime, String, Value,
+    class::Trace,
+    prelude::{Func, Rest},
 };
 
 use crate::{

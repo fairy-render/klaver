@@ -6,7 +6,7 @@ mod writer;
 
 use rquickjs::class::JsClass;
 
-use crate::{ExportTarget, Registry};
+use crate::Registry;
 
 pub use self::{
     controller::WritableStreamDefaultController, stream::WritableStream,
@@ -23,7 +23,7 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
     Ok(())
 }
 
-pub fn export<'js, T: ExportTarget<'js>>(
+pub fn export<'js, T: klaver_core::ExportTarget<'js>>(
     ctx: &rquickjs::Ctx<'js>,
     registry: &Registry,
     exports: &T,

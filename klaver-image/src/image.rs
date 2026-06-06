@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 use image::{imageops::FilterType, ImageReader};
-use klaver_util::{throw, throw_if, Buffer, StringRef};
+use klaver_core::{throw, throw_if, value::Buffer, value::StringRef};
 use rquickjs::{function::Opt, ArrayBuffer, Ctx, FromJs, Object};
 
 pub struct ImageFormat(image::ImageFormat);

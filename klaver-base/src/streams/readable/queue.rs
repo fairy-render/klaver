@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use klaver_util::sync::{Listener, Notify};
+use klaver_core::sync::{Listener, Notify};
 use rquickjs::{Ctx, Value, class::Trace};
 
 use crate::streams::queue_strategy::QueuingStrategy;

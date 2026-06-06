@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
 use futures::future::BoxFuture;
+use klaver_core::RuntimeError;
 use klaver_modules::Environ;
 use klaver_runtime::{EventLoop, Runner};
-use klaver_util::RuntimeError;
 use rquickjs::{
     AsyncContext, AsyncRuntime, Ctx, FromJs, Function, Module, Object, Value,
     markers::ParallelSend, prelude::IntoArgs,

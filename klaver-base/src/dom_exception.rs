@@ -1,4 +1,4 @@
-use klaver_util::{StringRef, throw};
+use klaver_core::{throw, value::StringRef};
 use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, Result, String,
     atom::PredefinedAtom,
@@ -6,10 +6,11 @@ use rquickjs::{
     function::{Constructor, Opt},
 };
 
-use crate::{
-    Clonable, SerializationContext, StructuredClone, Tag, TransferData, export::Exportable,
-    register,
+use klaver_core::value::structured_clone::{
+    Clonable, SerializationContext, StructuredClone, Tag, TransferData, register,
 };
+
+use klaver_core::Exportable;
 
 #[rquickjs::class]
 #[derive(rquickjs::class::Trace)]
@@ -88,14 +89,14 @@ pub struct DomExceptionCloner;
 impl StructuredClone for DomExceptionCloner {
     type Item<'js> = Class<'js, DOMException<'js>>;
 
-    fn tag() -> &'static crate::Tag {
+    fn tag() -> &'static Tag {
         static TAG: Tag = Tag::new();
         &TAG
     }
 
     fn from_transfer_object<'js>(
         ctx: &mut SerializationContext<'js, '_>,
-        obj: crate::TransferData,
+        obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
         let TransferData::List(mut list) = obj else {
             throw!(@type ctx, "Expected a list with 3 items")
@@ -132,7 +133,7 @@ impl StructuredClone for DomExceptionCloner {
     fn to_transfer_object<'js>(
         ctx: &mut SerializationContext<'js, '_>,
         value: &Self::Item<'js>,
-    ) -> rquickjs::Result<crate::TransferData> {
+    ) -> rquickjs::Result<TransferData> {
         let mut obj = Vec::with_capacity(3);
 
         let this = value.borrow();
@@ -156,7 +157,7 @@ impl<'js> Clonable for DOMException<'js> {
 impl<'js> Exportable<'js> for DOMException<'js> {
     fn export<T>(ctx: &Ctx<'js>, registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: crate::export::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         register::<DOMException>(ctx, registry)?;
         target.set(

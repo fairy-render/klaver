@@ -10,7 +10,7 @@ module = ["klaver-modules"]
 [dependencies]
 klaver-base = { path = "../klaver-base" }
 klaver-runtime = { path = "../klaver-runtime" }
-klaver-util = { path = "../klaver-util" }
+klaver-core = { path = "../klaver-core" }
 klaver-modules = { path = "../klaver-modules", optional = true }
 rquickjs.workspace = true
 

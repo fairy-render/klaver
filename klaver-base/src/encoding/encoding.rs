@@ -1,4 +1,4 @@
-use klaver_util::{Buffer, StringRef};
+use klaver_core::value::{Buffer, StringRef};
 use rquickjs::{Ctx, Exception, Result, Value, class::Trace, function::Opt};
 
 // #[derive(Debug)]
@@ -108,5 +108,5 @@ impl TextEncoder {
     }
 }
 
-create_export!(TextDecoder);
-create_export!(TextEncoder);
+klaver_core::create_export!(TextDecoder);
+klaver_core::create_export!(TextEncoder);

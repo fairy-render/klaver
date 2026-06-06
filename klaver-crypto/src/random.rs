@@ -1,4 +1,4 @@
-use klaver_util::{TypedArray, throw};
+use klaver_core::{throw, value::TypedArray};
 use rand::RngCore;
 use rquickjs::Ctx;
 

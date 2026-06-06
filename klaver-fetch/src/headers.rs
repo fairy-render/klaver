@@ -1,7 +1,8 @@
 use http::HeaderMap;
-use klaver_base::Exportable;
-use klaver_util::{
-    IterableProtocol, NativeIterator, StringExt, TypedMultiMap, TypedMultiMapEntries,
+use klaver_core::Exportable;
+use klaver_core::value::{
+    StringExt, TypedMultiMap, TypedMultiMapEntries, iterable::IterableProtocol,
+    iterable::JsNativeIterator,
 };
 use rquickjs::{
     Class, Coerced, Ctx, FromJs, JsLifetime, String,
@@ -114,19 +115,19 @@ impl<'js> Headers<'js> {
         self.inner.has(key.to_lowercase(ctx)?)
     }
 
-    pub fn entries(&self, ctx: Ctx<'js>) -> rquickjs::Result<Class<'js, NativeIterator<'js>>> {
+    pub fn entries(&self, ctx: Ctx<'js>) -> rquickjs::Result<Class<'js, JsNativeIterator<'js>>> {
         Class::instance(
             ctx.clone(),
-            NativeIterator::new(self.create_iterator(&ctx)?),
+            JsNativeIterator::new(self.create_iterator(&ctx)?),
         )
     }
 
-    pub fn values(&self) -> rquickjs::Result<NativeIterator<'js>> {
-        Ok(NativeIterator::new(self.inner.values()?))
+    pub fn values(&self) -> rquickjs::Result<JsNativeIterator<'js>> {
+        Ok(JsNativeIterator::new(self.inner.values()?))
     }
 
-    pub fn keys(&self) -> rquickjs::Result<NativeIterator<'js>> {
-        Ok(NativeIterator::new(self.inner.keys()?))
+    pub fn keys(&self) -> rquickjs::Result<JsNativeIterator<'js>> {
+        Ok(JsNativeIterator::new(self.inner.keys()?))
     }
 }
 
@@ -143,11 +144,11 @@ impl<'js> IterableProtocol<'js> for Headers<'js> {
 impl<'js> Exportable<'js> for Headers<'js> {
     fn export<T>(
         ctx: &Ctx<'js>,
-        _registry: &klaver_base::Registry,
+        _registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(ctx, Self::NAME, Class::<Self>::create_constructor(ctx)?)?;
         Self::add_iterable_prototype(ctx)?;

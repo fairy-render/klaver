@@ -14,10 +14,8 @@ intl-backed = ["intl", "klaver-intl/compiled"]
 tokio = ["dep:tokio", "klaver-fetch/reqwest"]
 
 [dependencies]
-klaver-util = { path = "../klaver-util" }
+klaver-core = { path = "../klaver-core" }
 klaver-modules = { path = "../klaver-modules", optional = true }
-
-
 klaver-base = { path = "../klaver-base", features = ["module"] }
 klaver-timers = { path = "../klaver-timers", features = ["module"] }
 klaver-crypto = { path = "../klaver-crypto", features = [

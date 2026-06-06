@@ -1,4 +1,4 @@
-use klaver_util::rquickjs::{self, Class, JsLifetime, class::Trace};
+use rquickjs::{self, Class, JsLifetime, class::Trace};
 
 use crate::listener::{HookListeners, Listener, ScriptListener};
 
@@ -14,7 +14,7 @@ unsafe impl<'js> JsLifetime<'js> for AsyncHook<'js> {
 }
 
 impl<'js> Trace<'js> for AsyncHook<'js> {
-    fn trace<'a>(&self, tracer: klaver_util::rquickjs::class::Tracer<'a, 'js>) {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.listener.trace(tracer);
         self.state.trace(tracer);
     }

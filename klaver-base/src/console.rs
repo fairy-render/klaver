@@ -7,9 +7,9 @@ use rquickjs::{
     function::Rest,
 };
 
-use klaver_util::{FormatOptions, format_to};
+use klaver_core::value::{FormatOptions, format_to};
 
-use crate::export::Exportable;
+use klaver_core::Exportable;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Level {
@@ -189,7 +189,7 @@ impl<'js> Console<'js> {
 impl<'js> Exportable<'js> for Console<'js> {
     fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: crate::export::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(
             ctx,

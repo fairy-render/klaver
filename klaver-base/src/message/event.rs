@@ -1,11 +1,11 @@
-use klaver_util::Subclass;
+use klaver_core::Subclass;
 use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, String, Value,
     class::{JsClass, Trace},
     prelude::Opt,
 };
 
-use crate::{DynEvent, Event, Exportable, IntoDynEvent, NativeEvent};
+use crate::{DynEvent, Event, IntoDynEvent, NativeEvent};
 
 #[derive(Debug, Trace, JsLifetime)]
 #[rquickjs::class]
@@ -64,10 +64,14 @@ impl<'js> IntoDynEvent<'js> for MessageEvent<'js> {
 
 impl<'js> Subclass<'js, Event<'js>> for MessageEvent<'js> {}
 
-impl<'js> Exportable<'js> for MessageEvent<'js> {
-    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+impl<'js> klaver_core::Exportable<'js> for MessageEvent<'js> {
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_core::value::structured_clone::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
     where
-        T: crate::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(
             ctx,

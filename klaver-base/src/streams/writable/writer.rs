@@ -1,4 +1,4 @@
-use klaver_util::throw;
+use klaver_core::throw;
 use rquickjs::{Class, Ctx, JsLifetime, Promise, Value, class::Trace, prelude::Opt};
 
 use crate::streams::data::{StreamData, WaitDone, WaitWriteReady};
@@ -79,4 +79,4 @@ impl<'js> WritableStreamDefaultWriter<'js> {
     }
 }
 
-create_export!(WritableStreamDefaultWriter<'js>);
+klaver_core::create_export!(WritableStreamDefaultWriter<'js>);

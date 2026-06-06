@@ -1,10 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
-use klaver_util::{
-    CaugthException, FinalizationRegistry,
-    rquickjs::{self, Class, Ctx, Function, IntoJs, JsLifetime, class::Trace, prelude::Func},
-    sync::ObservableRefCell,
-};
+use klaver_core::{CaugthException, sync::ObservableRefCell, value::FinalizationRegistry};
+use rquickjs::{self, Class, Ctx, Function, IntoJs, JsLifetime, class::Trace, prelude::Func};
 
 use crate::{
     id::AsyncId,
@@ -27,7 +24,7 @@ unsafe impl<'js> JsLifetime<'js> for Runtime<'js> {
 }
 
 impl<'js> Trace<'js> for Runtime<'js> {
-    fn trace<'a>(&self, tracer: klaver_util::rquickjs::class::Tracer<'a, 'js>) {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.hooks.trace(tracer);
         self.finalizers.trace(tracer);
     }

@@ -1,4 +1,4 @@
-use klaver_util::{Buffer, StringRef};
+use klaver_core::value::{Buffer, StringRef};
 use rquickjs::{Class, Ctx, FromJs, Function, Object, Value, class::Trace};
 
 #[derive(rquickjs::JsLifetime)]
@@ -27,7 +27,7 @@ impl CountQueuingStrategy {
     }
 }
 
-create_export!(CountQueuingStrategy);
+klaver_core::create_export!(CountQueuingStrategy);
 
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
@@ -64,7 +64,7 @@ impl ByteLengthQueuingStrategy {
     }
 }
 
-create_export!(ByteLengthQueuingStrategy);
+klaver_core::create_export!(ByteLengthQueuingStrategy);
 
 #[derive(Trace, Clone)]
 pub enum QueuingStrategy<'js> {

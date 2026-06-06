@@ -1,4 +1,4 @@
-use klaver_util::rquickjs::{self, AsyncRuntime, Ctx, IntoJs, Value, promise::PromiseHookType};
+use rquickjs::{self, AsyncRuntime, Ctx, IntoJs, Value, promise::PromiseHookType};
 
 use crate::{AsyncId, ResourceKind, runtime::Runtime};
 

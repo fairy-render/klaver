@@ -1,4 +1,4 @@
-use klaver_base::{Exportable, Registry};
+use klaver_core::{Exportable, Registry};
 use rquickjs::{
     class::JsClass,
     module::ModuleDef,
@@ -31,11 +31,11 @@ impl ModuleDef for FetchModule {
 impl<'js> Exportable<'js> for FetchModule {
     fn export<T>(
         ctx: &rquickjs::Ctx<'js>,
-        registry: &klaver_base::Registry,
+        registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         Headers::export(ctx, registry, target)?;
         Url::export(ctx, registry, target)?;

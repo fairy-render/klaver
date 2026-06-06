@@ -28,4 +28,4 @@ impl<'js> MessageChannel<'js> {
     }
 }
 
-create_export!(MessageChannel<'js>);
+klaver_core::create_export!(MessageChannel<'js>);

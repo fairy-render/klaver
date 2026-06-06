@@ -12,7 +12,7 @@ members = [
   "klaver-vm",
   "klaver-wintertc",
   "klaver",
-  "klaver-os",
+  #"klaver-os",
   "klaver-util",
   "klaver-crypto",
   "klaver-intl",
@@ -21,8 +21,9 @@ members = [
   "klaver-runtime",
   "klaver-image",
   "klaver-dom",
- "klaver-fs"
-, "klaver-value", "klaver-core"]
+  #"klaver-fs",
+  "klaver-core"
+]
 
 [workspace.dependencies]
 rquickjs = { version = "0.11", features = [

@@ -7,8 +7,7 @@ edition = "2024"
 module = ["klaver-modules"]
 
 [dependencies]
-klaver-util = { path = "../klaver-util" }
-klaver-base = { path = "../klaver-base" }
+klaver-core = { path = "../klaver-core" }
 klaver-modules = { path = "../klaver-modules", optional = true }
 rquickjs.workspace = true
 

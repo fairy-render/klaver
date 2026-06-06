@@ -4,7 +4,7 @@ use std::{
     collections::HashMap,
 };
 
-use klaver_util::rquickjs::{self, Ctx, FromJs, IntoJs};
+use rquickjs::{self, Ctx, FromJs, IntoJs};
 
 use crate::context::Context;
 

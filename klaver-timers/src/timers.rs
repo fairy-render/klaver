@@ -3,8 +3,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use klaver_core::throw;
 use klaver_runtime::{AsyncState, Resource, ResourceId, TaskHandle};
-use klaver_util::throw;
 use rquickjs::{Class, Ctx, Function, JsLifetime, class::Trace, prelude::Opt};
 
 use crate::{backend::TimingBackend, id::TimeId};
