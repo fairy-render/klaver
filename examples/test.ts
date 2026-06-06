@@ -1,19 +1,19 @@
 import { open } from "@klaver/fs";
-import { Handlebars } from "@klaver/hbs";
+// import { Handlebars } from "@klaver/hbs";
 import { hello } from "./other.ts";
 
-const hbs = new Handlebars();
+// const hbs = new Handlebars();
 
-hbs.registerTemplate("main", "{{name}}, World");
+// hbs.registerTemplate("main", "{{name}}, World");
 
-const output = hbs.render("main", { name: "Hello" });
+// const output = hbs.render("main", { name: "Hello" });
 
-console.log(output);
+// console.log(output);
 
-console.log(process.env.PATH);
-process.env.RAPPER = "Rasmus";
+// console.log(process.env.PATH);
+// process.env.RAPPER = "Rasmus";
 
-console.log(Object.keys(process.env));
+// console.log(Object.keys(process.env));
 
 hello();
 // console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));

@@ -6,6 +6,9 @@ use crate::modules_builder::LoadFn;
 
 use super::loader::Loader;
 
+/// BuiltinLoader is a loader that loads builtin modules.
+/// It is used to load modules that are built into the runtime, such as "node:fs" or "node:path".
+#[derive(Debug, Default)]
 pub struct BuiltinLoader {
     pub modules: HashMap<String, LoadFn>,
     pub modules_src: HashMap<String, Vec<u8>>,

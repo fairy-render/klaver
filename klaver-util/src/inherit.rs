@@ -2,6 +2,8 @@ use rquickjs::{Class, Ctx, Object, Value, class::JsClass};
 
 use crate::throw;
 
+/// Inheritable is a trait that defines the interface for inheriting from another class.
+/// It is used to define classes that can be inherited from another class.
 pub trait Inheritable<'js, T>
 where
     Self: JsClass<'js> + Sized + 'js,
@@ -12,6 +14,9 @@ where
         Ok(())
     }
 
+    ///Inherits from another class.
+    /// This will set the prototype of the class to the prototype of the other class,
+    /// and it will also set the constructor of the class to the constructor of the other class.
     fn inherit(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         let this_proto = Class::<Self>::prototype(ctx)?;
         let proto = Class::<T>::prototype(ctx)?;
@@ -56,6 +61,7 @@ pub trait SuperClass<'js>
 where
     Self: JsClass<'js>,
 {
+    /// Checks if the value is an instance of the class or any of its subclasses.
     fn is_subclass(ctx: &Ctx<'js>, value: impl AsRef<Value<'js>>) -> rquickjs::Result<bool> {
         let Some(obj) = value.as_ref().as_object() else {
             throw!(@type ctx, "Expected object")

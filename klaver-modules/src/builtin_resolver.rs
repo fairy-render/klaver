@@ -6,6 +6,8 @@ use tracing::trace;
 
 use super::loader::Resolver;
 
+/// BuiltinResolver is a resolver that resolves builtin modules.
+/// It is used to resolve modules that are built into the runtime, such as "node:fs" or "node:path".
 #[derive(Debug, Default)]
 pub struct BuiltinResolver {
     modules: HashSet<String>,
@@ -17,13 +19,6 @@ impl BuiltinResolver {
         self.modules.insert(path.into());
         self
     }
-
-    // /// Add builtin module
-    // #[must_use]
-    // pub fn with_module<P: Into<String>>(mut self, path: P) -> Self {
-    //     self.add_module(path);
-    //     self
-    // }
 }
 
 impl Resolver for BuiltinResolver {

@@ -50,6 +50,7 @@ impl<'a, M: GlobalInfo> GlobalBuilder<'a, M> {
     }
 }
 
+/// Define a global module
 pub trait GlobalInfo: Sized {
     fn register(builder: &mut GlobalBuilder<'_, Self>);
     fn typings() -> Option<Cow<'static, str>> {

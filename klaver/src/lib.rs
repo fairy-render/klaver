@@ -51,11 +51,7 @@ impl Builder {
             ));
         }
 
-        let vm = opts
-            .search_path(".")
-            .global::<klaver_wintertc::WinterCG>()
-            .build()
-            .await?;
+        let vm = opts.global::<klaver_wintertc::WinterCG>().build().await?;
 
         klaver_vm::async_with!(vm => |ctx| {
             klaver_wintertc::backend::Tokio::default().set_runtime(&ctx).catch(&ctx)?;

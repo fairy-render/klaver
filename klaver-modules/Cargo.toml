@@ -22,7 +22,7 @@ swc-transform = [
 [dependencies]
 klaver-util = { path = "../klaver-util" }
 rquickjs = { workspace = true, features = ["loader", "futures"] }
-oxc_resolver = { version = "11.6" }
+oxc_resolver = { version = "11.21" }
 oxc = { version = "0.77", features = [
   "transformer",
   "codegen",

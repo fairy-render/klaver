@@ -6,6 +6,9 @@ use std::{
 };
 use tracing::trace;
 
+/// ModuleResolver is a resolver that resolves modules from the file system.
+/// It is used to resolve modules that are not built into the runtime, such as "./module".
+/// It uses oxc_resolver to resolve the modules, and it is expected to be thread safe.
 pub struct ModuleResolver {
     resolver: oxc_resolver::Resolver,
     work_dir: PathBuf,

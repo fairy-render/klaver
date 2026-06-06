@@ -11,6 +11,8 @@ struct Inner {
     pub(crate) typings: Typings,
 }
 
+/// Environ is a struct that contains the modules, globals and typings for the environment.
+/// It is used to create the runtime and to attach the globals to the context.
 #[derive(Clone)]
 pub struct Environ(Arc<Inner>);
 
@@ -31,6 +33,7 @@ impl Environ {
         &self.0.typings
     }
 
+    /// Creates a new runtime and attaches the modules to it.
     pub async fn create_runtime(&self) -> Result<AsyncRuntime, RuntimeError> {
         let runtime = AsyncRuntime::new()?;
 
@@ -39,6 +42,7 @@ impl Environ {
         Ok(runtime)
     }
 
+    /// Initializes the environment by attaching the globals to the context and storing the environment in the context.
     pub async fn init(&self, context: &AsyncContext) -> Result<(), RuntimeError> {
         rquickjs::async_with!(context => |ctx| {
           self.0.globals.attach(ctx.clone()).await.catch(&ctx)?;

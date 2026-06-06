@@ -10,7 +10,11 @@ use crate::context::Context;
 
 pub trait Resource<'js>: Sized {
     type Id: ResourceId;
+    /// Whether the resource is internal, meaning that it is not exposed to the user and is only used internally by the runtime.
     const INTERNAL: bool = true;
+    /// Whether the resource is scoped, meaning that it is automatically cleaned up when it goes out of scope.
+    /// If false, it will block the current task from finishing until it is manually cleaned up,
+    /// and it will be automatically cleaned up when the runtime shuts down.
     const SCOPED: bool = true;
 
     fn run(self, ctx: Context<'js>) -> impl Future<Output = rquickjs::Result<()>>;
