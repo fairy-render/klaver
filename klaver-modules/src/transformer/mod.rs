@@ -70,6 +70,8 @@ impl Loader for Transformer {
             .compile(Path::new(path))
             .map_err(|err| rquickjs::Error::new_loading_message(path, err.to_string()))?;
 
-        Module::declare(ctx.clone(), path, source)
+        let module = Module::declare(ctx.clone(), path, source)?;
+        module.meta()?.set("url", format!("file://{}", path))?;
+        Ok(module)
     }
 }

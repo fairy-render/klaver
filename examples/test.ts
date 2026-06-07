@@ -16,6 +16,18 @@ import { hello } from "./other.ts";
 // console.log(Object.keys(process.env));
 
 hello();
+
+
+
+const worker = new Worker(new URL("./worker.ts", import.meta.url).href);
+
+worker.onmessage = (event) => {
+    console.log("Message from worker", event.data);
+    worker.postMessage("Hello from main thread");
+    // console.log('sendt')
+    worker.terminate();
+}
+
 // console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
 
 // console.log(resp.headers.get("Content-Type"));

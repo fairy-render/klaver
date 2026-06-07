@@ -2325,6 +2325,7 @@ dependencies = [
  "klaver-image",
  "klaver-runtime",
  "klaver-vm",
+ "klaver-worker",
  "reedline",
  "rquickjs",
  "tokio",
@@ -2560,6 +2561,20 @@ dependencies = [
  "klaver-timers",
  "rquickjs",
  "tokio",
+]
+
+[[package]]
+name = "klaver-worker"
+version = "0.1.0"
+dependencies = [
+ "flume",
+ "futures",
+ "klaver-base",
+ "klaver-core",
+ "klaver-modules",
+ "klaver-runtime",
+ "klaver-vm",
+ "rquickjs",
 ]
 
 [[package]]

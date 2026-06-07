@@ -59,6 +59,11 @@ impl Registry {
         Ok(registry)
     }
 
+    pub fn attach(self, ctx: &Ctx<'_>) -> rquickjs::Result<()> {
+        throw_if!(ctx, ctx.store_userdata(self));
+        Ok(())
+    }
+
     pub fn instance(ctx: &Ctx<'_>) -> rquickjs::Result<Registry> {
         let registry = match ctx.userdata::<Registry>() {
             Some(registry) => registry,

@@ -1,8 +1,9 @@
-use klaver_base::Channel;
-use klaver_core::throw;
+use klaver_base::{Channel, MessagePort};
+use klaver_core::{Registry, throw, throw_if};
 use klaver_modules::Environ;
 use klaver_runtime::{Resource, ResourceId, ResourceKind, Runner};
-use klaver_vm::{Vm, VmOptions};
+use klaver_vm::{Vm, VmOptions, Worker};
+use rquickjs::{Class, Function, Module, Value};
 
 pub struct WorkerResourceId {}
 
@@ -16,6 +17,18 @@ pub struct WorkerResource {
     path: String,
     env: Environ,
     channel: Channel,
+    registry: Registry,
+}
+
+impl<'a> WorkerResource {
+    pub fn new(path: String, env: Environ, channel: Channel, registry: Registry) -> Self {
+        Self {
+            path,
+            env,
+            channel,
+            registry,
+        }
+    }
 }
 
 impl<'js> Resource<'js> for WorkerResource {
@@ -26,24 +39,53 @@ impl<'js> Resource<'js> for WorkerResource {
 
     fn run(self, ctx: klaver_runtime::Context<'js>) -> impl Future<Output = rquickjs::Result<()>> {
         async move {
-            let worker = throw!(ctx.ctx(), Vm::new(&self.env, VmOptions::default()).await);
+            let worker = throw_if!(ctx.ctx(), Worker::new(self.env, VmOptions::default()).await);
+            let registry = self.registry;
+            let channel = self.channel;
+            let ret = worker
+                .async_with(async move |ctx| {
+                    registry.attach(&ctx)?;
 
-            // worker.run_module(&self.path).await?;
-
+                    Ok(())
+                })
+                .await;
+            throw_if!(ctx.ctx(), ret);
+            throw_if!(
+                ctx.ctx(),
+                worker
+                    .run(WorkResourceRunner {
+                        path: self.path,
+                        channel,
+                    })
+                    .await
+            );
             Ok(())
         }
     }
 }
 
-struct ResourceWorker {}
+struct WorkResourceRunner {
+    path: String,
+    channel: Channel,
+}
 
-impl<'js> Runner<'js> for ResourceWorker {
+impl<'js> Runner<'js> for WorkResourceRunner {
     type Output = ();
 
-    fn run(
-        self,
-        ctx: klaver_runtime::Context<'js>,
-    ) -> impl Future<Output = rquickjs::Result<Self::Output>> {
-        async move { Ok(()) }
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<Self::Output> {
+        let messageport = MessagePort::from_channel(self.channel);
+        let messageport = Class::instance(ctx.ctx().clone(), messageport)?;
+
+        MessagePort::start_native(&ctx, messageport.clone())?;
+
+        let init: Function = ctx.eval(include_str!("./init.js"))?;
+
+        init.call::<_, Value>((messageport, ctx.globals()))?;
+
+        Module::import(&ctx, &*self.path)?
+            .into_future::<()>()
+            .await?;
+
+        Ok(())
     }
 }

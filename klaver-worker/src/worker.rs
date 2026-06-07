@@ -4,6 +4,8 @@ use klaver_core::{
     Exportable, Registry, RuntimeError, Subclass,
     value::{StringRef, structured_clone::SerializationOptions},
 };
+use klaver_modules::{Environ, WeakEnviron};
+use klaver_runtime::{AsyncState, TaskHandle};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
     String, Value,
@@ -11,12 +13,13 @@ use rquickjs::{
     prelude::Opt,
 };
 
-use crate::work::{Message, work};
+use crate::{resource::WorkerResource, work::Message};
 
 #[rquickjs::class(rename = "Worker")]
 pub struct WebWorker<'js> {
     port: Class<'js, MessagePort<'js>>,
     onmessage: Option<Function<'js>>,
+    handle: Option<TaskHandle>,
 }
 
 impl<'js> Trace<'js> for WebWorker<'js> {
@@ -37,8 +40,6 @@ impl<'js> WebWorker<'js> {
         ctx: Ctx<'js>,
         path: std::string::String,
     ) -> rquickjs::Result<Class<'js, WebWorker<'js>>> {
-        let workers = Workers::from_ctx(&ctx)?;
-
         let registry = Registry::instance(&ctx)?;
 
         let channel = MessageChannel::new(ctx.clone())?;
@@ -46,9 +47,15 @@ impl<'js> WebWorker<'js> {
         let port = channel.port1;
         let channel = channel.port2.borrow_mut().detach(&ctx)?;
 
-        std::thread::spawn(move || {
-            work(&path, registry, channel).ok();
-        });
+        let env = ctx
+            .userdata::<WeakEnviron>()
+            .unwrap()
+            .clone()
+            .upgrade(&ctx)?;
+
+        let resource = WorkerResource::new(path, env, channel, registry);
+
+        let handle = AsyncState::push(&ctx, resource)?;
 
         MessagePort::start_native(&ctx, port.clone())?;
 
@@ -57,16 +64,9 @@ impl<'js> WebWorker<'js> {
             WebWorker {
                 port,
                 onmessage: None,
+                handle: Some(handle),
             },
         )?;
-
-        // let cloned_this = this.clone();
-        // workers.push(ctx.clone(), |ctx, kill| async move {
-        //     listen(ctx.clone(), kill, parent_rx, cloned_this)
-        //         .await
-        //         .catch(&ctx)?;
-        //     Ok(())
-        // });
 
         Ok(this)
     }
@@ -95,9 +95,34 @@ impl<'js> WebWorker<'js> {
         Ok(())
     }
 
-    pub fn set_onmessage(&mut self, cb: Opt<Function<'js>>) {}
+    #[qjs(rename = "removeEventListener")]
+    pub fn remove_event_listener(
+        &self,
+        event: EventKey<'js>,
+        cb: Function<'js>,
+    ) -> rquickjs::Result<()> {
+        self.port
+            .borrow_mut()
+            .remove_event_listener_native(event, cb)?;
+        Ok(())
+    }
 
-    pub fn terminate(&self) -> rquickjs::Result<()> {
+    #[qjs(set, rename = "onmessage")]
+    pub fn set_onmessage(&mut self, ctx: Ctx<'js>, cb: Opt<Function<'js>>) -> rquickjs::Result<()> {
+        self.port.borrow_mut().set_onmessage(ctx, cb.0)
+    }
+
+    #[qjs(get, rename = "onmessage")]
+    pub fn get_onmessage(&self) -> rquickjs::Result<Value<'js>> {
+        self.port.borrow_mut().get_onmessage()
+    }
+    pub fn terminate(&mut self) -> rquickjs::Result<()> {
+        let Some(handle) = self.handle.take() else {
+            return Ok(());
+        };
+        handle.kill();
+        self.port.borrow_mut().close();
+
         Ok(())
     }
 }
