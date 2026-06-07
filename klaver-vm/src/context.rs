@@ -36,15 +36,17 @@ impl Context {
             .map_err(|err| update_locations(&self.env, err))
     }
 
-    pub async fn async_with<F, R>(&self, f: F) -> Result<R, RuntimeError>
+    pub async fn async_with<'a, F, R>(&self, f: F) -> Result<R, RuntimeError>
     where
-        F: for<'js> FnOnce(Ctx<'js>) -> BoxFuture<'js, Result<R, RuntimeError>> + ParallelSend,
+        F: for<'js> AsyncFnOnce(Ctx<'js>) -> Result<R, RuntimeError> + ParallelSend,
         R: ParallelSend + 'static,
     {
-        self.context
-            .async_with(|ctx| f(ctx))
+        let ret = self
+            .context
+            .async_with(f)
             .await
-            .map_err(|err| update_locations(&self.env, err))
+            .map_err(|err| update_locations(&self.env, err))?;
+        Ok(ret)
     }
 
     pub async fn run<T, R>(&self, task: T) -> Result<R, RuntimeError>

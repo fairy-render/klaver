@@ -63,6 +63,7 @@ impl Loader for Transformer {
         &self,
         ctx: &rquickjs::prelude::Ctx<'js>,
         path: &str,
+        _attributes: Option<rquickjs::loader::ImportAttributes<'js>>,
     ) -> rquickjs::Result<rquickjs::Module<'js, rquickjs::module::Declared>> {
         let source = self
             .compiler

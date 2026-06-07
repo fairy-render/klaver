@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use relative_path::RelativePath;
-use rquickjs::Ctx;
+use rquickjs::{loader::ImportAttributes, Ctx};
 use tracing::trace;
 
 use super::loader::Resolver;
@@ -22,7 +22,13 @@ impl BuiltinResolver {
 }
 
 impl Resolver for BuiltinResolver {
-    fn resolve<'js>(&self, _ctx: &Ctx<'js>, base: &str, name: &str) -> rquickjs::Result<String> {
+    fn resolve<'js>(
+        &self,
+        _ctx: &Ctx<'js>,
+        base: &str,
+        name: &str,
+        _attributes: Option<ImportAttributes<'js>>,
+    ) -> rquickjs::Result<String> {
         let full = if !name.starts_with('.') {
             name.to_string()
         } else {

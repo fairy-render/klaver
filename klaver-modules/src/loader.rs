@@ -1,5 +1,5 @@
 use parking_lot::Mutex;
-use rquickjs::Ctx;
+use rquickjs::{loader::ImportAttributes, Ctx};
 
 /// Loader is a trait that defines the interface for loading modules.
 /// Contrary to rquickjs's Loader, self is not mutable, and it is expected to be thread safe.
@@ -9,6 +9,7 @@ pub trait Loader {
         &self,
         ctx: &rquickjs::prelude::Ctx<'js>,
         path: &str,
+        attributes: Option<ImportAttributes<'js>>,
     ) -> rquickjs::Result<rquickjs::Module<'js, rquickjs::module::Declared>>;
 }
 
@@ -17,7 +18,13 @@ pub trait Loader {
 /// Contrary to rquickjs's Resolver, self is not mutable, and it is expected to be thread safe.
 /// This is because the resolver will be shared across multiple runtimes, and it should be able to handle concurrent requests.
 pub trait Resolver {
-    fn resolve<'js>(&self, ctx: &Ctx<'js>, base: &str, name: &str) -> rquickjs::Result<String>;
+    fn resolve<'js>(
+        &self,
+        ctx: &Ctx<'js>,
+        base: &str,
+        name: &str,
+        attributes: Option<ImportAttributes<'js>>,
+    ) -> rquickjs::Result<String>;
 }
 
 /// QuickWrap is a wrapper around a Loader or Resolver that allows it to be shared across multiple runtimes.
@@ -38,8 +45,9 @@ where
         &self,
         ctx: &rquickjs::prelude::Ctx<'js>,
         path: &str,
+        attributes: Option<ImportAttributes<'js>>,
     ) -> rquickjs::Result<rquickjs::Module<'js, rquickjs::module::Declared>> {
-        self.0.lock().load(ctx, path)
+        self.0.lock().load(ctx, path, attributes)
     }
 }
 
@@ -47,7 +55,13 @@ impl<T> Resolver for QuickWrap<T>
 where
     T: rquickjs::loader::Resolver,
 {
-    fn resolve<'js>(&self, ctx: &Ctx<'js>, base: &str, name: &str) -> rquickjs::Result<String> {
-        self.0.lock().resolve(ctx, base, name)
+    fn resolve<'js>(
+        &self,
+        ctx: &Ctx<'js>,
+        base: &str,
+        name: &str,
+        attributes: Option<ImportAttributes<'js>>,
+    ) -> rquickjs::Result<String> {
+        self.0.lock().resolve(ctx, base, name, attributes)
     }
 }

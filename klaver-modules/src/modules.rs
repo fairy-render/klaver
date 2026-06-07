@@ -1,4 +1,4 @@
-use rquickjs::{Ctx, Module};
+use rquickjs::{loader::ImportAttributes, Ctx, Module};
 use std::sync::Arc;
 
 use crate::{
@@ -51,10 +51,11 @@ impl rquickjs::loader::Loader for Modules {
         &mut self,
         ctx: &Ctx<'js>,
         name: &str,
+        attributes: Option<ImportAttributes<'js>>,
     ) -> rquickjs::Result<Module<'js, rquickjs::module::Declared>> {
         let mut error = None;
         for loader in self.0.loaders.iter() {
-            match loader.load(ctx, name) {
+            match loader.load(ctx, name, attributes.clone()) {
                 Ok(ret) => return Ok(ret),
                 Err(err) => {
                     error = Some(err);
@@ -67,9 +68,15 @@ impl rquickjs::loader::Loader for Modules {
 }
 
 impl rquickjs::loader::Resolver for Modules {
-    fn resolve<'js>(&mut self, ctx: &Ctx<'js>, base: &str, name: &str) -> rquickjs::Result<String> {
+    fn resolve<'js>(
+        &mut self,
+        ctx: &Ctx<'js>,
+        base: &str,
+        name: &str,
+        attributes: Option<ImportAttributes<'js>>,
+    ) -> rquickjs::Result<String> {
         for resolver in self.0.resolvers.iter() {
-            if let Ok(ret) = resolver.resolve(ctx, base, name) {
+            if let Ok(ret) = resolver.resolve(ctx, base, name, attributes.clone()) {
                 return Ok(ret);
             }
         }

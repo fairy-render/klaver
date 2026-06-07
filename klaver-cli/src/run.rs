@@ -5,9 +5,13 @@ use rquickjs::{CatchResultExt, Object, Value};
 pub async fn run(vm: Vm, source: Option<&str>, exec: bool, types: bool) -> color_eyre::Result<()> {
     if let Some(source) = source {
         if exec {
-            klaver::async_with!(vm => |ctx| {
-              ctx.eval_promise(source).catch(&ctx)?.into_future::<()>().await.catch(&ctx)?;
-              Ok(())
+            vm.async_with(async |ctx| {
+                ctx.eval_promise(source)
+                    .catch(&ctx)?
+                    .into_future::<()>()
+                    .await
+                    .catch(&ctx)?;
+                Ok(())
             })
             .await?;
         } else if types {
@@ -32,13 +36,22 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool, types: bool) -> color
             let sig = line_editor.read_line(&prompt);
             match sig {
                 Ok(Signal::Success(buffer)) => {
-                    let ret = klaver::async_with!(vm => |ctx| {
-                      let ret = ctx.eval_promise(buffer).catch(&ctx)?.into_future::<Object<'_>>().await.catch(&ctx)?;
-                      let ret = ret.get::<_, Value>("value")?;
-                      println!("{}", klaver_core::value::format(&ctx, &ret, Default::default())?);
-                      Ok(())
-                    })
-                    .await;
+                    let ret = vm
+                        .async_with(async |ctx| {
+                            let ret = ctx
+                                .eval_promise(buffer)
+                                .catch(&ctx)?
+                                .into_future::<Object<'_>>()
+                                .await
+                                .catch(&ctx)?;
+                            let ret = ret.get::<_, Value>("value")?;
+                            println!(
+                                "{}",
+                                klaver_core::value::format(&ctx, &ret, Default::default())?
+                            );
+                            Ok(())
+                        })
+                        .await;
 
                     if let Err(err) = ret {
                         eprintln!("{err}");

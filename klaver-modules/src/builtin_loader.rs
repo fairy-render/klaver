@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rquickjs::{Ctx, Error, Module};
+use rquickjs::{loader::ImportAttributes, Ctx, Error, Module};
 
 use crate::modules_builder::LoadFn;
 
@@ -19,6 +19,7 @@ impl Loader for BuiltinLoader {
         &self,
         ctx: &Ctx<'js>,
         path: &str,
+        _attributes: Option<ImportAttributes<'js>>,
     ) -> rquickjs::Result<Module<'js, rquickjs::module::Declared>> {
         if let Some(load) = self.modules.get(path) {
             (load)(ctx.clone(), Vec::from(path))

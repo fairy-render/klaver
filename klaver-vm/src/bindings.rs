@@ -1,8 +1,12 @@
+use klaver_core::{Registry, throw, throw_if, value::StringRef};
 use klaver_modules::WeakEnviron;
-use rquickjs::{class::{JsClass, Trace}, context::EvalOptions,  CatchResultExt, Class, Ctx, JsLifetime, Promise, Value};
-use klaver_core::{value::StringRef, Registry, throw, throw_if};
+use rquickjs::{
+    CatchResultExt, Class, Ctx, JsLifetime, Promise, Value,
+    class::{JsClass, Trace},
+    context::EvalOptions,
+};
 
-use crate::{Vm, async_with};
+use crate::Vm;
 
 #[derive(JsLifetime)]
 #[rquickjs::class(rename = "Vm")]
@@ -13,8 +17,6 @@ pub struct JsVm {
 impl<'js> Trace<'js> for JsVm {
     fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}
 }
-
-
 
 #[rquickjs::methods]
 impl JsVm {
@@ -43,19 +45,28 @@ impl JsVm {
         script_path: StringRef<'js>,
     ) -> rquickjs::Result<Value<'js>> {
         let script_path = script_path.as_str();
-        let ret = async_with!(self.vm => |ctx| {
 
-          let mut opts = EvalOptions::default();
-          opts.promise = true;
+        let ret = self
+            .vm
+            .async_with(async |ctx| {
+                let mut opts = EvalOptions::default();
+                opts.promise = true;
 
-          let value = ctx.eval_file_with_options::<Promise, _>(script_path, opts).catch(&ctx)?.into_future::<Value>().await.catch(&ctx)?;
-          let registry = Registry::instance(&ctx)?;
+                let value = ctx
+                    .eval_file_with_options::<Promise, _>(script_path, opts)
+                    .catch(&ctx)?
+                    .into_future::<Value>()
+                    .await
+                    .catch(&ctx)?;
+                let registry = Registry::instance(&ctx)?;
 
-          let data = registry.serialize(&ctx, &value, &Default::default()).catch(&ctx)?;
-    
-          Ok(data)
-        })
-        .await;
+                let data = registry
+                    .serialize(&ctx, &value, &Default::default())
+                    .catch(&ctx)?;
+
+                Ok(data)
+            })
+            .await;
 
         let ret = throw_if!(ctx, ret);
 
@@ -72,16 +83,25 @@ impl JsVm {
         script: StringRef<'js>,
     ) -> rquickjs::Result<Value<'js>> {
         let script = script.as_str();
-        let ret = async_with!(self.vm => |ctx| {
 
-          let value = ctx.eval_promise(script).catch(&ctx)?.into_future::<Value>().await.catch(&ctx)?;
-          let registry = Registry::instance(&ctx)?;
-          
-          let data = registry.serialize(&ctx, &value, &Default::default()).catch(&ctx)?;
-    
-          Ok(data)
-        })
-        .await;
+        let ret = self
+            .vm
+            .async_with(async |ctx| {
+                let value = ctx
+                    .eval_promise(script)
+                    .catch(&ctx)?
+                    .into_future::<Value>()
+                    .await
+                    .catch(&ctx)?;
+                let registry = Registry::instance(&ctx)?;
+
+                let data = registry
+                    .serialize(&ctx, &value, &Default::default())
+                    .catch(&ctx)?;
+
+                Ok(data)
+            })
+            .await;
 
         let ret = throw_if!(ctx, ret);
 
@@ -92,11 +112,11 @@ impl JsVm {
     }
 }
 
-
 impl<'js> klaver_core::Exportable<'js> for JsVm {
     fn export<T>(ctx: &Ctx<'js>, _registry: &Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: klaver_core::ExportTarget<'js> {
+        T: klaver_core::ExportTarget<'js>,
+    {
         target.set(ctx, JsVm::NAME, Class::<JsVm>::create_constructor(ctx)?)?;
         Ok(())
     }

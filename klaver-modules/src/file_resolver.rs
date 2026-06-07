@@ -1,5 +1,6 @@
 use crate::loader::Resolver;
 use oxc_resolver::ResolveOptions;
+use rquickjs::loader::ImportAttributes;
 use std::{
     borrow::Cow,
     path::{Path, PathBuf},
@@ -31,6 +32,7 @@ impl Resolver for ModuleResolver {
         _ctx: &rquickjs::Ctx<'js>,
         base: &str,
         name: &str,
+        attributes: Option<ImportAttributes<'js>>,
     ) -> rquickjs::Result<String> {
         let parent: Cow<'_, Path> = if base.is_empty() {
             self.work_dir.as_path().into()
