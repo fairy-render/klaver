@@ -1,6 +1,6 @@
 use klaver::Vm;
 use reedline::{DefaultPrompt, Reedline, Signal};
-use rquickjs::{CatchResultExt, Value};
+use rquickjs::{CatchResultExt, Object, Value};
 
 pub async fn run(vm: Vm, source: Option<&str>, exec: bool, types: bool) -> color_eyre::Result<()> {
     if let Some(source) = source {
@@ -33,7 +33,8 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool, types: bool) -> color
             match sig {
                 Ok(Signal::Success(buffer)) => {
                     let ret = klaver::async_with!(vm => |ctx| {
-                      let ret = ctx.eval_promise(buffer).catch(&ctx)?.into_future::<Value<'_>>().await.catch(&ctx)?;
+                      let ret = ctx.eval_promise(buffer).catch(&ctx)?.into_future::<Object<'_>>().await.catch(&ctx)?;
+                      let ret = ret.get::<_, Value>("value")?;
                       println!("{}", klaver_core::value::format(&ctx, &ret, Default::default())?);
                       Ok(())
                     })

@@ -9,8 +9,8 @@ use futures::channel::oneshot;
 use klaver_core::{
     Exportable, Subclass, throw,
     value::structured_clone::{
-        Clonable, NativeData, SerializationContext, SerializationOptions, StructuredClone, Tag,
-        TransObject, TransferData,
+        Clonable, NativeData, NativeObject, SerializationContext, SerializationOptions,
+        StructuredClone, Tag, TransObject, TransferData,
     },
 };
 use klaver_runtime::{AsyncState, Resource, ResourceId};
@@ -25,9 +25,25 @@ pub struct Message {
 }
 
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Channel {
     remote: Sender<Message>,
     rx: Arc<Receiver<Message>>,
+}
+
+#[cfg_attr(feature = "serde", typetag::serde)]
+impl NativeObject for Channel {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any + Send + Sync> {
+        self
+    }
 }
 
 #[rquickjs::class]

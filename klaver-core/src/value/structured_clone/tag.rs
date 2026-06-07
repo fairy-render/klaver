@@ -21,6 +21,27 @@ enum Inner {
 
 pub struct Tag(Inner);
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Tag {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.inner().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Tag {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let id = u32::deserialize(deserializer)?;
+        Ok(Tag(Inner::Value(id)))
+    }
+}
+
 impl Tag {
     pub const fn new() -> Tag {
         Tag(Inner::Lazy(LazyLock::new(|| next_id())))

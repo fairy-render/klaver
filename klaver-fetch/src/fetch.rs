@@ -18,7 +18,7 @@ impl<'js> FetchInit<'js> {
     pub fn to_native_request(
         self,
         ctx: &Ctx<'js>,
-        client: &Client,
+        _client: &Client,
         init: Option<RequestInit<'js>>,
     ) -> rquickjs::Result<(
         http::Request<JsBody<'js>>,

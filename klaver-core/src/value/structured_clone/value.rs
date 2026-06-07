@@ -6,11 +6,12 @@ use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hash};
 
 use super::tag::Tag;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct ObjectId(pub(super) u32);
 
-#[cfg_attr(feature = "serde", feature(serde::Serialize, serde::Deserialize))]
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TransferData {
     String(String),
@@ -25,7 +26,7 @@ pub enum TransferData {
     Option(Option<Box<TransferData>>),
 }
 
-#[cfg_attr(feature = "serde", feature(serde::Serialize, serde::Deserialize))]
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TransObject {
     Data {
@@ -38,7 +39,7 @@ pub enum TransObject {
     },
 }
 
-#[cfg_attr(feature = "serde", feature(serde::Serialize, serde::Deserialize))]
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone)]
 #[rquickjs::class]
 pub struct NativeData {
@@ -91,7 +92,7 @@ impl Ord for NativeData {
         self.id.cmp(&other.id)
     }
 }
-#[cfg_attr(feature = "serde", typetag::serde(tag = "nativeType"))]
+// #[cfg_attr(feature = "serde", typetag::serde(tag = "nativeType"))]
 pub trait NativeObject: Send + Sync + DynClone {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -104,23 +105,24 @@ impl Clone for Box<dyn NativeObject> {
         dyn_clone::clone_box(&**self)
     }
 }
+// #[cfg_attr(feature = "serde", typetag::serialize(name = "NativeObject"))]
+// impl<T> NativeObject for T
+// where
+//     T: 'static + Send + Sync + Clone,
+// {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
 
-impl<T> NativeObject for T
-where
-    T: 'static + Send + Sync + Clone,
-{
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
+//     fn as_any_mut(&mut self) -> &mut dyn Any {
+//         self
+//     }
 
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
+//     fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+//         self
+//     }
+// }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
-        self
-    }
-}
 impl Debug for Box<dyn NativeObject> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("NativeObject")

@@ -1,4 +1,38 @@
 #[macro_export]
+macro_rules! exception {
+    ($ctx: expr, $err: expr) => {
+        return {
+            use $crate::AsContext;
+            $crate::error::Exception::throw_message($ctx.as_ctx(), &*$err.to_string())
+        }
+    };
+    (@type $ctx: expr, $err: expr) => {
+        return {
+            use $crate::AsContext;
+            $crate::error::Exception::throw_type($ctx.as_ctx(), &*$err.to_string())
+        }
+    };
+    (@range $ctx: expr, $err: expr) => {
+        return {
+            use $crate::AsContext;
+            $crate::error::Exception::throw_range($ctx.as_ctx(), &*$err.to_string())
+        }
+    };
+    (@internal $ctx: expr, $err: expr) => {
+        return {
+            use $crate::AsContext;
+            $crate::error::Exception::throw_internal($ctx.as_ctx(), &*$err.to_string())
+        }
+    };
+    (@reference $ctx: expr, $err: expr) => {
+        return {
+            use $crate::AsContext;
+            $crate::error::Exception::throw_reference($ctx.as_ctx(), &*$err.to_string())
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! throw {
     ($ctx: expr, $err: expr) => {
         return {

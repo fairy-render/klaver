@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-klaver-core = { path = "../klaver-core" }
+klaver-core = { path = "../klaver-core", features = ["serde"] }
 klaver-modules = { path = "../klaver-modules" }
 rquickjs.workspace = true
 handlebars = { version = "6" }

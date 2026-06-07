@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-serde = ["dep:serde", "module"]
+serde = ["dep:serde", "module", "typetag", "klaver-core/serde"]
 module = ["klaver-modules"]
 
 [dependencies]
@@ -26,3 +26,4 @@ encoding_rs = { version = "0.8" }
 base64 = { version = "0.22" }
 
 serde = { version = "1", features = ["derive"], optional = true }
+typetag = { version = "0.2", optional = true }

@@ -1,4 +1,7 @@
-use klaver_core::{throw_if, value::StringRef};
+use klaver_core::{
+    throw_if,
+    value::{Json, StringRef},
+};
 use rquickjs::{class::Trace, Ctx};
 
 #[derive(rquickjs::JsLifetime)]
@@ -24,7 +27,7 @@ impl Handlebars {
         &self,
         ctx: Ctx<'_>,
         name: StringRef<'_>,
-        context: Val,
+        context: Json,
     ) -> rquickjs::Result<String> {
         let output = throw_if!(ctx, self.i.render(name.as_str(), &context.0));
         Ok(output)

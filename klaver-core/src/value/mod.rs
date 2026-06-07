@@ -8,7 +8,7 @@ mod extensions;
 mod finalization_registry;
 mod format;
 pub mod iterable;
-#[cfg(feature = "json")]
+#[cfg(feature = "serde")]
 mod json;
 mod map;
 mod primordials;
@@ -32,6 +32,9 @@ pub use self::{
     string_ref::StringRef, tuples::*, typed_array::*, typed_map::*, typed_multi_map::*, util::*,
     weak_map::WeakMap,
 };
+
+#[cfg(feature = "serde")]
+pub use self::json::Json;
 
 pub mod prelude {
     pub use super::context::AsContext;
