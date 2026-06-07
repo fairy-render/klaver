@@ -24,7 +24,7 @@ members = [
   "klaver-fs",
   "klaver-hbs",
   "klaver-core",
-  "klaver-worker"
+  # "klaver-worker"
 ]
 
 [workspace.dependencies]

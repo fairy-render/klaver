@@ -1,4 +1,5 @@
 mod module;
+mod resource;
 mod work;
 mod worker;
 

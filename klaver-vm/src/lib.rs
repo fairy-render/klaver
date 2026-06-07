@@ -10,6 +10,7 @@ mod util;
 mod vm;
 #[cfg(feature = "worker")]
 mod worker;
+// mod worker2;
 
 #[cfg(feature = "worker")]
 pub use self::worker::{Worker, WorkerRuntime};

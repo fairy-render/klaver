@@ -1,8 +1,9 @@
 use flume::{Receiver, Sender};
-use klaver_base::{
-    Emitter, EventKey, EventList, EventTarget, , MessageChannel, MessagePort,
+use klaver_base::{Emitter, EventKey, EventList, EventTarget, MessageChannel, MessagePort};
+use klaver_core::{
+    Exportable, Registry, RuntimeError, Subclass,
+    value::{StringRef, structured_clone::SerializationOptions},
 };
-use klaver_core::{RuntimeError, Subclass, value::StringRef,Exportable, Registry};
 use rquickjs::{
     AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
     String, Value,
@@ -116,11 +117,11 @@ impl<'js> WebWorker<'js> {
 impl<'js> Exportable<'js> for WebWorker<'js> {
     fn export<T>(
         ctx: &Ctx<'js>,
-        _registry: &klaver_base::Registry,
+        _registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(
             ctx,
@@ -134,33 +135,31 @@ impl<'js> Exportable<'js> for WebWorker<'js> {
     }
 }
 
-async fn listen<'js>(
-    ctx: Ctx<'js>,
-    mut kill: Shutdown,
-    rx: Receiver<TransObject>,
-    worker: Class<'js, WebWorker<'js>>,
-) -> rquickjs::Result<()> {
-    loop {
-        if kill.is_killed() {
-            return Ok(());
-        }
+// async fn listen<'js>(
+//     ctx: Ctx<'js>,
+//     mut kill: Shutdown,
+//     rx: Receiver<TransObject>,
+//     worker: Class<'js, WebWorker<'js>>,
+// ) -> rquickjs::Result<()> {
+//     loop {
+//         if kill.is_killed() {
+//             return Ok(());
+//         }
 
-        futures::select! {
-            ret = rx.recv_async() => {
+//         futures::select! {
+//             ret = rx.recv_async() => {
 
-                let Ok(ret) = ret else {
-                    // Channel closed, which means the worker thread is terminated
-                    return Ok(())
-                };
+//                 let Ok(ret) = ret else {
+//                     // Channel closed, which means the worker thread is terminated
+//                     return Ok(())
+//                 };
 
+//             }
+//             _ = kill => {
+//                 return Ok(())
+//             }
+//         }
+//     }
 
-
-            }
-            _ = kill => {
-                return Ok(())
-            }
-        }
-    }
-
-    Ok(())
-}
+//     Ok(())
+// }

@@ -7,6 +7,8 @@ edition = "2024"
 klaver-runtime = { path = "../klaver-runtime" }
 klaver-base = { path = "../klaver-base" }
 klaver-core = { path = "../klaver-core" }
+klaver-vm = { path = "../klaver-vm", features = ["worker"] }
+klaver-modules = { path = "../klaver-modules" }
 rquickjs.workspace = true
 
 

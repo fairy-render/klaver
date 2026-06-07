@@ -1,8 +1,8 @@
 use std::{any::Any, future::Future, pin::Pin};
 
 use futures::channel::oneshot;
+use klaver_core::RuntimeError;
 use klaver_modules::Environ;
-use klaver_util::RuntimeError;
 use rquickjs::{Ctx, runtime::MemoryUsage};
 
 use crate::{Vm, VmOptions};
