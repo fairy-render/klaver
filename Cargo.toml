@@ -21,7 +21,8 @@ members = [
   "klaver-runtime",
   "klaver-image",
   "klaver-dom",
-  #"klaver-fs",
+  "klaver-fs",
+  "klaver-hbs",
   "klaver-core"
 ]
 

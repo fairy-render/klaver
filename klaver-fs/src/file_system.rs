@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use klaver_base::Exportable;
-use klaver_util::{throw, throw_if};
+use klaver_core::Exportable;
+use klaver_core::{throw, throw_if};
 use rquickjs::{
     Class, Ctx, JsLifetime, String,
     class::{JsClass, Trace},
@@ -66,11 +66,11 @@ impl<'js> FileSystem<'js> {
 impl<'js> Exportable<'js> for FileSystem<'js> {
     fn export<T>(
         ctx: &Ctx<'js>,
-        registry: &klaver_base::Registry,
+        registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(
             ctx,

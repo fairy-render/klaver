@@ -1,8 +1,13 @@
 use std::pin::Pin;
 
 use futures::{Stream, TryStreamExt, stream::BoxStream};
-use klaver_base::Exportable;
-use klaver_util::{StringRef, sync::AsyncLock, throw, throw_if};
+use klaver_core::Exportable;
+use klaver_core::{
+    sync::AsyncLock,
+    throw, throw_if,
+    value::StringRef,
+    value::async_iterator::{NativeAsyncIterator, StreamAsyncIterator},
+};
 use pin_project_lite::pin_project;
 use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, String, Value,
@@ -75,10 +80,9 @@ impl FileSystemEntry {
         let future = this.borrow().path.read_dir();
         let stream = throw_if!(ctx, future.await);
 
-        let stream =
-            klaver_util::StreamAsyncIterator::new(stream.map_ok(|path| FileSystemEntry { path }));
+        let stream = StreamAsyncIterator::new(stream.map_ok(|path| FileSystemEntry { path }));
 
-        let iterator = klaver_util::NativeAsyncIterator::new(stream);
+        let iterator = NativeAsyncIterator::new(stream);
         let iterator_class = Class::instance(ctx.clone(), iterator)?;
 
         Ok(iterator_class.into_value())
@@ -131,11 +135,11 @@ impl FileSystemEntry {
 impl<'js> Exportable<'js> for FileSystemEntry {
     fn export<T>(
         ctx: &Ctx<'js>,
-        _registry: &klaver_base::Registry,
+        _registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(
             ctx,

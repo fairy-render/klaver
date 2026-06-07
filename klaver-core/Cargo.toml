@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["async", "structured-clone"]
+default = ["async", "structured-clone", "serde"]
 chrono = ["dep:chrono"]
 async = ["dep:futures", "dep:pin-project-lite", "dep:async-stream"]
 structured-clone = ["dep:dyn-clone", "dep:ordered-float", "dep:indexmap"]
-serde = ["dep:typetag", "dep:serde"]
+serde = ["dep:typetag", "dep:serde", "dep:serde_json"]
 
 
 [dependencies]
@@ -32,3 +32,4 @@ indexmap = { version = "2", optional = true }
 
 typetag = { version = "0.2", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }

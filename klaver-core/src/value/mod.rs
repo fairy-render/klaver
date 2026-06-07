@@ -8,6 +8,8 @@ mod extensions;
 mod finalization_registry;
 mod format;
 pub mod iterable;
+#[cfg(feature = "json")]
+mod json;
 mod map;
 mod primordials;
 mod regexp;

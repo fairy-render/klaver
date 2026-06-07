@@ -1,5 +1,5 @@
-use klaver_base::Exportable;
-use klaver_util::{Buffer, Bytes, sync::AsyncLock, throw, throw_if};
+use klaver_core::Exportable;
+use klaver_core::{sync::AsyncLock, throw, throw_if, value::Buffer, value::Bytes};
 use rquickjs::{
     ArrayBuffer, Class, Ctx, JsLifetime, String,
     class::{JsClass, Trace},
@@ -80,11 +80,11 @@ impl<'js> File<'js> {
 impl<'js> Exportable<'js> for File<'js> {
     fn export<T>(
         ctx: &Ctx<'js>,
-        _registry: &klaver_base::Registry,
+        _registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         target.set(ctx, File::NAME, Class::<File>::create_constructor(ctx))?;
         Ok(())

@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use klaver_base::{Exportable, Registry};
+use klaver_core::value::StringRef;
+use klaver_core::{Exportable, Registry};
 use klaver_modules::{Global, GlobalInfo, module_info};
-use klaver_util::StringRef;
 use rquickjs::{
     Ctx,
     class::JsClass,
@@ -17,11 +17,11 @@ pub struct FsModule;
 impl<'js> Exportable<'js> for FsModule {
     fn export<T>(
         ctx: &rquickjs::Ctx<'js>,
-        registry: &klaver_base::Registry,
+        registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         FileSystem::export(ctx, registry, target)?;
         FileSystemEntry::export(ctx, registry, target)?;
