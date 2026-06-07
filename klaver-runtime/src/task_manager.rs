@@ -151,6 +151,10 @@ impl TaskManager {
     }
 
     /// Remove a task
+    /// id: Task to remove
+    /// ctx: Context for hooks
+    /// hooks: Hooks to call on destroy
+    /// detach: If true, the task will be detached from its parent instead of being destroyed
     pub fn destroy_task<'js>(
         &self,
         id: AsyncId,

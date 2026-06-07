@@ -11,23 +11,22 @@ chan.port1.addEventListener("message", (e) => {
   chan.port1.close();
 });
 
-// throw new Error("sasasS");
+const console = new Console((level, msg) => {
+  print(`[${level}] ${msg}`);
+});
 
-// try {
-//   const port2 = structuredClone(chan.port2, {
-//     // transfer: [chan.port2],
-//   });
-// } catch (e) {
-//   console.error("Error cloning port", e);
-// }
+try {
+  const port2 = structuredClone(chan.port2, {
+    transfer: [chan.port2],
+  });
+  port2.postMessage("HEllo");
+} catch (e) {
+  console.log("Error cloning port", e);
+}
 
 // const port2 = structuredClone(chan.port2);
 
 // chan.port2.postMessage("HEllo");
-
-const console = new Console((level, msg) => {
-  print(`[${level}] ${msg}`);
-});
 
 console.log(typeof MessageChannel);
 

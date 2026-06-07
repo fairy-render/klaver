@@ -116,11 +116,30 @@ impl<'js> TaskExecutor<'js> {
           }
         };
 
+        let cleanup = || {
+            self.manager.destroy_task(id, ctx, &self.hooks, true)?;
+            rquickjs::Result::Ok(())
+        };
+
+        let ret = match ret {
+            Ok(ret) => Ok(ret),
+            Err(err) => {
+                // *self.exception.borrow_mut() = Some(err.into());
+                cleanup()?;
+                return Err(err);
+            }
+        };
+
+        if let Some(found) = self.exception.borrow().clone() {
+            cleanup()?;
+            throw!(ctx, found);
+        }
+
         if execution.wait {
             self.manager.wait_children(id).await;
         }
 
-        self.manager.destroy_task(id, ctx, &self.hooks, true)?;
+        cleanup()?;
 
         if let Some(found) = self.exception.borrow().clone() {
             throw!(ctx, found);
