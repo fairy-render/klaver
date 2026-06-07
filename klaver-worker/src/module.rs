@@ -1,4 +1,4 @@
-use klaver_base::{Exportable, Registry};
+use klaver_core::{Exportable, Registry};
 use rquickjs::{class::JsClass, module::ModuleDef};
 
 use crate::WebWorker;
@@ -25,7 +25,7 @@ impl ModuleDef for WorkerModule {
 impl<'js> Exportable<'js> for WorkerModule {
     fn export<T>(ctx: &rquickjs::Ctx<'js>, registry: &Registry, target: &T) -> rquickjs::Result<()>
     where
-        T: klaver_base::ExportTarget<'js>,
+        T: klaver_core::ExportTarget<'js>,
     {
         WebWorker::export(ctx, registry, target)?;
         Ok(())

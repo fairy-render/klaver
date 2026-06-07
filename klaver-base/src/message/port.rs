@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    Emitter, EventList, EventTarget, Registry,
+    Emitter, EventList, EventTarget,
     message::{MessageEvent, event::MessageEventOptions},
 };
 use flume::{Receiver, Sender};
@@ -10,9 +10,10 @@ use klaver_core::{
     Exportable, Subclass, throw,
     value::structured_clone::{
         Clonable, NativeData, NativeObject, SerializationContext, SerializationOptions,
-        StructuredClone, Tag, TransObject, TransferData,
+        StructuredClone, Tag, TransObject, TransferData, register,
     },
 };
+use klaver_core::{Registry, throw_if};
 use klaver_runtime::{AsyncState, Resource, ResourceId};
 use rquickjs::{
     Class, Ctx, Function, JsLifetime, String, Value,
@@ -226,7 +227,7 @@ impl<'js> Exportable<'js> for MessagePort<'js> {
 
         MessagePort::inherit(ctx)?;
 
-        registry.register::<Self>(ctx)?;
+        register::<Self>(ctx, registry)?;
 
         Ok(())
     }
@@ -252,7 +253,20 @@ impl StructuredClone for MessagePortCloner {
         ctx: &mut SerializationContext<'js, '_>,
         obj: TransferData,
     ) -> rquickjs::Result<Self::Item<'js>> {
-        todo!()
+        match obj {
+            TransferData::NativeObject(data) => {
+                let any = data.instance.into_any();
+                let channel = throw_if!(
+                    ctx,
+                    any.downcast::<Channel>()
+                        .map_err(|_| "Invalid object: Expected Channel")
+                );
+
+                let port = MessagePort::from_channel(*channel);
+                Class::instance(ctx.ctx().clone(), port)
+            }
+            _ => throw!(ctx, "Invalid transfer data for MessagePort"),
+        }
     }
 
     fn to_transfer_object<'js>(
@@ -260,7 +274,7 @@ impl StructuredClone for MessagePortCloner {
         value: &Self::Item<'js>,
     ) -> rquickjs::Result<TransferData> {
         if !ctx.should_move(value.as_value()) {
-            throw!(ctx, "Move")
+            throw!(ctx, "MessagePort cannot be cloned: It is not transferable")
         }
 
         let channel = value.borrow_mut().detach(ctx.ctx())?;

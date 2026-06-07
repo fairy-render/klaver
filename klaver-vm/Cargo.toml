@@ -12,7 +12,6 @@ pool = ["deadpool", "worker", "parallel", "tokio"]
 [dependencies]
 klaver-modules = { path = "../klaver-modules" }
 klaver-runtime = { path = "../klaver-runtime" }
-klaver-base = { path = "../klaver-base" }
 klaver-core = { path = "../klaver-core" }
 rquickjs = { workspace = true }
 futures.workspace = true

@@ -143,7 +143,6 @@ impl Registry {
     ) -> rquickjs::Result<Value<'js>> {
         let tag = get_tag_value(ctx, value)?;
         let cloner = self.get_by_tag(ctx, &tag)?;
-
         let (_, data) = self.serialize_inner(&cloner, ctx, value, options)?;
 
         let mut ctx = SerializationContext::new(ctx.clone(), self, options);

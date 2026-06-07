@@ -1,25 +1,35 @@
 // import { CountQueuingStrategy, WritableStream, ReadableStream, WritableStreamDefaultController, Console, EventTarget, AbortSignal, MessageChannel, structuredClone } from 'quick:base'
 
-const output = []
+const output = [];
 
-
-const chan = new MessageChannel
+const chan = new MessageChannel();
 
 chan.port1.start();
 
-chan.port1.addEventListener('message', (e) => {
-  console.log('message', e.data);
-  chan.port1.close()
-})
+chan.port1.addEventListener("message", (e) => {
+  console.log("message", e.data);
+  chan.port1.close();
+});
 
-chan.port2.postMessage("HEllo")
+// throw new Error("sasasS");
 
+// try {
+//   const port2 = structuredClone(chan.port2, {
+//     // transfer: [chan.port2],
+//   });
+// } catch (e) {
+//   console.error("Error cloning port", e);
+// }
+
+// const port2 = structuredClone(chan.port2);
+
+// chan.port2.postMessage("HEllo");
 
 const console = new Console((level, msg) => {
-  print(`[${level}] ${msg}`)
-})
+  print(`[${level}] ${msg}`);
+});
 
-console.log(typeof MessageChannel)
+console.log(typeof MessageChannel);
 
 console.log(new AbortSignal() instanceof EventTarget);
 
@@ -29,9 +39,9 @@ const test = {
   hello: "world",
   date: date,
   sub: {
-    date
-  }
-}
+    date,
+  },
+};
 
 test.self = test;
 
@@ -43,25 +53,24 @@ console.log(test);
 
 // })
 
-console.debug("rapra")
+console.debug("rapra");
 
 const writeStream = new WritableStream({
   start: () => {
-    print("Started")
+    print("Started");
   },
   async write(chunk) {
-    print('write')
-    output.push(chunk)
-    print("write done")
+    print("write");
+    output.push(chunk);
+    print("write done");
   },
   close() {
-    print("Close")
+    print("Close");
   },
   abort(reason) {
-    print("Aborted " + reason)
-  }
+    print("Aborted " + reason);
+  },
 });
-
 
 var idx = 0;
 
@@ -73,29 +82,26 @@ const readStream = new ReadableStream({
         ctrl.enqueue("Hello");
         break;
       case 1:
-        ctrl.enqueue("World")
+        ctrl.enqueue("World");
       default:
         ctrl.close();
     }
     idx++;
-  }
-})
+  },
+});
 
-console.time('pipe')
+console.time("pipe");
 await readStream.pipeTo(writeStream);
-console.timeEnd("pipe")
-print('output ' + output.join(" "))
+console.timeEnd("pipe");
+print("output " + output.join(" "));
 
+const stream = ReadableStream.from([1, 2, 3, 4]);
 
-const stream = ReadableStream.from([1,2,3,4]);
-
-for await(const next of stream) {
-  
-  console.log('next',next, stream.locked)
+for await (const next of stream) {
+  console.log("next", next, stream.locked);
 }
 
-console.log(stream.locked)
-
+console.log(stream.locked);
 
 // let reader = readStream.getReader();
 

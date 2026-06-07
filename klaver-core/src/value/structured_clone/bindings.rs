@@ -10,7 +10,6 @@ pub fn structured_clone<'js>(
     options: Opt<SerializationOptions<'js>>,
 ) -> rquickjs::Result<Value<'js>> {
     let opts = options.0.unwrap_or_default();
-
     Registry::instance(&ctx)?.structured_clone_value(&ctx, &value, &opts)
 }
 

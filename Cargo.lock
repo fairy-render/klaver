@@ -2528,7 +2528,6 @@ dependencies = [
  "deadpool",
  "flume",
  "futures",
- "klaver-base",
  "klaver-core",
  "klaver-modules",
  "klaver-runtime",
@@ -2550,6 +2549,18 @@ dependencies = [
  "klaver-timers",
  "rquickjs",
  "tokio",
+]
+
+[[package]]
+name = "klaver-worker"
+version = "0.1.0"
+dependencies = [
+ "flume",
+ "futures",
+ "klaver-base",
+ "klaver-core",
+ "klaver-runtime",
+ "rquickjs",
 ]
 
 [[package]]

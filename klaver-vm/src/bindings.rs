@@ -1,7 +1,6 @@
-use klaver_base::{ Registry};
 use klaver_modules::WeakEnviron;
 use rquickjs::{class::{JsClass, Trace}, context::EvalOptions,  CatchResultExt, Class, Ctx, JsLifetime, Promise, Value};
-use klaver_core::{value::StringRef, throw, throw_if};
+use klaver_core::{value::StringRef, Registry, throw, throw_if};
 
 use crate::{Vm, async_with};
 

@@ -23,7 +23,8 @@ members = [
   "klaver-dom",
   "klaver-fs",
   "klaver-hbs",
-  "klaver-core"
+  "klaver-core",
+  "klaver-worker"
 ]
 
 [workspace.dependencies]

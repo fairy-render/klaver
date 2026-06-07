@@ -2,11 +2,11 @@ use klaver_core::{Exportable, value::structured_clone};
 use rquickjs::{Ctx, class::JsClass, module::ModuleDef, prelude::Func};
 
 pub struct BaseModule;
-
 use crate::{
-    Console, EventTarget, Registry, abort_controller::AbortController, abort_signal::AbortSignal,
-    blob::Blob, dom_exception::DOMException, events::Event, file::File,
+    Console, EventTarget, abort_controller::AbortController, abort_signal::AbortSignal, blob::Blob,
+    dom_exception::DOMException, events::Event, file::File,
 };
+use klaver_core::Registry;
 
 impl ModuleDef for BaseModule {
     fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {

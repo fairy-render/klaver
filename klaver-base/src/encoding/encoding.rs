@@ -1,17 +1,6 @@
 use klaver_core::value::{Buffer, StringRef};
 use rquickjs::{Ctx, Exception, Result, Value, class::Trace, function::Opt};
 
-// #[derive(Debug)]
-// pub struct UnknownEncoding;
-
-// impl fmt::Display for UnknownEncoding {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "unknown encoding")
-//     }
-// }
-
-// impl std::error::Error for UnknownEncoding {}
-
 #[derive(rquickjs::JsLifetime)]
 #[rquickjs::class]
 pub struct TextDecoder {

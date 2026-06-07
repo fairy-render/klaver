@@ -1,4 +1,4 @@
-use klaver_base::{AbortSignal, Emitter, EventTarget, Registry, streams::WritableStream};
+use klaver_base::{AbortSignal, Emitter, EventTarget, streams::WritableStream};
 use klaver_core::{
     Exportable, Inheritable, RuntimeError, Subclass, SuperClass,
     value::{StringRef, is_plain_object},
@@ -36,7 +36,11 @@ impl<'js> Runner<'js> for Base {
             }),
         )?;
 
-        klaver_base::BaseModule::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals())?;
+        klaver_base::BaseModule::export(
+            &ctx,
+            &klaver_core::Registry::instance(&ctx)?,
+            &ctx.globals(),
+        )?;
 
         let (_, promise) =
             Module::declare(ctx.ctx().clone(), "main", include_str!("./test.js"))?.eval()?;

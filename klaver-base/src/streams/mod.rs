@@ -7,7 +7,7 @@ pub mod writable;
 
 use rquickjs::class::JsClass;
 
-use crate::Registry;
+use klaver_core::Registry;
 
 pub use self::{
     queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy, QueuingStrategy},

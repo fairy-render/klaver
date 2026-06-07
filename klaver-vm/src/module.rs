@@ -21,4 +21,4 @@ impl ModuleDef for VmModule {
     }
 }
 
-module_info!("klaver:vm" @types: include_str!("../klaver.vm.d.ts") => VmModule);
+module_info!("@klaver/vm" @types: include_str!("../klaver.vm.d.ts") => VmModule);

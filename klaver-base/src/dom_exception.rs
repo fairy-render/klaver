@@ -155,7 +155,11 @@ impl<'js> Clonable for DOMException<'js> {
 }
 
 impl<'js> Exportable<'js> for DOMException<'js> {
-    fn export<T>(ctx: &Ctx<'js>, registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        registry: &klaver_core::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
     where
         T: klaver_core::ExportTarget<'js>,
     {

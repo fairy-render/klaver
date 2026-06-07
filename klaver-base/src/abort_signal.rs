@@ -74,7 +74,11 @@ impl<'js> Emitter<'js> for AbortSignal<'js> {
 impl<'js> Subclass<'js, EventTarget<'js>> for AbortSignal<'js> {}
 
 impl<'js> klaver_core::Exportable<'js> for AbortSignal<'js> {
-    fn export<T>(ctx: &Ctx<'js>, _registry: &crate::Registry, target: &T) -> rquickjs::Result<()>
+    fn export<T>(
+        ctx: &Ctx<'js>,
+        _registry: &klaver_core::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
     where
         T: klaver_core::ExportTarget<'js>,
     {

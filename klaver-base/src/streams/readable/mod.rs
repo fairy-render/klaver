@@ -31,7 +31,7 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
 
 pub fn export<'js, T: ExportTarget<'js>>(
     ctx: &rquickjs::Ctx<'js>,
-    registry: &crate::Registry,
+    registry: &klaver_core::Registry,
     exports: &T,
 ) -> rquickjs::Result<()> {
     export!(

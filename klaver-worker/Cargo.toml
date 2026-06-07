@@ -4,11 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-klaver-task = { path = "../klaver-task" }
+klaver-runtime = { path = "../klaver-runtime" }
 klaver-base = { path = "../klaver-base" }
-klaver-util = { path = "../klaver-util" }
+klaver-core = { path = "../klaver-core" }
 rquickjs.workspace = true
-rquickjs-util = { path = "../rquickjs-util" }
 
 
 futures = { version = "0.3" }
