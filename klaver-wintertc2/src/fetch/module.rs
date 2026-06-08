@@ -1,0 +1,66 @@
+use klaver_core::{Exportable, Registry};
+use rquickjs::{
+    class::JsClass,
+    module::ModuleDef,
+    prelude::{Async, Func},
+};
+
+use super::{Headers, URLSearchParams, Url, fetch::fetch, request::Request, response::Response};
+
+pub struct FetchModule;
+
+impl ModuleDef for FetchModule {
+    fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
+        decl.declare(Headers::NAME)?;
+        decl.declare(Url::NAME)?;
+        decl.declare(Request::NAME)?;
+        decl.declare(Response::NAME)?;
+        decl.declare(URLSearchParams::NAME)?;
+        decl.declare("fetch")?;
+        Ok(())
+    }
+
+    fn evaluate<'js>(
+        ctx: &rquickjs::Ctx<'js>,
+        exports: &rquickjs::module::Exports<'js>,
+    ) -> rquickjs::Result<()> {
+        Self::export(ctx, &Registry::instance(ctx)?, exports)
+    }
+}
+
+impl<'js> Exportable<'js> for FetchModule {
+    fn export<T>(
+        ctx: &rquickjs::Ctx<'js>,
+        registry: &klaver_core::Registry,
+        target: &T,
+    ) -> rquickjs::Result<()>
+    where
+        T: klaver_core::ExportTarget<'js>,
+    {
+        Headers::export(ctx, registry, target)?;
+        Url::export(ctx, registry, target)?;
+        URLSearchParams::export(ctx, registry, target)?;
+        Request::export(ctx, registry, target)?;
+        Response::export(ctx, registry, target)?;
+
+        target.set(ctx, "fetch", Func::from(Async(fetch)))?;
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "module")]
+impl klaver_modules::Global for FetchModule {
+    async fn define<'a, 'js: 'a>(&'a self, ctx: rquickjs::Ctx<'js>) -> rquickjs::Result<()> {
+        Self::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals())?;
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "module")]
+impl klaver_modules::GlobalInfo for FetchModule {
+    fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
+        builder.register(Self);
+    }
+}

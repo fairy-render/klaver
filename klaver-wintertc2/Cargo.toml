@@ -1,0 +1,89 @@
+[package]
+name = "klaver-wintertc2"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["fetch", "timers", "crypto", "intl", "streams", "module"]
+fetch = [
+    "bytes",
+    "http",
+    "http-body",
+    "http-body-util",
+    "serde_json",
+    "url",
+    "form_urlencoded",
+    "urlencoding",
+    "multer",
+]
+timers = []
+crypto = ["rand", "uuid", "sha1", "sha2"]
+intl = [
+    "icu",
+    "icu_provider",
+    "localzone",
+    "chrono-tz",
+    "chrono",
+    "sys-locale",
+    "fixed_decimal",
+    "klaver-core/chrono",
+]
+intl-baked = ["intl", "icu/compiled_data"]
+
+streams = ["async-trait", "async-stream"]
+
+tokio = ["reqwest"]
+module = ["klaver-modules"]
+
+[dependencies]
+rquickjs = { workspace = true }
+klaver-core = { path = "../klaver-core" }
+klaver-runtime = { path = "../klaver-runtime" }
+klaver-modules = { path = "../klaver-modules", optional = true }
+
+
+futures.workspace = true
+pin-project-lite = { version = "0.2" }
+flume.workspace = true
+
+## Encoding
+encoding_rs = { version = "0.8" }
+base64 = { version = "0.22" }
+
+## Fetch
+bytes = { version = "1", optional = true }
+http = { version = "1", optional = true }
+http-body = { version = "1", optional = true }
+http-body-util = { version = "0.1", optional = true }
+serde_json = { version = "1", optional = true }
+url = { version = "2", optional = true }
+form_urlencoded = { version = "1", optional = true }
+urlencoding = { version = "2", optional = true }
+multer = { version = "3", optional = true }
+
+reqwest = { version = "0.13", optional = true }
+
+## Crypto
+rand = { version = "0.10", optional = true }
+uuid = { version = "1", features = ["v4"], optional = true }
+sha1 = { version = "0.11", optional = true }
+sha2 = { version = "0.11", optional = true }
+
+## Intl
+icu = { version = "1.5.0", default-features = false, features = [
+    "experimental",
+    "std",
+], optional = true }
+icu_provider = { version = "1.5.0", optional = true }
+localzone = { version = "0.3", optional = true }
+chrono-tz = { version = "0.10", optional = true }
+chrono = { version = "0.4", optional = true }
+sys-locale = { version = "0.3", optional = true }
+fixed_decimal = { version = "0.5", features = ["ryu"], optional = true }
+
+## Streams
+async-trait = { version = "0.1", optional = true }
+async-stream = { version = "0.3", optional = true }
+
+
+serde = { version = "1", features = ["derive"], optional = true }

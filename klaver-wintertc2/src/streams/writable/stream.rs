@@ -1,0 +1,181 @@
+use klaver_core::{sync::listener, throw};
+use klaver_runtime::{AsyncState, Resource, ResourceId};
+use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace, prelude::Opt};
+
+use crate::streams::{data::StreamData, queue_strategy::QueuingStrategy};
+
+use super::{
+    controller::WritableStreamDefaultController,
+    underlying_sink::{JsUnderlyingSink, UnderlyingSink},
+    writer::WritableStreamDefaultWriter,
+};
+
+#[derive(Trace)]
+#[rquickjs::class]
+pub struct WritableStream<'js> {
+    state: Class<'js, StreamData<'js>>,
+}
+
+unsafe impl<'js> JsLifetime<'js> for WritableStream<'js> {
+    type Changed<'to> = WritableStream<'to>;
+}
+
+#[rquickjs::methods]
+impl<'js> WritableStream<'js> {
+    #[qjs(constructor)]
+    fn new(ctx: Ctx<'js>, sink: JsUnderlyingSink<'js>) -> rquickjs::Result<WritableStream<'js>> {
+        let state = StreamData::new(QueuingStrategy::create_default(&ctx)?);
+
+        let state = Class::instance(ctx.clone(), state)?;
+
+        let ctrl = Class::instance(
+            ctx.clone(),
+            WritableStreamDefaultController {
+                data: state.clone(),
+            },
+        )?;
+
+        let state_clone = state.clone();
+        // let worker = Workers::from_ctx(&ctx)?;
+        // worker.push(ctx.clone(), |ctx, shutdown| async move {
+        //     write(
+        //         ctx.clone(),
+        //         UnderlyingSink::Quick(sink),
+        //         ctrl,
+        //         state_clone,
+        //         shutdown,
+        //     )
+        //     .await
+        //     .catch(&ctx)?;
+        //     Ok(())
+        // });
+        AsyncState::push(
+            &ctx,
+            WritableStreamResource {
+                sink: UnderlyingSink::Quick(sink),
+                ctrl,
+                data: state_clone,
+            },
+        )?;
+
+        // write(
+        //     ctx.clone(),
+        //     UnderlyingSink::Quick(sink),
+        //     ctrl,
+        //     state.clone(),
+        // )?;
+
+        Ok(WritableStream { state })
+    }
+
+    async fn abort(
+        &self,
+        ctx: Ctx<'js>,
+        reason: Opt<Value<'js>>,
+    ) -> rquickjs::Result<Option<Value<'js>>> {
+        if self.state.borrow().is_locked() {
+            throw!(@type ctx, "The stream you are trying to abort is locked.")
+        }
+        let writer = self.get_writer(ctx.clone())?;
+
+        let ret = writer.abort(ctx, reason);
+
+        ret
+    }
+
+    #[qjs(rename = "getWriter")]
+    pub fn get_writer(&self, ctx: Ctx<'js>) -> rquickjs::Result<WritableStreamDefaultWriter<'js>> {
+        if self.state.borrow().is_locked() {
+            throw!(@type ctx, "The stream you are trying to create a writer for is already locked to another writer")
+        }
+
+        self.state.borrow_mut().lock(&ctx)?;
+
+        Ok(WritableStreamDefaultWriter {
+            ctrl: Some(self.state.clone()),
+        })
+    }
+
+    async fn close(&self, ctx: Ctx<'js>) -> rquickjs::Result<()> {
+        let writer = self.get_writer(ctx.clone())?;
+        writer.close(ctx).await?;
+
+        Ok(())
+    }
+
+    #[qjs(get)]
+    fn locked(&self) -> rquickjs::Result<bool> {
+        Ok(self.state.borrow().is_locked())
+    }
+}
+
+klaver_core::create_export!(WritableStream<'js>);
+
+struct WritableStreamResourceKey;
+
+impl ResourceId for WritableStreamResourceKey {
+    fn name() -> &'static str {
+        "WritabeStream"
+    }
+}
+
+struct WritableStreamResource<'js> {
+    sink: UnderlyingSink<'js>,
+    ctrl: Class<'js, WritableStreamDefaultController<'js>>,
+    data: Class<'js, StreamData<'js>>,
+}
+
+impl<'js> Resource<'js> for WritableStreamResource<'js> {
+    type Id = WritableStreamResourceKey;
+    const INTERNAL: bool = true;
+    const SCOPED: bool = true;
+
+    async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
+        if let Err(err) = self.sink.start(&ctx, self.ctrl.clone()).await {
+            if err.is_exception() {
+                let failure = ctx.catch();
+                self.data.borrow_mut().fail(ctx.ctx(), failure).ok();
+            }
+            return Ok(());
+        }
+
+        loop {
+            if self.data.borrow().is_aborted() {
+                self.sink
+                    .abort(&ctx, self.data.borrow().abort_reason())
+                    .await
+                    .ok();
+                break;
+            }
+
+            if self.data.borrow().is_closed() && self.data.borrow().queue.is_empty() {
+                self.sink.close(&ctx, self.ctrl.clone()).await.ok();
+                self.data.borrow_mut().finished().ok();
+                break;
+            }
+
+            if self.data.borrow().is_failed() {
+                break;
+            }
+
+            let Some(chunk) = self.data.borrow_mut().pop() else {
+                let notify = self.data.borrow().wait.clone();
+                listener!(notify => listener);
+                listener.await;
+                continue;
+            };
+
+            if let Err(err) = self.sink.write(&ctx, chunk.chunk, self.ctrl.clone()).await {
+                if err.is_exception() {
+                    let failure = ctx.catch();
+                    chunk.reject.call::<_, ()>((failure.clone(),)).ok();
+                    self.data.borrow_mut().fail(ctx.ctx(), failure).ok();
+                }
+                break;
+            }
+
+            chunk.resolve.call::<_, ()>(()).ok();
+        }
+        Ok(())
+    }
+}
