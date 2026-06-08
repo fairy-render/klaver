@@ -5,7 +5,7 @@ globalThis.onmessage = (event) => {
 }
 
 
-
+await fetch("https://jsonplaceholder.typicode.com/todos/1")
 
 globalThis.postMessage('Hello from worker');
 
