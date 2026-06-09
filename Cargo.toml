@@ -20,7 +20,7 @@ members = [
   "klaver-core",
   "klaver-worker"
 , "klaver-wintertc"
-]
+, "klaver-modules2"]
 
 [workspace.dependencies]
 rquickjs = { version = "0.12", features = [

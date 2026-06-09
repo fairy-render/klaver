@@ -2422,6 +2422,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-modules2"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "klaver-core",
+ "oxc_resolver",
+ "par-core",
+ "relative-path",
+ "rquickjs",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_codegen",
+ "swc_ecma_parser",
+ "swc_ecma_transforms",
+ "swc_ecma_visit",
+ "swc_node_comments",
+ "swc_sourcemap",
+ "tracing",
+]
+
+[[package]]
 name = "klaver-runtime"
 version = "0.1.0"
 dependencies = [

@@ -1,0 +1,79 @@
+use std::sync::{Arc, Weak};
+
+use klaver_core::{RuntimeError, throw};
+use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, JsLifetime};
+
+use crate::{Typings, global::Globals, loader::ModuleLoader};
+
+struct Inner {
+    pub(crate) modules: ModuleLoader,
+    pub(crate) globals: Globals,
+    pub(crate) typings: Typings,
+}
+
+/// Environ is a struct that contains the modules, globals and typings for the environment.
+/// It is used to create the runtime and to attach the globals to the context.
+#[derive(Clone)]
+pub struct Environ(Arc<Inner>);
+
+impl Environ {
+    pub fn new(modules: ModuleLoader, globals: Globals, typings: Typings) -> Environ {
+        Environ(Arc::new(Inner {
+            modules,
+            globals,
+            typings,
+        }))
+    }
+
+    pub fn modules(&self) -> &ModuleLoader {
+        &self.0.modules
+    }
+
+    pub fn typings(&self) -> &Typings {
+        &self.0.typings
+    }
+
+    /// Creates a new runtime and attaches the modules to it.
+    pub async fn create_runtime(&self) -> Result<AsyncRuntime, RuntimeError> {
+        let runtime = AsyncRuntime::new()?;
+
+        self.0.modules.attach(&runtime).await?;
+
+        Ok(runtime)
+    }
+
+    /// Initializes the environment by attaching the globals to the context and storing the environment in the context.
+    pub async fn init(&self, context: &AsyncContext) -> Result<(), RuntimeError> {
+        context
+            .async_with(async |ctx| {
+                klaver_core::register(&ctx).catch(&ctx)?;
+                self.0.globals.attach(ctx.clone()).await.catch(&ctx)?;
+                ctx.store_userdata(self.downgrade())
+                    .map_err(|err| RuntimeError::Custom(Box::from(err.to_string())))?;
+                Result::<_, RuntimeError>::Ok(())
+            })
+            .await?;
+
+        Ok(())
+    }
+
+    pub fn downgrade(&self) -> WeakEnviron {
+        WeakEnviron(Arc::downgrade(&self.0))
+    }
+}
+
+#[derive(Clone)]
+pub struct WeakEnviron(Weak<Inner>);
+
+unsafe impl<'js> JsLifetime<'js> for WeakEnviron {
+    type Changed<'to> = WeakEnviron;
+}
+
+impl WeakEnviron {
+    pub fn upgrade<'js>(self, ctx: &Ctx<'js>) -> rquickjs::Result<Environ> {
+        match self.0.upgrade() {
+            Some(ret) => Ok(Environ(ret)),
+            None => throw!(ctx, "Could not upgrade environment"),
+        }
+    }
+}
