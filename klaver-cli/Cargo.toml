@@ -20,7 +20,7 @@ klaver-core = { path = "../klaver-core" }
 klaver-vm = { path = "../klaver-vm" }
 
 klaver-image = { path = "../klaver-image" }
-klaver-dom = { path = "../klaver-dom" }
+# klaver-dom = { path = "../klaver-dom" }
 klaver-runtime = { path = "../klaver-runtime", features = ["module"] }
 klaver-fs = { path = "../klaver-fs" }
 klaver-worker = { path = "../klaver-worker" }

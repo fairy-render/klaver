@@ -23,7 +23,7 @@ impl Cli {
             .search_path(".")
             .module::<klaver_vm::VmModule>()
             .module::<klaver_image::Module>()
-            .module::<klaver_dom::Module>()
+            // .module::<klaver_dom::Module>()
             .module::<klaver_fs::FsModule>()
             .module::<klaver_runtime::TaskModule>();
 

@@ -23,7 +23,7 @@ pub use self::{
 
 pub fn register(ctx: &rquickjs::Ctx) -> rquickjs::Result<()> {
     let core = Core::new(ctx)?;
-    ctx.globals().set("$_runtime", core)?;
+    ctx.globals().set("$runtime", core)?;
     crate::value::register(ctx)?;
 
     Ok(())

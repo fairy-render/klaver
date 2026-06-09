@@ -16,7 +16,7 @@ impl<'js> Core<'js> {
 
 impl<'js> Core<'js> {
     pub fn from_ctx(ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Class<'js, Core<'js>>> {
-        ctx.globals().get::<_, Class<'js, Core<'js>>>("$_runtime")
+        ctx.globals().get::<_, Class<'js, Core<'js>>>("$runtime")
     }
 
     pub fn register<T: IntoJs<'js>>(
@@ -24,8 +24,7 @@ impl<'js> Core<'js> {
         name: impl ToString,
         item: T,
     ) -> rquickjs::Result<()> {
-        self.items
-            .set(name.to_string(), item.into_js(self.items.ctx()))?;
+        self.items.set(name.to_string(), item)?;
         Ok(())
     }
 

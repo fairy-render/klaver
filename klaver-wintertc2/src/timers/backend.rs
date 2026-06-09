@@ -1,16 +1,21 @@
 use std::time::Instant;
 
 use futures::future::LocalBoxFuture;
-use rquickjs::JsLifetime;
+use klaver_core::throw;
+use rquickjs::{Ctx, JsLifetime};
 
-pub trait Backend {
+pub trait TimerBackend {
     type Timer: Future<Output = ()>;
 
     fn create_timer(&self, instant: Instant) -> Self::Timer;
 }
 
 trait DynBackend {
-    fn create_timer(&self, instant: Instant) -> LocalBoxFuture<'static, ()>;
+    fn create_timer(
+        &self,
+        ctx: &Ctx<'_>,
+        instant: Instant,
+    ) -> rquickjs::Result<LocalBoxFuture<'static, ()>>;
 }
 
 pub struct TimingBackend {
@@ -21,23 +26,46 @@ pub struct TimingBackend {
 impl TimingBackend {
     pub fn new<T>(backend: T) -> TimingBackend
     where
-        T: Backend + 'static,
+        T: TimerBackend + 'static,
         T::Timer: 'static,
     {
         struct Back<T>(T);
 
         impl<T> DynBackend for Back<T>
         where
-            T: Backend,
+            T: TimerBackend,
             T::Timer: 'static,
         {
-            fn create_timer(&self, instant: Instant) -> LocalBoxFuture<'static, ()> {
-                Box::pin(self.0.create_timer(instant))
+            fn create_timer(
+                &self,
+                _ctx: &Ctx<'_>,
+                instant: Instant,
+            ) -> rquickjs::Result<LocalBoxFuture<'static, ()>> {
+                Ok(Box::pin(self.0.create_timer(instant)))
             }
         }
 
         TimingBackend {
             backend: Box::new(Back(backend)),
+            shutdown: false,
+        }
+    }
+
+    pub fn null() -> TimingBackend {
+        struct NullBackend;
+
+        impl DynBackend for NullBackend {
+            fn create_timer(
+                &self,
+                ctx: &Ctx<'_>,
+                _instant: Instant,
+            ) -> rquickjs::Result<LocalBoxFuture<'static, ()>> {
+                throw!(ctx, "Timing backend not defined")
+            }
+        }
+
+        TimingBackend {
+            backend: Box::new(NullBackend),
             shutdown: false,
         }
     }
@@ -55,8 +83,12 @@ impl TimingBackend {
         self.shutdown
     }
 
-    pub fn create_timer(&self, instant: Instant) -> LocalBoxFuture<'static, ()> {
-        self.backend.create_timer(instant)
+    pub fn create_timer(
+        &self,
+        ctx: &Ctx<'_>,
+        instant: Instant,
+    ) -> rquickjs::Result<LocalBoxFuture<'static, ()>> {
+        self.backend.create_timer(ctx, instant)
     }
 }
 

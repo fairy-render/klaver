@@ -6,15 +6,15 @@ edition = "2024"
 [features]
 swc = ["klaver-modules/swc-transform"]
 
-full = ["fetch", "crypto", "intl-backed"]
+full = ["fetch", "crypto", "intl"]
 
-fetch = ["klaver-wintertc/fetch"]
-crypto = ["klaver-wintertc/crypto"]
-intl = ["klaver-wintertc/intl"]
-intl-backed = ["klaver-wintertc/intl-backed"]
+fetch = ["klaver-wintertc2/fetch"]
+crypto = ["klaver-wintertc2/crypto"]
+intl = ["klaver-wintertc2/intl"]
+intl-baked = ["klaver-wintertc2/intl-baked"]
 
 [dependencies]
-klaver-wintertc = { path = "../klaver-wintertc", features = [
+klaver-wintertc2 = { path = "../klaver-wintertc2", features = [
     "module",
     "tokio",
 ] }

@@ -20,10 +20,30 @@ pub mod fetch;
 #[cfg(feature = "intl")]
 pub mod intl;
 
+mod backend;
+
 pub mod streams;
 #[cfg(feature = "timers")]
 pub mod timers;
 
 mod module;
 
-pub use self::{module::WinterCG, settings::Settings};
+pub use self::{
+    backend::Backend,
+    module::WinterCG,
+    settings::{Settings, WinterTcInstance},
+};
+
+#[cfg(feature = "tokio")]
+pub use self::backend::TokioBackend;
+
+pub fn set_backend<T>(ctx: &rquickjs::Ctx<'_>, backend: T) -> rquickjs::Result<()>
+where
+    T: Backend + Send + Sync + 'static,
+{
+    let state = WinterTcInstance::from_ctx(ctx)?;
+    state
+        .borrow_mut()
+        .set_backend(ctx, std::sync::Arc::new(backend))?;
+    Ok(())
+}

@@ -1,4 +1,4 @@
-use crate::{abort_controller::AbortSignal, events::Emitter};
+use crate::{abort_controller::AbortSignal, events::Emitter, settings::WinterTcInstance};
 use futures::{FutureExt, StreamExt};
 use klaver_core::{StringExt, throw};
 use rquickjs::{Class, Coerced, Ctx, FromJs, String, prelude::Opt};

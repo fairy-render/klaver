@@ -15,6 +15,8 @@ impl<'js> klaver_modules::GlobalInfo for WinterCG {
     fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
         use crate::base::BaseModule;
 
+        builder.register(WinterCG);
+
         builder.global_dependency::<BaseModule>();
         #[cfg(feature = "intl")]
         builder.global_dependency::<crate::intl::IntlModule>();
@@ -24,8 +26,6 @@ impl<'js> klaver_modules::GlobalInfo for WinterCG {
         builder.global_dependency::<crate::fetch::FetchModule>();
         #[cfg(feature = "timers")]
         builder.global_dependency::<crate::timers::TimeModule>();
-
-        builder.register(WinterCG);
     }
 }
 

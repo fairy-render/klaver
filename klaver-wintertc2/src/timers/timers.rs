@@ -7,6 +7,8 @@ use klaver_core::throw;
 use klaver_runtime::{AsyncState, Resource, ResourceId, TaskHandle};
 use rquickjs::{Class, Ctx, Function, JsLifetime, class::Trace, prelude::Opt};
 
+use crate::settings::WinterTcInstance;
+
 use super::{backend::TimingBackend, id::TimeId};
 
 #[rquickjs::class]
@@ -44,9 +46,9 @@ impl Timers {
         timeout: Opt<u64>,
         repeat: Opt<bool>,
     ) -> rquickjs::Result<TimeId> {
-        let Some(_) = ctx.userdata::<TimingBackend>() else {
-            throw!(@type &ctx, "Timing backend not defined")
-        };
+        // let Some(_) = ctx.userdata::<TimingBackend>() else {
+        //     throw!(@type &ctx, "Timing backend not defined")
+        // };
 
         let timeout = Duration::from_millis(timeout.unwrap_or(0));
 
@@ -99,10 +101,13 @@ impl<'js> Resource<'js> for TimeoutResource<'js> {
     async fn run(self, ctx: klaver_runtime::Context<'js>) -> rquickjs::Result<()> {
         loop {
             let timeout = {
-                let Some(backend) = ctx.userdata::<TimingBackend>() else {
-                    throw!(@type &ctx, "TimingBackend not registered")
-                };
-                backend.create_timer(Instant::now() + self.timeout)
+                let winter = WinterTcInstance::from_ctx(ctx.ctx())?;
+
+                winter
+                    .borrow()
+                    .settings()
+                    .timers()
+                    .create_timer(ctx.ctx(), Instant::now() + self.timeout)?
             };
 
             let _ = timeout.await;

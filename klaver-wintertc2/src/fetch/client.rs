@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 
 use futures::future::LocalBoxFuture;
 use klaver_runtime::{AsyncState, Resource, ResourceId};
@@ -6,6 +6,8 @@ use klaver_runtime::{AsyncState, Resource, ResourceId};
 use http::{Request, Response, Uri};
 use klaver_core::{throw, throw_if};
 use rquickjs::{Ctx, JsLifetime, runtime::UserDataGuard};
+
+use crate::settings::WinterTcInstance;
 
 use super::{
     RemoteBodyProducer,
@@ -60,37 +62,27 @@ struct ClientState {
     base_url: Uri,
 }
 
-#[derive(JsLifetime)]
+#[derive(JsLifetime, Clone)]
 pub struct Client {
-    state: RefCell<ClientState>,
+    state: Rc<RefCell<ClientState>>,
 }
 
 impl Client {
     pub fn new() -> Self {
         Client {
-            state: RefCell::new(ClientState {
+            state: Rc::new(RefCell::new(ClientState {
                 local: None,
                 shared: None,
                 base_url: Uri::from_static("http://localhost:3000/"),
-            }),
+            })),
         }
     }
 
-    pub fn from_ctx<'a>(ctx: &'a Ctx<'_>) -> rquickjs::Result<UserDataGuard<'a, Client>> {
-        match ctx.userdata::<Client>() {
-            Some(ret) => Ok(ret),
-            None => {
-                ctx.store_userdata(Client {
-                    state: RefCell::new(ClientState {
-                        local: None,
-                        shared: None,
-                        base_url: Uri::from_static("http://localhost:3000/"),
-                    }),
-                })?;
+    pub fn from_ctx<'a>(ctx: &'a Ctx<'_>) -> rquickjs::Result<Client> {
+        let winter = WinterTcInstance::from_ctx(ctx)?;
+        let client = winter.borrow().settings().get_http_client().clone();
 
-                Ok(ctx.userdata::<Client>().unwrap())
-            }
-        }
+        Ok(client)
     }
 
     pub fn base_url(&self) -> Uri {

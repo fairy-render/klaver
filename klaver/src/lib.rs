@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use klaver_modules::{GlobalInfo, ModuleInfo, ResolveOptions};
 use klaver_vm::Options;
+use klaver_wintertc2::TokioBackend;
 use rquickjs::CatchResultExt;
 
 #[derive(Default)]
@@ -49,12 +50,10 @@ impl Builder {
             ));
         }
 
-        let vm = opts.global::<klaver_wintertc::WinterCG>().build().await?;
+        let vm = opts.global::<klaver_wintertc2::WinterCG>().build().await?;
 
         vm.async_with(async |ctx| {
-            klaver_wintertc::backend::Tokio::default()
-                .set_runtime(&ctx)
-                .catch(&ctx)?;
+            klaver_wintertc2::set_backend(&ctx, TokioBackend::default()).catch(&ctx)?;
             Ok(())
         })
         .await?;

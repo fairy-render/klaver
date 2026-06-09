@@ -7,25 +7,20 @@ exclude = ["OLD"]
 members = [
   "klaver-modules",
   "klaver-base",
-  "klaver-timers",
-  "klaver-fetch",
   "klaver-vm",
-  "klaver-wintertc",
   "klaver",
   #"klaver-os",
-  "klaver-util",
-  "klaver-crypto",
-  "klaver-intl",
   "klaver-cli",
-  "klaver-test",
+  # "klaver-test",
   "klaver-runtime",
   "klaver-image",
-  "klaver-dom",
+  # "klaver-dom",
   "klaver-fs",
   "klaver-hbs",
   "klaver-core",
   "klaver-worker"
-, "klaver-wintertc2"]
+, "klaver-wintertc2"
+]
 
 [workspace.dependencies]
 rquickjs = { version = "0.12", features = [
