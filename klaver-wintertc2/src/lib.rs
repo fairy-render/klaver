@@ -19,6 +19,7 @@ pub mod events;
 pub mod fetch;
 #[cfg(feature = "intl")]
 pub mod intl;
+
 pub mod streams;
 #[cfg(feature = "timers")]
 pub mod timers;
