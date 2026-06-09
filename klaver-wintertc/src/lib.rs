@@ -30,7 +30,7 @@ mod module;
 
 pub use self::{
     backend::Backend,
-    module::WinterCG,
+    module::WinterTC,
     settings::{Settings, WinterTcInstance},
 };
 

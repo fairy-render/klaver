@@ -2295,7 +2295,7 @@ dependencies = [
  "klaver-modules",
  "klaver-runtime",
  "klaver-vm",
- "klaver-wintertc2",
+ "klaver-wintertc",
  "rquickjs",
  "tokio",
 ]
@@ -2451,7 +2451,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "klaver-wintertc2"
+name = "klaver-wintertc"
 version = "0.1.0"
 dependencies = [
  "async-stream",

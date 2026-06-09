@@ -8,13 +8,13 @@ swc = ["klaver-modules/swc-transform"]
 
 full = ["fetch", "crypto", "intl"]
 
-fetch = ["klaver-wintertc2/fetch"]
-crypto = ["klaver-wintertc2/crypto"]
-intl = ["klaver-wintertc2/intl"]
-intl-baked = ["klaver-wintertc2/intl-baked"]
+fetch = ["klaver-wintertc/fetch"]
+crypto = ["klaver-wintertc/crypto"]
+intl = ["klaver-wintertc/intl"]
+intl-baked = ["klaver-wintertc/intl-baked"]
 
 [dependencies]
-klaver-wintertc2 = { path = "../klaver-wintertc2", features = [
+klaver-wintertc = { path = "../klaver-wintertc", features = [
     "module",
     "tokio",
 ] }

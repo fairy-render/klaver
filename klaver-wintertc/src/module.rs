@@ -3,19 +3,14 @@ use crate::console::{Console, StdConsoleWriter};
 use klaver_core::{Exportable, Registry};
 use rquickjs::Ctx;
 
-// pub struct WinterCG {
-//     #[cfg(feature = "fetch")]
-//     fetch: crate::fetch::Client,
-// }
-
-pub struct WinterCG;
+pub struct WinterTC;
 
 #[cfg(feature = "module")]
-impl<'js> klaver_modules::GlobalInfo for WinterCG {
+impl<'js> klaver_modules::GlobalInfo for WinterTC {
     fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
         use crate::base::BaseModule;
 
-        builder.register(WinterCG);
+        builder.register(WinterTC);
 
         builder.global_dependency::<BaseModule>();
         #[cfg(feature = "intl")]
@@ -30,7 +25,7 @@ impl<'js> klaver_modules::GlobalInfo for WinterCG {
 }
 
 #[cfg(feature = "module")]
-impl klaver_modules::Global for WinterCG {
+impl klaver_modules::Global for WinterTC {
     fn define<'a, 'js: 'a>(
         &'a self,
         ctx: Ctx<'js>,
@@ -38,14 +33,14 @@ impl klaver_modules::Global for WinterCG {
         async move {
             let registry = Registry::instance(&ctx)?;
 
-            WinterCG::export(&ctx, &registry, &ctx.globals())?;
+            WinterTC::export(&ctx, &registry, &ctx.globals())?;
 
             Ok(())
         }
     }
 }
 
-impl<'js> Exportable<'js> for WinterCG {
+impl<'js> Exportable<'js> for WinterTC {
     fn export<T>(
         ctx: &Ctx<'js>,
         _registry: &klaver_core::Registry,
