@@ -1,8 +1,8 @@
 use klaver_base::{Channel, MessagePort};
-use klaver_core::{Registry, throw, throw_if};
+use klaver_core::{Registry, throw_if};
 use klaver_modules::Environ;
-use klaver_runtime::{Resource, ResourceId, ResourceKind, Runner};
-use klaver_vm::{Vm, VmOptions, Worker};
+use klaver_runtime::{Resource, ResourceId, Runner};
+use klaver_vm::{VmOptions, Worker};
 use rquickjs::{Class, Function, Module, Value};
 
 pub struct WorkerResourceId {}

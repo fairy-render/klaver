@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 
-use futures::future::BoxFuture;
 use klaver_core::RuntimeError;
 use klaver_modules::Environ;
 use klaver_runtime::{EventLoop, Runner};

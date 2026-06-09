@@ -5,7 +5,7 @@ use klaver_runtime::{AsyncState, Resource, ResourceId};
 
 use http::{Request, Response, Uri};
 use klaver_core::{throw, throw_if};
-use rquickjs::{Ctx, JsLifetime, runtime::UserDataGuard};
+use rquickjs::{Ctx, JsLifetime};
 
 use crate::settings::WinterTcInstance;
 

@@ -9,5 +9,5 @@ pub struct TransformStream<'js> {
 }
 
 impl<'js> TransformStream<'js> {
-    pub fn new(transform: Opt<Transform<'js>>) {}
+    pub fn new(_transform: Opt<Transform<'js>>) {}
 }

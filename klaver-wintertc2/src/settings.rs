@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use klaver_core::{Core, throw_if};
 use rquickjs::{Class, Ctx, JsLifetime, class::Trace};

@@ -66,7 +66,7 @@ impl<'js> FileSystem<'js> {
 impl<'js> Exportable<'js> for FileSystem<'js> {
     fn export<T>(
         ctx: &Ctx<'js>,
-        registry: &klaver_core::Registry,
+        _registry: &klaver_core::Registry,
         target: &T,
     ) -> rquickjs::Result<()>
     where

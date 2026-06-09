@@ -1,5 +1,5 @@
 use klaver_core::Exportable;
-use klaver_core::{sync::AsyncLock, throw, throw_if, value::Buffer, value::Bytes};
+use klaver_core::{sync::AsyncLock, throw, throw_if, value::Buffer};
 use rquickjs::{
     ArrayBuffer, Class, Ctx, JsLifetime, String,
     class::{JsClass, Trace},

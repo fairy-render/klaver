@@ -6,7 +6,6 @@ mod writer;
 
 use rquickjs::class::JsClass;
 
-use klaver_core::Registry;
 
 pub use self::{
     controller::WritableStreamDefaultController, stream::WritableStream,

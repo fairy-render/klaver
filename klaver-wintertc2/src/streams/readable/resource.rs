@@ -34,7 +34,7 @@ impl<'js> Resource<'js> for ReadableStreamResource<'js> {
             },
         )?;
 
-        if let Err(err) = self.source.start(ctx.ctx().clone(), ctrl.clone()).await {
+        if let Err(_err) = self.source.start(ctx.ctx().clone(), ctrl.clone()).await {
             todo!()
         }
 
@@ -46,7 +46,7 @@ impl<'js> Resource<'js> for ReadableStreamResource<'js> {
                 // self.data.borrow_mut().state.set(StreamState::Done);
                 break;
             } else if self.data.borrow().is_cancled() {
-                if let Err(err) = self
+                if let Err(_err) = self
                     .source
                     .cancel(ctx.ctx().clone(), self.data.borrow().reason.clone())
                     .await
@@ -76,7 +76,7 @@ impl<'js> Resource<'js> for ReadableStreamResource<'js> {
 
             if should_pull {
                 ctrl.borrow_mut().enqueued = false;
-                if let Err(err) = self.source.pull(ctx.ctx().clone(), ctrl.clone()).await {
+                if let Err(_err) = self.source.pull(ctx.ctx().clone(), ctrl.clone()).await {
                     todo!()
                 }
 

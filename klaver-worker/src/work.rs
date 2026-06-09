@@ -1,14 +1,12 @@
-use futures::future::LocalBoxFuture;
-use klaver_base::{Channel, MessagePort};
-use klaver_core::{Registry, RuntimeError, value::structured_clone::TransferData};
-use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, Function, Module, Value};
+use klaver_core::value::structured_clone::TransferData;
+use rquickjs::{Ctx, Value};
 
 pub enum Message {
     Kill,
     Event(TransferData),
 }
 
-fn post_message<'js>(ctx: Ctx<'js>, msg: Value<'js>) -> rquickjs::Result<()> {
+fn post_message<'js>(_ctx: Ctx<'js>, _msg: Value<'js>) -> rquickjs::Result<()> {
     Ok(())
 }
 

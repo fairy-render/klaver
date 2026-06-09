@@ -1,19 +1,17 @@
-use flume::{Receiver, Sender};
-use klaver_base::{Emitter, EventKey, EventList, EventTarget, MessageChannel, MessagePort};
+use klaver_base::{Emitter, EventKey, MessageChannel, MessagePort};
 use klaver_core::{
-    Exportable, Registry, RuntimeError, Subclass,
-    value::{StringRef, structured_clone::SerializationOptions},
+    Exportable, Registry,
+    value::structured_clone::SerializationOptions,
 };
-use klaver_modules::{Environ, WeakEnviron};
+use klaver_modules::WeakEnviron;
 use klaver_runtime::{AsyncState, TaskHandle};
 use rquickjs::{
-    AsyncContext, AsyncRuntime, CatchResultExt, Class, Ctx, FromJs, Function, JsLifetime, Module,
-    String, Value,
+    Class, Ctx, FromJs, Function, JsLifetime, Value,
     class::{JsClass, Trace},
     prelude::Opt,
 };
 
-use crate::{resource::WorkerResource, work::Message};
+use crate::resource::WorkerResource;
 
 #[rquickjs::class(rename = "Worker")]
 pub struct WebWorker<'js> {

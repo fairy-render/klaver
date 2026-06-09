@@ -3,13 +3,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-use klaver_core::throw;
 use klaver_runtime::{AsyncState, Resource, ResourceId, TaskHandle};
 use rquickjs::{Class, Ctx, Function, JsLifetime, class::Trace, prelude::Opt};
 
 use crate::settings::WinterTcInstance;
 
-use super::{backend::TimingBackend, id::TimeId};
+use super::id::TimeId;
 
 #[rquickjs::class]
 pub struct Timers {
