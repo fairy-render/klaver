@@ -1,4 +1,5 @@
 use crate::{
+    WinterTcInstance,
     channel::{MessageChannel, MessagePort},
     events::{Emitter, EventKey},
 };
@@ -51,7 +52,15 @@ impl<'js> WebWorker<'js> {
             .clone()
             .upgrade(&ctx)?;
 
-        let resource = WorkerResource::new(path, env, channel, registry);
+        let winter = WinterTcInstance::from_ctx(&ctx)?;
+
+        let resource = WorkerResource::new(
+            path,
+            env,
+            channel,
+            registry,
+            winter.borrow().backend().clone(),
+        );
 
         let handle = AsyncState::push(&ctx, resource)?;
 

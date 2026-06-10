@@ -1,4 +1,9 @@
-use crate::channel::{Channel, MessagePort};
+use std::sync::Arc;
+
+use crate::{
+    Backend, WinterTcInstance,
+    channel::{Channel, MessagePort},
+};
 use klaver_core::{Registry, throw_if};
 use klaver_modules::Environ;
 use klaver_runtime::{Resource, ResourceId, Runner};
@@ -18,15 +23,23 @@ pub struct WorkerResource {
     env: Environ,
     channel: Channel,
     registry: Registry,
+    backend: Arc<dyn Backend + Send + Sync>,
 }
 
 impl<'a> WorkerResource {
-    pub fn new(path: String, env: Environ, channel: Channel, registry: Registry) -> Self {
+    pub fn new(
+        path: String,
+        env: Environ,
+        channel: Channel,
+        registry: Registry,
+        backend: Arc<dyn Backend + Send + Sync>,
+    ) -> Self {
         Self {
             path,
             env,
             channel,
             registry,
+            backend,
         }
     }
 }
@@ -42,10 +55,13 @@ impl<'js> Resource<'js> for WorkerResource {
             let worker = throw_if!(ctx.ctx(), Worker::new(self.env, VmOptions::default()).await);
             let registry = self.registry;
             let channel = self.channel;
+            let backend = self.backend;
             let ret = worker
                 .async_with(async move |ctx| {
                     registry.attach(&ctx)?;
-
+                    WinterTcInstance::from_ctx(&ctx)?
+                        .borrow_mut()
+                        .set_backend(&ctx, backend)?;
                     Ok(())
                 })
                 .await;

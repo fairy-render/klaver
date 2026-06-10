@@ -17,7 +17,6 @@ import { hello } from "./other.ts";
 
 hello();
 
-throw new Error("Hello");
 
 
 const worker = new Worker(new URL("./worker.ts", import.meta.url).href);
