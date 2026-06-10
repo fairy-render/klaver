@@ -48,4 +48,10 @@ impl klaver_modules::GlobalInfo for EncodingModule {
     fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
         builder.register(Self);
     }
+
+    fn typings() -> Option<std::borrow::Cow<'static, str>> {
+        Some(std::borrow::Cow::Borrowed(include_str!(
+            "../../types/encoding.d.ts"
+        )))
+    }
 }

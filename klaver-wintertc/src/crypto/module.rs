@@ -83,4 +83,10 @@ impl klaver_modules::GlobalInfo for CryptoModule {
     fn register(builder: &mut klaver_modules::GlobalBuilder<'_, Self>) {
         builder.register(CryptoModule {});
     }
+
+    fn typings() -> Option<std::borrow::Cow<'static, str>> {
+        Some(std::borrow::Cow::Borrowed(include_str!(
+            "../../types/crypto.d.ts"
+        )))
+    }
 }

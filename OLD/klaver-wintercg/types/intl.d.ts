@@ -1,5 +1,5 @@
 export namespace Intl {
-	export class Locale {}
+	export class Locale { }
 
 	export interface DateTimeFormatOptions {
 		timeZone?: string;

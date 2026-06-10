@@ -1,7 +1,33 @@
 /// <reference no-default-lib="true"/>
+/// <reference lib="es2021" />
+/// <reference lib="es2022.array" />
+/// <reference lib="es2022.error" />
+/// <reference lib="es2022.object" />
+/// <reference lib="es2022.sharedmemory" />
+/// <reference lib="es2022.string" />
 
-/// <reference lib="es2020" />
 
+declare interface ImportMeta {
+    url: string;
+}
+
+
+declare type Buffer =
+    | ArrayBuffer
+    | Uint8Array
+    | Int8Array
+    | Uint16Array
+    | Int16Array
+    | Uint32Array
+    | Int32Array;
+
+declare type TypedArray =
+    | Uint8Array
+    | Int8Array
+    | Uint16Array
+    | Int16Array
+    | Uint32Array
+    | Int32Array;
 
 // EventTarget
 
@@ -51,3 +77,21 @@ interface Console {
 }
 
 declare var console: Console;
+
+
+declare class TextEncoder {
+    constructor(label?: string);
+
+    readonly encoding: string;
+    encode(input: string): Uint8Array;
+}
+
+declare class TextDecoder {
+    constructor(label?: string);
+
+    readonly encoding: string;
+    decode(input: ArrayBuffer): string;
+}
+
+declare function atob(input: string): string;
+declare function btoa(input: string): string;

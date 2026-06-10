@@ -18,12 +18,17 @@ swc = [
   "anyhow",
   "par-core",
 ]
+filelist = ["geenie"]
 
 [dependencies]
 klaver-core = { path = "../klaver-core" }
 rquickjs = { workspace = true, features = ["loader"] }
 relative-path = { version = "2.0" }
 tracing = { version = "0.1", features = ["std"] }
+
+geenie = { git = "https://github.com/fairy-render/geenie.git", features = [
+  "fs",
+], optional = true }
 
 ## File resolver
 oxc_resolver = { version = "11.21", optional = true }

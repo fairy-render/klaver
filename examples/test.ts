@@ -1,4 +1,3 @@
-import { open } from "@klaver/fs";
 // import { Handlebars } from "@klaver/hbs";
 import { hello } from "./other.ts";
 
@@ -17,9 +16,12 @@ import { hello } from "./other.ts";
 
 hello();
 
+
+
 const path = await Fs.root.resolve("./store.js").open({ read: true });
 
 const content = await path.arrayBuffer();
+
 
 console.log(new TextDecoder().decode(content));
 

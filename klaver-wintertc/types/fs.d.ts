@@ -1,18 +1,18 @@
 
 
-interface File {
+declare interface File {
     read(len: number): Promise<ArrayBuffer>;
     arrayBuffer(): Promise<ArrayBuffer>;
     write(buffer: ArrayBuffer): Promise<void>;
 }
 
 
-interface FileSystem {
+declare interface FileSystem {
     readonly name: string;
     readonly root: FileSystemEntry
 }
 
-interface FileSystemEntry {
+declare interface FileSystemEntry {
     readonly fileName: string;
     readonly extension: string;
 
@@ -23,12 +23,12 @@ interface FileSystemEntry {
     open(opts: OpenOptions): Promise<File>
 }
 
-interface Metadata {
+declare interface Metadata {
     size: number;
     type: 'dir' | 'file'
 }
 
-interface OpenOptions {
+declare interface OpenOptions {
     read?: boolean;
     write?: boolean;
     append?: boolean;

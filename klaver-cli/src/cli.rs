@@ -25,16 +25,9 @@ impl Cli {
             .module::<klaver_vm::VmModule>()
             .module::<klaver_image::Module>()
             // .module::<klaver_dom::Module>()
-            .module::<klaver_fs::FsModule>()
             .module::<klaver_runtime::TaskModule>();
 
         let vm = builder.build().await?;
-
-        // vm.with(|ctx| {
-        //     WebWorker::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals()).catch(&ctx)?;
-        //     Ok(())
-        // })
-        // .await?;
 
         klaver_runtime::set_promise_hook(vm.runtime()).await;
 
@@ -53,7 +46,9 @@ impl Global for CliGlobal {
     ) -> impl Future<Output = rquickjs::Result<()>> + 'a {
         async move {
             //
-            let fs = klaver_fs::FileSystem::from_path(ctx.clone(), "main", &Path::new(".")).await?;
+            let fs =
+                klaver_wintertc::fs::FileSystem::from_path(ctx.clone(), "main", &Path::new("."))
+                    .await?;
             ctx.globals().set("Fs", fs)?;
             Ok(())
         }

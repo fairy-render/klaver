@@ -19,7 +19,7 @@ export type TimerId = unknown;
 
 export function setTimeout(callback: () => void, timeout?: number): unknown;
 
-export class Event {}
+export class Event { }
 
 export class EventTarget {
   constructor();
@@ -35,7 +35,7 @@ export class AbortController {
   abort(): void;
 }
 
-export class AbortSignal extends EventTarget {}
+export class AbortSignal extends EventTarget { }
 
 interface ConsoleApi {
   log(...args: unknown[]): void;

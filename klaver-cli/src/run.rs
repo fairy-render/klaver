@@ -15,7 +15,7 @@ pub async fn run(vm: Vm, source: Option<&str>, exec: bool, types: bool) -> color
             })
             .await?;
         } else if types {
-            // vm.env().typings().files().write_to(source, false).await?;
+            vm.env().typings().files().write_to(source, true).await?;
         } else {
             let path = if !(source.starts_with("../") && !source.starts_with("./")) {
                 format!("./{}", source)
