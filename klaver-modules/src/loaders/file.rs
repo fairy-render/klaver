@@ -2,11 +2,12 @@ use std::path::Path;
 
 use rquickjs::{Ctx, Module};
 
-use crate::Loader;
+use crate::{Loader, source_map::SourceMaps};
 
 pub trait Transformer {
     fn transform<'js>(
         &self,
+        sourcemaps: &SourceMaps,
         ctx: &Ctx<'js>,
         path: &Path,
         attributes: Option<rquickjs::loader::ImportAttributes<'js>>,
@@ -26,6 +27,7 @@ pub trait Transformer {
 impl Transformer for () {
     fn transform<'js>(
         &self,
+        _sourcemaps: &SourceMaps,
         ctx: &Ctx<'js>,
         path: &Path,
         _attributes: Option<rquickjs::loader::ImportAttributes<'js>>,
@@ -82,6 +84,7 @@ impl FileLoader {
 impl Loader for FileLoader {
     fn load<'js>(
         &self,
+        sourcemaps: &SourceMaps,
         ctx: &Ctx<'js>,
         path: &str,
         attributes: Option<rquickjs::loader::ImportAttributes<'js>>,
@@ -93,7 +96,7 @@ impl Loader for FileLoader {
             .ok_or_else(|| {
                 rquickjs::Error::new_loading_message(path, "No suitable transformer found")
             })?
-            .transform(ctx, Path::new(path), attributes)?;
+            .transform(sourcemaps, ctx, Path::new(path), attributes)?;
         module.meta()?.set("url", format!("file://{}", path))?;
         Ok(module)
     }

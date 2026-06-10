@@ -1,12 +1,11 @@
+use klaver_core::{RuntimeError, throw};
+use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, JsLifetime};
 use std::sync::{Arc, Weak};
 
-use klaver_core::{throw, RuntimeError};
-use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, JsLifetime};
-
-use crate::{globals::Globals, Modules, Typings};
+use crate::{Typings, global::Globals, loader::ModuleLoader};
 
 struct Inner {
-    pub(crate) modules: Modules,
+    pub(crate) modules: ModuleLoader,
     pub(crate) globals: Globals,
     pub(crate) typings: Typings,
 }
@@ -17,7 +16,7 @@ struct Inner {
 pub struct Environ(Arc<Inner>);
 
 impl Environ {
-    pub fn new(modules: Modules, globals: Globals, typings: Typings) -> Environ {
+    pub fn new(modules: ModuleLoader, globals: Globals, typings: Typings) -> Environ {
         Environ(Arc::new(Inner {
             modules,
             globals,
@@ -25,7 +24,7 @@ impl Environ {
         }))
     }
 
-    pub fn modules(&self) -> &Modules {
+    pub fn modules(&self) -> &ModuleLoader {
         &self.0.modules
     }
 
@@ -36,9 +35,7 @@ impl Environ {
     /// Creates a new runtime and attaches the modules to it.
     pub async fn create_runtime(&self) -> Result<AsyncRuntime, RuntimeError> {
         let runtime = AsyncRuntime::new()?;
-
         self.0.modules.attach(&runtime).await?;
-
         Ok(runtime)
     }
 

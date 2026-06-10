@@ -10,6 +10,8 @@ use rquickjs::{
 
 use crate::update_locations;
 
+// use crate::update_locations;
+
 pub struct Context {
     pub(crate) context: AsyncContext,
     pub(crate) env: Environ,

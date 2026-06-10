@@ -8,4 +8,6 @@ pub use self::{
 };
 
 #[cfg(feature = "swc")]
-pub use self::swc::SwcTransformer;
+pub use self::swc::{
+    CompilerOptions as SwcCompilerOptions, Decorators as SwcDecocators, SwcTransformer,
+};

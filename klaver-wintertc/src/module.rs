@@ -21,6 +21,8 @@ impl<'js> klaver_modules::GlobalInfo for WinterTC {
         builder.global_dependency::<crate::fetch::FetchModule>();
         #[cfg(feature = "timers")]
         builder.global_dependency::<crate::timers::TimeModule>();
+        #[cfg(feature = "worker")]
+        builder.global_dependency::<crate::worker::WorkerModule>();
     }
 }
 

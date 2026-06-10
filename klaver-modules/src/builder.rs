@@ -1,52 +1,26 @@
-use std::path::PathBuf;
-
-use oxc_resolver::ResolveOptions;
-
 use crate::{
-    builtin_loader::BuiltinLoader,
-    builtin_resolver::BuiltinResolver,
-    environ::Environ,
-    file_resolver::ModuleResolver,
-    global_info::{GlobalBuilder, GlobalInfo},
-    globals::Globals,
-    loader::{Loader, Resolver},
-    module_info::{ModuleBuilder, ModuleInfo},
-    modules::Modules,
-    modules_builder::ModulesBuilder,
-    transformer::{Transformer, Transpiler},
-    types::Typings,
+    GlobalBuilder, GlobalInfo, Globals, Loader, ModuleBuilder, ModuleInfo, Resolver, Typings,
+    environ::Environ, environ_builder::EnvBuilder, loader::ModuleLoader, loaders::BuiltinLoader,
+    resolvers::BuiltinResolver,
 };
-
 #[derive(Default)]
 pub struct Builder {
-    modules: ModulesBuilder,
+    modules: EnvBuilder,
     typings: Typings,
-    resolve_options: Option<ResolveOptions>,
-    search_paths: Vec<PathBuf>,
-    transformer: Option<Transformer>,
+    resolvers: Vec<Box<dyn Resolver + Send + Sync>>,
+    loaders: Vec<Box<dyn Loader + Send + Sync>>,
     cache: bool,
 }
 
 impl Builder {
     pub fn new() -> Builder {
         Builder {
-            modules: ModulesBuilder::default(),
+            modules: EnvBuilder::default(),
             typings: Typings::default(),
-            resolve_options: None,
-            search_paths: Vec::default(),
-            transformer: None,
+            resolvers: Vec::default(),
+            loaders: Vec::default(),
             cache: false,
         }
-    }
-
-    pub fn search_path(mut self, path: impl Into<PathBuf>) -> Self {
-        self.search_paths.push(path.into());
-        self
-    }
-
-    pub fn resolve_options(mut self, options: ResolveOptions) -> Self {
-        self.resolve_options = Some(options);
-        self
     }
 
     pub fn cache(mut self, on: bool) -> Self {
@@ -54,11 +28,21 @@ impl Builder {
         self
     }
 
-    pub fn transpiler<T: Transpiler + 'static>(mut self, transpiler: T) -> Self {
-        self.transformer = Some(Transformer::new(transpiler));
+    /// Add a custom loader to the environment.
+    /// Loaders are responsible for loading modules from various sources.
+    pub fn loader<L: Loader + Send + Sync + 'static>(mut self, loader: L) -> Self {
+        self.loaders.push(Box::new(loader));
         self
     }
 
+    /// Add a custom resolver to the environment.
+    /// Resolvers are responsible for resolving module names to their corresponding modules.
+    pub fn resolver<R: Resolver + Send + Sync + 'static>(mut self, resolver: R) -> Self {
+        self.resolvers.push(Box::new(resolver));
+        self
+    }
+
+    /// Add a module to the environment.
     pub fn module<M: ModuleInfo>(mut self) -> Self {
         M::register(&mut ModuleBuilder::new(
             &mut self.modules,
@@ -71,6 +55,7 @@ impl Builder {
         self
     }
 
+    /// Add a global to the environment.
     pub fn global<G: GlobalInfo>(mut self) -> Self {
         G::register(&mut GlobalBuilder::new(
             &mut self.modules,
@@ -84,16 +69,9 @@ impl Builder {
         self
     }
 
+    /// Build the environment with the provided modules, resolvers, and loaders.
     pub fn build(self) -> Environ {
         let mut resolvers = Vec::<Box<dyn Resolver + Send + Sync>>::default();
-        for path in self.search_paths {
-            let path = path.canonicalize().expect("path does not exists");
-            let resolver = ModuleResolver::new_with(
-                path,
-                self.resolve_options.as_ref().cloned().unwrap_or_default(),
-            );
-            resolvers.push(Box::new(resolver));
-        }
 
         // Builtins resolver
         let mut builtin_resolver = BuiltinResolver::default();
@@ -108,26 +86,19 @@ impl Builder {
         }
 
         resolvers.push(Box::new(builtin_resolver));
+        resolvers.extend(self.resolvers);
 
-        // Builtin resolvers
+        // Builtin loaders
         let mut loaders = Vec::<Box<dyn Loader + Send + Sync>>::default();
-
         let builtin_loader = BuiltinLoader {
             modules: self.modules.modules,
             modules_src: self.modules.modules_src,
         };
 
         loaders.push(Box::new(builtin_loader));
+        loaders.extend(self.loaders);
 
-        if let Some(transformer) = self.transformer.as_ref().cloned() {
-            loaders.push(Box::new(transformer));
-        } else {
-            let loader = rquickjs::loader::ScriptLoader::default();
-            loaders.push(Box::new(crate::loader::QuickWrap::new(loader)))
-        }
-
-        let modules = Modules::new(self.transformer, resolvers, loaders);
-
+        let modules = ModuleLoader::new(resolvers, loaders);
         let globals = Globals::new(self.modules.globals);
 
         Environ::new(modules, globals, self.typings)

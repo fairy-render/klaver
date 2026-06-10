@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rquickjs::{Ctx, Error, Module, loader::ImportAttributes};
 
-use crate::{Loader, environ_builder::LoadFn};
+use crate::{Loader, environ_builder::LoadFn, source_map::SourceMaps};
 
 /// BuiltinLoader is a loader that loads builtin modules.
 /// It is used to load modules that are built into the runtime, such as "node:fs" or "node:path".
@@ -15,6 +15,7 @@ pub struct BuiltinLoader {
 impl Loader for BuiltinLoader {
     fn load<'js>(
         &self,
+        _sourcemaps: &SourceMaps,
         ctx: &Ctx<'js>,
         path: &str,
         _attributes: Option<ImportAttributes<'js>>,

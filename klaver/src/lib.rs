@@ -1,6 +1,13 @@
 use std::path::PathBuf;
 
-use klaver_modules::{GlobalInfo, ModuleInfo, ResolveOptions};
+#[cfg(feature = "swc")]
+use klaver_modules::loaders::{SwcCompilerOptions, SwcDecocators, SwcTransformer};
+use klaver_modules::{
+    GlobalInfo, ModuleInfo,
+    loaders::FileLoader,
+    resolvers::{FileResolver, ResolveOptions},
+};
+
 use klaver_vm::Options;
 use klaver_wintertc::TokioBackend;
 use rquickjs::CatchResultExt;
@@ -8,30 +15,34 @@ use rquickjs::CatchResultExt;
 #[derive(Default)]
 pub struct Builder {
     opts: Options,
+    resolver_opts: Option<ResolveOptions>,
+    search_paths: Vec<PathBuf>,
 }
 
 impl Builder {
-    pub fn search_path(self, path: impl Into<PathBuf>) -> Self {
-        Self {
-            opts: self.opts.search_path(path),
-        }
+    pub fn search_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.search_paths.push(path.into());
+        self
     }
 
-    pub fn resolve_options(self, options: ResolveOptions) -> Self {
-        Self {
-            opts: self.opts.resolve_options(options),
-        }
+    pub fn resolve_options(mut self, options: ResolveOptions) -> Self {
+        self.resolver_opts = Some(options);
+        self
     }
 
     pub fn module<M: ModuleInfo>(self) -> Self {
         Self {
             opts: self.opts.module::<M>(),
+            resolver_opts: self.resolver_opts,
+            search_paths: self.search_paths,
         }
     }
 
     pub fn global<G: GlobalInfo>(self) -> Self {
         Self {
             opts: self.opts.global::<G>(),
+            resolver_opts: self.resolver_opts,
+            search_paths: self.search_paths,
         }
     }
 
@@ -39,16 +50,28 @@ impl Builder {
     pub async fn build(self) -> klaver_vm::Result<Vm> {
         let mut opts = self.opts;
 
+        let resolver_opts = self.resolver_opts.unwrap_or_default();
+
+        for path in self.search_paths {
+            let path = path.canonicalize().expect("path does not exists");
+            let file_resolver = FileResolver::new_with(path.clone(), resolver_opts.clone());
+            opts = opts.resolver(file_resolver);
+        }
+
+        let mut file_loader = FileLoader::default();
+
         #[cfg(feature = "swc")]
         {
-            opts = opts.transpiler(klaver_modules::transformer::SwcTranspiler::new_with(
-                klaver_modules::transformer::swc::CompilerOptions {
-                    decorators: klaver_modules::transformer::swc::Decorators::Legacy,
-                    async_context: false,
-                    explicit_resource_management: true,
-                },
-            ));
+            let swc_transformer = SwcTransformer::new_with(SwcCompilerOptions {
+                decorators: SwcDecocators::Legacy,
+                async_context: false,
+                explicit_resource_management: true,
+            });
+
+            file_loader.add_transformer(swc_transformer);
         }
+
+        opts = opts.loader(file_loader);
 
         let vm = opts.global::<klaver_wintertc::WinterTC>().build().await?;
 

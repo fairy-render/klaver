@@ -5,8 +5,6 @@ resolver = "2"
 exclude = ["OLD"]
 
 members = [
-  "klaver-modules",
-  "klaver-base",
   "klaver-vm",
   "klaver",
   #"klaver-os",
@@ -18,9 +16,9 @@ members = [
   "klaver-fs",
   "klaver-hbs",
   "klaver-core",
-  "klaver-worker"
-, "klaver-wintertc"
-, "klaver-modules2"]
+ "klaver-wintertc",
+ "klaver-modules"
+]
 
 [workspace.dependencies]
 rquickjs = { version = "0.12", features = [

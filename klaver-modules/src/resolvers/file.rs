@@ -1,5 +1,5 @@
 use crate::loader::Resolver;
-use oxc_resolver::ResolveOptions;
+pub use oxc_resolver::ResolveOptions;
 use rquickjs::loader::ImportAttributes;
 use std::{
     borrow::Cow,

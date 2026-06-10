@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["module"]
-full = ["fetch", "timers", "crypto", "intl", "streams",]
+default = ["module", "full"]
+full = ["fetch", "timers", "crypto", "intl", "streams", "worker"]
 fetch = [
     "bytes",
     "http",
@@ -16,7 +16,7 @@ fetch = [
     "form_urlencoded",
     "urlencoding",
     "multer",
-    "streams"
+    "streams",
 ]
 timers = []
 crypto = ["rand", "uuid", "sha1", "sha2"]
@@ -31,8 +31,8 @@ intl = [
     "klaver-core/chrono",
 ]
 intl-baked = ["intl", "icu/compiled_data"]
-
 streams = ["async-trait", "async-stream"]
+worker = ["klaver-vm"]
 
 tokio = ["reqwest", "dep:tokio", "timers", "fetch"]
 module = ["klaver-modules"]
@@ -47,6 +47,12 @@ klaver-modules = { path = "../klaver-modules", optional = true }
 futures.workspace = true
 pin-project-lite = { version = "0.2" }
 flume.workspace = true
+
+serde = { version = "1", features = ["derive"], optional = true }
+
+## Worker
+klaver-vm = { path = "../klaver-vm", features = ["worker"], optional = true }
+
 
 ## Encoding
 encoding_rs = { version = "0.8" }
@@ -86,9 +92,6 @@ fixed_decimal = { version = "0.5", features = ["ryu"], optional = true }
 ## Streams
 async-trait = { version = "0.1", optional = true }
 async-stream = { version = "0.3", optional = true }
-
-
-serde = { version = "1", features = ["derive"], optional = true }
 
 ## Backend
 tokio = { version = "1", features = ["time"], optional = true }

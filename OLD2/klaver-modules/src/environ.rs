@@ -1,12 +1,12 @@
 use std::sync::{Arc, Weak};
 
-use klaver_core::{RuntimeError, throw};
+use klaver_core::{throw, RuntimeError};
 use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Ctx, JsLifetime};
 
-use crate::{Typings, global::Globals, loader::ModuleLoader};
+use crate::{globals::Globals, Modules, Typings};
 
 struct Inner {
-    pub(crate) modules: ModuleLoader,
+    pub(crate) modules: Modules,
     pub(crate) globals: Globals,
     pub(crate) typings: Typings,
 }
@@ -17,7 +17,7 @@ struct Inner {
 pub struct Environ(Arc<Inner>);
 
 impl Environ {
-    pub fn new(modules: ModuleLoader, globals: Globals, typings: Typings) -> Environ {
+    pub fn new(modules: Modules, globals: Globals, typings: Typings) -> Environ {
         Environ(Arc::new(Inner {
             modules,
             globals,
@@ -25,7 +25,7 @@ impl Environ {
         }))
     }
 
-    pub fn modules(&self) -> &ModuleLoader {
+    pub fn modules(&self) -> &Modules {
         &self.0.modules
     }
 

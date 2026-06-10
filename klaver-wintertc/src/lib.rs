@@ -4,11 +4,10 @@ mod macros;
 mod base;
 mod settings;
 
-pub mod channel;
-
 pub mod abort_controller;
 #[cfg(feature = "streams")]
 pub mod blob;
+pub mod channel;
 pub mod console;
 #[cfg(feature = "crypto")]
 pub mod crypto;
@@ -19,13 +18,13 @@ pub mod events;
 pub mod fetch;
 #[cfg(feature = "intl")]
 pub mod intl;
-
-mod backend;
-
 pub mod streams;
 #[cfg(feature = "timers")]
 pub mod timers;
+#[cfg(feature = "worker")]
+pub mod worker;
 
+mod backend;
 mod module;
 
 pub use self::{

@@ -26,23 +26,22 @@ pub const fn Ok<T>(value: T) -> Result<T> {
 // }
 
 pub(crate) fn update_locations(env: &Environ, mut err: RuntimeError) -> RuntimeError {
-    if let Some(transform) = env.modules().transformer() {
-        let RuntimeError::Exception(CaugthException { stack, .. }) = &mut err else {
+    let RuntimeError::Exception(CaugthException { stack, .. }) = &mut err else {
+        return err;
+    };
+
+    let sourcemaps = env.modules().source_maps();
+    for trace in stack {
+        let Some((line, col)) =
+            env.modules()
+                .source_maps()
+                .lookup(&trace.file, trace.line, trace.column)
+        else {
             return err;
         };
 
-        for trace in stack {
-            let Some((line, col)) = transform.map(
-                Path::new(&trace.file),
-                trace.line as usize,
-                trace.column as usize,
-            ) else {
-                continue;
-            };
-
-            trace.line = line as u32;
-            trace.column = col as u32;
-        }
+        trace.line = line;
+        trace.column = col;
     }
 
     err

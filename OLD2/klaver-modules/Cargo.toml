@@ -1,12 +1,11 @@
 [package]
-name = "klaver-modules2"
-version = "0.1.0"
-edition = "2024"
+name = "klaver-modules"
+version = "0.2.0"
+edition = "2021"
 
 [features]
-default = ["file-resolver"]
-file-resolver = ["dep:oxc_resolver"]
-swc = [
+oxc-transform = ["oxc"]
+swc-transform = [
   "swc_node_comments",
   "swc_ecma_codegen",
   "swc_ecma_transforms",
@@ -19,13 +18,23 @@ swc = [
   "par-core",
 ]
 
+
 [dependencies]
 klaver-core = { path = "../klaver-core" }
-rquickjs = { workspace = true, features = ["loader"] }
-relative-path = { version = "2.0" }
-tracing = { version = "0.1", features = ["std"] }
+rquickjs = { workspace = true, features = ["loader", "futures"] }
+oxc_resolver = { version = "11.21" }
+oxc = { version = "0.77", features = [
+  "transformer",
+  "codegen",
+  "semantic",
+], optional = true }
+relative-path = { version = "2" }
+parking_lot = { version = "0.12" }
 
-oxc_resolver = { version = "11.21", optional = true }
+tracing = { version = "0.1" }
+geenie = { git = "https://github.com/fairy-render/geenie.git", features = [
+  "fs",
+] }
 
 ## Swc
 swc_ecma_codegen = { version = "17.0", optional = true }
@@ -45,3 +54,6 @@ swc_node_comments = { version = "14.0", optional = true }
 swc_sourcemap = { version = "9.3", optional = true }
 anyhow = { version = "1", optional = true }
 par-core = { version = "2", optional = true, features = ["chili"] }
+
+[dev-dependencies]
+futures = { version = "0.3" }

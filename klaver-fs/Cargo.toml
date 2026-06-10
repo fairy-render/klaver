@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 rquickjs.workspace = true
 klaver-core = { path = "../klaver-core" }
-klaver-base = { path = "../klaver-base" }
 klaver-modules = { path = "../klaver-modules" }
 
 vfs = { git = "https://github.com/kildevaeld/vfs-rs" }

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use klaver_core::RuntimeError;
-use klaver_modules::{Environ, GlobalInfo, ModuleInfo, ResolveOptions, transformer::Transpiler};
+use klaver_modules::{Environ, GlobalInfo, Loader, ModuleInfo, Resolver};
 
 use crate::{Vm, VmOptions};
 
@@ -22,25 +22,18 @@ impl Default for Options {
 }
 
 impl Options {
-    pub fn search_path(self, path: impl Into<PathBuf>) -> Self {
-        Options {
-            builder: self.builder.search_path(path),
-            ..self
-        }
+    /// Add a custom loader to the environment.
+    /// Loaders are responsible for loading modules from various sources.
+    pub fn loader<L: Loader + Send + Sync + 'static>(mut self, loader: L) -> Self {
+        self.builder = self.builder.loader(loader);
+        self
     }
 
-    pub fn resolve_options(self, options: ResolveOptions) -> Self {
-        Options {
-            builder: self.builder.resolve_options(options),
-            ..self
-        }
-    }
-
-    pub fn transpiler<T: Transpiler + 'static>(self, compiler: T) -> Self {
-        Options {
-            builder: self.builder.transpiler(compiler),
-            ..self
-        }
+    /// Add a custom resolver to the environment.
+    /// Resolvers are responsible for resolving module names to their corresponding modules.
+    pub fn resolver<R: Resolver + Send + Sync + 'static>(mut self, resolver: R) -> Self {
+        self.builder = self.builder.resolver(resolver);
+        self
     }
 
     pub fn module<M: ModuleInfo>(self) -> Self {

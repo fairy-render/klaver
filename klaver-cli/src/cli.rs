@@ -1,6 +1,5 @@
 use clap::Parser;
 use klaver_core::{Exportable, Registry};
-use klaver_worker::WebWorker;
 use rquickjs::CatchResultExt;
 
 use crate::run;
@@ -29,11 +28,11 @@ impl Cli {
 
         let vm = builder.build().await?;
 
-        vm.with(|ctx| {
-            WebWorker::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals()).catch(&ctx)?;
-            Ok(())
-        })
-        .await?;
+        // vm.with(|ctx| {
+        //     WebWorker::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals()).catch(&ctx)?;
+        //     Ok(())
+        // })
+        // .await?;
 
         klaver_runtime::set_promise_hook(vm.runtime()).await;
 

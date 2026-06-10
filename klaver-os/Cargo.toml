@@ -6,6 +6,5 @@ edition = "2024"
 [dependencies]
 rquickjs.workspace = true
 klaver-core = { path = "../klaver-core" }
-klaver-base = { path = "../klaver-base" }
 
 sysinfo = { version = "0.37" }

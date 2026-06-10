@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2024"
 
 [features]
-swc = ["klaver-modules/swc-transform"]
+swc = ["klaver-modules/swc"]
 
 full = ["fetch", "crypto", "intl"]
 
@@ -19,9 +19,8 @@ klaver-wintertc = { path = "../klaver-wintertc", features = [
     "tokio",
 ] }
 klaver-vm = { path = "../klaver-vm" }
-klaver-modules = { path = "../klaver-modules" }
+klaver-modules = { path = "../klaver-modules", features = ["file-resolver"] }
 klaver-runtime = { path = "../klaver-runtime" }
-klaver-base = { path = "../klaver-base" }
 rquickjs = { workspace = true }
 futures.workspace = true
 
