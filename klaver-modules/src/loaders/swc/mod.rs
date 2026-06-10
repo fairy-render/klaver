@@ -50,7 +50,7 @@ impl Transformer for SwcTransformer {
             result
                 .sourcemap
                 .tokens()
-                .map(|token| (token.get_dst(), token.get_src())),
+                .map(|token| (token.get_src(), token.get_dst())),
         );
 
         sourcemaps.insert(path.display().to_string(), sourcmap);

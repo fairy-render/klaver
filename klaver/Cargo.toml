@@ -6,12 +6,16 @@ edition = "2024"
 [features]
 swc = ["klaver-modules/swc"]
 
-full = ["fetch", "crypto", "intl"]
+full = ["klaver-wintertc/full"]
 
 fetch = ["klaver-wintertc/fetch"]
 crypto = ["klaver-wintertc/crypto"]
+worker = ["klaver-wintertc/worker"]
+streams = ["klaver-wintertc/streams"]
+timers = ["klaver-wintertc/timers"]
 intl = ["klaver-wintertc/intl"]
 intl-baked = ["klaver-wintertc/intl-baked"]
+
 
 [dependencies]
 klaver-wintertc = { path = "../klaver-wintertc", features = [

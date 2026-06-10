@@ -46,8 +46,7 @@ where
 {
     fn load<'js>(
         &self,
-
-        sourcemaps: &SourceMaps,
+        _sourcemaps: &SourceMaps,
         ctx: &rquickjs::prelude::Ctx<'js>,
         path: &str,
         attributes: Option<ImportAttributes<'js>>,
