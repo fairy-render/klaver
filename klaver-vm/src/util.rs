@@ -1,4 +1,3 @@
-use std::path::Path;
 
 use klaver_core::CaugthException;
 pub use klaver_core::RuntimeError;
@@ -30,7 +29,7 @@ pub(crate) fn update_locations(env: &Environ, mut err: RuntimeError) -> RuntimeE
         return err;
     };
 
-    let sourcemaps = env.modules().source_maps();
+    let _sourcemaps = env.modules().source_maps();
     for trace in stack {
         let Some((line, col)) =
             env.modules()

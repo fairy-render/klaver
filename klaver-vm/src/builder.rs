@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 
 use klaver_core::RuntimeError;
 use klaver_modules::{Environ, GlobalInfo, Loader, ModuleInfo, Resolver};

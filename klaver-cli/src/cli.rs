@@ -1,6 +1,4 @@
 use clap::Parser;
-use klaver_core::{Exportable, Registry};
-use rquickjs::CatchResultExt;
 
 use crate::run;
 
