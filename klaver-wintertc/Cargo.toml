@@ -33,8 +33,8 @@ intl = [
 intl-baked = ["intl", "icu/compiled_data"]
 streams = ["async-trait", "async-stream"]
 worker = ["klaver-vm"]
-
-tokio = ["reqwest", "dep:tokio", "timers", "fetch"]
+fs = ["vfs", "mime_guess"]
+tokio = ["reqwest", "dep:tokio", "timers", "fetch", "fs", "vfs-tokio"]
 module = ["klaver-modules"]
 
 [dependencies]
@@ -92,6 +92,11 @@ fixed_decimal = { version = "0.5", features = ["ryu"], optional = true }
 ## Streams
 async-trait = { version = "0.1", optional = true }
 async-stream = { version = "0.3", optional = true }
+
+## FS
+vfs = { git = "https://github.com/kildevaeld/vfs-rs", optional = true }
+vfs-tokio = { git = "https://github.com/kildevaeld/vfs-rs", optional = true }
+mime_guess = { version = "2", optional = true }
 
 ## Backend
 tokio = { version = "1", features = ["time"], optional = true }

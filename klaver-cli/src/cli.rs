@@ -1,4 +1,7 @@
+use std::path::Path;
+
 use clap::Parser;
+use klaver_modules::{Global, global_info};
 
 use crate::run;
 
@@ -18,6 +21,7 @@ impl Cli {
 
         let builder = klaver::Builder::default()
             .search_path(".")
+            .global::<CliGlobal>()
             .module::<klaver_vm::VmModule>()
             .module::<klaver_image::Module>()
             // .module::<klaver_dom::Module>()
@@ -39,3 +43,21 @@ impl Cli {
         Ok(())
     }
 }
+
+pub struct CliGlobal;
+
+impl Global for CliGlobal {
+    fn define<'a, 'js: 'a>(
+        &'a self,
+        ctx: rquickjs::Ctx<'js>,
+    ) -> impl Future<Output = rquickjs::Result<()>> + 'a {
+        async move {
+            //
+            let fs = klaver_fs::FileSystem::from_path(ctx.clone(), "main", &Path::new(".")).await?;
+            ctx.globals().set("Fs", fs)?;
+            Ok(())
+        }
+    }
+}
+
+global_info!("cli" @types: "declare const Fs:FileSystem;" => CliGlobal);

@@ -16,6 +16,8 @@ pub mod encoding;
 pub mod events;
 #[cfg(feature = "fetch")]
 pub mod fetch;
+#[cfg(feature = "fs")]
+pub mod fs;
 #[cfg(feature = "intl")]
 pub mod intl;
 pub mod streams;

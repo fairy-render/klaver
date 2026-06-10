@@ -2189,8 +2189,10 @@ dependencies = [
  "klaver-core",
  "klaver-fs",
  "klaver-image",
+ "klaver-modules",
  "klaver-runtime",
  "klaver-vm",
+ "klaver-wintertc",
  "reedline",
  "rquickjs",
  "tokio",
@@ -2329,6 +2331,7 @@ dependencies = [
  "klaver-runtime",
  "klaver-vm",
  "localzone",
+ "mime_guess",
  "multer",
  "pin-project-lite",
  "rand 0.10.1",
@@ -2343,6 +2346,8 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
+ "vfs",
+ "vfs-tokio",
 ]
 
 [[package]]

@@ -121,3 +121,29 @@ impl Globals {
         Ok(())
     }
 }
+
+#[macro_export]
+/// global_info!("global" => Global);
+/// global_info!("global" @types: content-of-d-ts-file => Global);
+macro_rules! global_info {
+    ($name: literal => $module: ident) => {
+        impl $crate::GlobalInfo for $module {
+            // const NAME: &'static str = $name;
+            fn register(mut modules: &mut $crate::GlobalBuilder<'_, Self>) {
+                modules.register::<$module>($module);
+            }
+        }
+    };
+    ($name: literal @types: $types:expr => $module: ident) => {
+        impl $crate::GlobalInfo for $module {
+            // const NAME: &'static str = $name;
+            fn register(mut modules: &mut $crate::GlobalBuilder<'_, Self>) {
+                modules.register::<$module>($module);
+            }
+
+            fn typings() -> Option<std::borrow::Cow<'static, str>> {
+                Some($types.into())
+            }
+        }
+    };
+}

@@ -17,7 +17,11 @@ import { hello } from "./other.ts";
 
 hello();
 
+const path = await Fs.root.resolve("./store.js").open({ read: true });
 
+const content = await path.arrayBuffer();
+
+console.log(new TextDecoder().decode(content));
 
 const worker = new Worker(new URL("./worker.ts", import.meta.url).href);
 
