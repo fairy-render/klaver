@@ -1,4 +1,4 @@
-import { render } from './solid-ssr/dist/server/entry-server.mjs'
+import { render } from './solid-ssr/dist/server/entry-server.mjs' with { swc: "deno" };
 
 console.time('render')
 const out = await render("");

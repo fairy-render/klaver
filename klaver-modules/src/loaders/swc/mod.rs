@@ -86,7 +86,7 @@ impl Transformer for SwcTransformer {
 
         path.extension()
             .and_then(|ext| ext.to_str())
-            .map(|ext| matches!(ext, "ts" | "tsx" | "js" | "jsx"))
+            .map(|ext| matches!(ext, "ts" | "tsx" | "js" | "jsx" | "mjs"))
             .unwrap_or(false)
     }
 }
