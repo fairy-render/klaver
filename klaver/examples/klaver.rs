@@ -1,8 +1,9 @@
 use klaver::Builder;
+use klaver_wintertc::CompioBackend;
 
-#[tokio::main(flavor = "current_thread")]
+#[compio::main]
 async fn main() -> klaver_vm::Result<()> {
-    let vm = Builder::default().search_path(".").build().await?;
+    let vm = Builder::new(CompioBackend).search_path(".").build().await?;
 
     vm.run_module("./klaver/examples/klaver.js").await?;
 

@@ -155,6 +155,48 @@ impl SharedClient for reqwest::Client {
     }
 }
 
+#[cfg(feature = "compio")]
+impl LocalClient for cyper::Client {
+    fn send<'js, 'a>(
+        &'a self,
+        ctx: &'a Ctx<'js>,
+        req: Request<JsBody<'js>>,
+    ) -> LocalBoxFuture<'a, rquickjs::Result<Response<Body>>> {
+        use futures::TryStreamExt;
+        Box::pin(async {
+            use crate::fetch::body_static::to_bytes;
+
+            let (parts, body) = req.into_parts();
+
+            let bytes = throw_if!(ctx, to_bytes(body).await);
+
+            let ret = self
+                .request(parts.method, parts.uri.to_string())
+                .unwrap()
+                .headers(parts.headers)
+                .body(bytes)
+                .send()
+                .await;
+
+            let mut resp = throw_if!(ctx, ret);
+
+            let headers = core::mem::take(resp.headers_mut());
+            let status = resp.status();
+            let version = resp.version();
+
+            let mut resp = http::Response::new(Body::from_streaming(
+                http_body_util::StreamBody::new(resp.map_ok(http_body::Frame::data)),
+            ));
+
+            *resp.headers_mut() = headers;
+            *resp.status_mut() = status;
+            *resp.version_mut() = version;
+
+            Ok(resp)
+        })
+    }
+}
+
 struct ClientResourceId;
 
 impl ResourceId for ClientResourceId {

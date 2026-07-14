@@ -18,10 +18,7 @@ intl-baked = ["klaver-wintertc/intl-baked"]
 
 
 [dependencies]
-klaver-wintertc = { path = "../klaver-wintertc", features = [
-    "module",
-    "tokio",
-] }
+klaver-wintertc = { path = "../klaver-wintertc", features = ["module"] }
 klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules", features = ["file-resolver"] }
 klaver-runtime = { path = "../klaver-runtime" }
@@ -30,4 +27,8 @@ futures.workspace = true
 
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt", "macros"] }
+compio = { version = "0.19", features = ["runtime", "macros"] }
+klaver-wintertc = { path = "../klaver-wintertc", features = [
+    "module",
+    "compio",
+] }

@@ -4,7 +4,7 @@ use klaver_core::{Core, throw_if};
 use rquickjs::{Class, Ctx, JsLifetime, class::Trace};
 
 #[cfg(feature = "fetch")]
-use crate::fetch::{Client, SharedClient};
+use crate::fetch::{Client, LocalClient, SharedClient};
 #[cfg(feature = "timers")]
 use crate::timers::TimingBackend;
 use crate::{backend::Backend, timers::TimerBackend};
@@ -45,7 +45,7 @@ impl WinterTcInstance {
         backend: Arc<dyn Backend + Send + Sync>,
     ) -> rquickjs::Result<()> {
         self.backend = backend;
-        throw_if!(ctx, self.backend.init(&mut self.settings));
+        throw_if!(ctx, self.backend.init(ctx, &mut self.settings));
         Ok(())
     }
 
@@ -88,6 +88,11 @@ impl Settings {
     #[cfg(feature = "fetch")]
     pub fn set_http_client<T: SharedClient + 'static>(&mut self, client: T) {
         self.http_client.set_shared_client(client);
+    }
+
+    #[cfg(feature = "fetch")]
+    pub fn set_local_http_client<T: LocalClient + 'static>(&mut self, client: T) {
+        self.http_client.set_local_client(client);
     }
 
     #[cfg(feature = "fetch")]

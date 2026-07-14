@@ -9,17 +9,26 @@ use klaver_modules::{
 };
 
 use klaver_vm::Options;
-use klaver_wintertc::TokioBackend;
+use klaver_wintertc::Backend;
 use rquickjs::CatchResultExt;
 
-#[derive(Default)]
-pub struct Builder {
+pub struct Builder<T> {
     opts: Options,
     resolver_opts: Option<ResolveOptions>,
     search_paths: Vec<PathBuf>,
+    backend: T,
 }
 
-impl Builder {
+impl<T: Backend + Send + Sync + 'static> Builder<T> {
+    pub fn new(backend: T) -> Self {
+        Self {
+            opts: Options::default(),
+            resolver_opts: None,
+            search_paths: Vec::new(),
+            backend,
+        }
+    }
+
     pub fn search_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.search_paths.push(path.into());
         self
@@ -35,6 +44,7 @@ impl Builder {
             opts: self.opts.module::<M>(),
             resolver_opts: self.resolver_opts,
             search_paths: self.search_paths,
+            backend: self.backend,
         }
     }
 
@@ -43,6 +53,7 @@ impl Builder {
             opts: self.opts.global::<G>(),
             resolver_opts: self.resolver_opts,
             search_paths: self.search_paths,
+            backend: self.backend,
         }
     }
 
@@ -76,7 +87,7 @@ impl Builder {
         let vm = opts.global::<klaver_wintertc::WinterTC>().build().await?;
 
         vm.async_with(async |ctx| {
-            klaver_wintertc::set_backend(&ctx, TokioBackend::default()).catch(&ctx)?;
+            klaver_wintertc::set_backend(&ctx, self.backend).catch(&ctx)?;
             Ok(())
         })
         .await?;
@@ -90,8 +101,8 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn new() -> Builder {
-        Builder::default()
+    pub fn new<T: Backend + Send + Sync + 'static>(backend: T) -> Builder<T> {
+        Builder::new(backend)
     }
 }
 

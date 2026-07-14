@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["module", "worker"]
+default = ["module"]
 full = ["fetch", "timers", "crypto", "intl", "streams", "worker"]
 fetch = [
     "bytes",
@@ -34,8 +34,10 @@ intl-baked = ["intl", "icu/compiled_data"]
 streams = ["async-trait", "async-stream"]
 worker = ["klaver-vm"]
 fs = ["vfs", "mime_guess"]
-tokio = ["reqwest", "dep:tokio", "timers", "fetch", "fs", "vfs-tokio"]
 module = ["klaver-modules"]
+
+tokio = ["reqwest", "dep:tokio", "timers", "fetch", "fs", "vfs-tokio"]
+compio = ["dep:compio", "dep:cyper", "fetch", "timers"]
 
 [dependencies]
 rquickjs = { workspace = true }
@@ -94,10 +96,15 @@ async-trait = { version = "0.1", optional = true }
 async-stream = { version = "0.3", optional = true }
 
 ## FS
-vfs = { git = "https://github.com/kildevaeld/vfs-rs", optional = true }
+vfs = { git = "https://github.com/kildevaeld/vfs-rs", features = [
+    "std",
+], optional = true }
 vfs-tokio = { git = "https://github.com/kildevaeld/vfs-rs", optional = true }
 mime_guess = { version = "2", optional = true }
 
 ## Backend
 tokio = { version = "1", features = ["time"], optional = true }
 reqwest = { version = "0.13", optional = true }
+
+compio = { version = "0.19", features = ["time"], optional = true }
+cyper = { version = "0.9", features = ["stream"], optional = true }

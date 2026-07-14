@@ -16,8 +16,8 @@ pub mod encoding;
 pub mod events;
 #[cfg(feature = "fetch")]
 pub mod fetch;
-#[cfg(feature = "fs")]
-pub mod fs;
+// #[cfg(feature = "fs")]
+// pub mod fs;
 #[cfg(feature = "intl")]
 pub mod intl;
 pub mod streams;
@@ -35,6 +35,8 @@ pub use self::{
     settings::{Settings, WinterTcInstance},
 };
 
+#[cfg(feature = "compio")]
+pub use self::backend::CompioBackend;
 #[cfg(feature = "tokio")]
 pub use self::backend::TokioBackend;
 

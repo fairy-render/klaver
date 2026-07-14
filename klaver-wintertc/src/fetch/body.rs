@@ -332,6 +332,16 @@ pin_project! {
 }
 
 impl<'js> JsBody<'js> {
+    pub fn new<S: Stream>(stream: S) -> Self
+    where
+        S: Stream<Item = Result<Vec<u8>, RuntimeError>> + 'js,
+    {
+        JsBody {
+            inner: JsBodyState::Stream {
+                stream: Box::pin(stream),
+            },
+        }
+    }
     pub fn into_remote(self) -> (RemoteBody, RemoteBodyProducer<'js>) {
         let (sx, rx) = flume::bounded(1);
 
