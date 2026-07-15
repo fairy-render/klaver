@@ -47,7 +47,10 @@ impl Transformer for () {
         path: &Path,
         _attributes: Option<&rquickjs::loader::ImportAttributes<'_>>,
     ) -> bool {
-        path.ends_with(".js") || path.ends_with(".mjs")
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| matches!(ext, "js" | "mjs"))
+            .unwrap_or(false)
     }
 }
 
