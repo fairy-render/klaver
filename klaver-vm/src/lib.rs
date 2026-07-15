@@ -12,5 +12,5 @@ mod vm;
 mod worker;
 
 #[cfg(feature = "worker")]
-pub use self::worker::Worker;
+pub use self::worker::*;
 pub use self::{builder::*, module::*, util::*, vm::*};

@@ -8,6 +8,46 @@ use rquickjs::{Ctx, FromJs};
 
 use crate::{Vm, VmOptions};
 
+pub trait AsyncRuntimeTrait {
+    fn block_on<F>(&self, future: F)
+    where
+        F: std::future::Future<Output = ()> + 'static;
+}
+
+#[cfg(feature = "tokio")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ToktioRuntime;
+
+#[cfg(feature = "tokio")]
+impl AsyncRuntimeTrait for ToktioRuntime {
+    fn block_on<F>(&self, future: F)
+    where
+        F: std::future::Future<Output = ()> + 'static,
+    {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+
+        rt.block_on(future);
+    }
+}
+
+#[cfg(feature = "compio")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CompioRuntime;
+
+#[cfg(feature = "compio")]
+impl AsyncRuntimeTrait for CompioRuntime {
+    fn block_on<F>(&self, future: F)
+    where
+        F: std::future::Future<Output = ()> + 'static,
+    {
+        let runtime = compio::runtime::Runtime::new().unwrap();
+        runtime.block_on(future);
+    }
+}
+
 enum Request {
     WithAsync {
         function: Box<
@@ -36,10 +76,14 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub async fn new(environ: Environ, options: VmOptions) -> Result<Self, RuntimeError> {
+    pub async fn new<T: AsyncRuntimeTrait + Send + 'static>(
+        environ: Environ,
+        options: VmOptions,
+        runtime: T,
+    ) -> Result<Self, RuntimeError> {
         let (sx, rx) = oneshot::channel();
 
-        create_worker_thread(environ, options, sx);
+        create_worker_thread(environ, options, runtime, sx);
 
         let worker_sx = rx
             .await
@@ -131,18 +175,14 @@ impl Worker {
     }
 }
 
-fn create_worker_thread(
+fn create_worker_thread<T: AsyncRuntimeTrait + Send + 'static>(
     environ: Environ,
     options: VmOptions,
+    runtime: T,
     sx: oneshot::Sender<Result<flume::Sender<Request>, RuntimeError>>,
 ) {
     std::thread::spawn(move || {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-
-        rt.block_on(async move {
+        runtime.block_on(async move {
             let (worker_sx, worker_rx) = flume::bounded(10);
 
             let vm = match Vm::new(&environ, options).await {
@@ -156,12 +196,12 @@ fn create_worker_thread(
                 }
             };
 
-            worker(worker_rx, vm).await.unwrap();
+            worker(worker_rx, vm).await
         });
     });
 }
 
-async fn worker(rx: flume::Receiver<Request>, vm: Vm) -> Result<(), RuntimeError> {
+async fn worker(rx: flume::Receiver<Request>, vm: Vm) {
     while let Ok(req) = rx.recv_async().await {
         match req {
             Request::WithAsync { function, returns } => {
@@ -174,6 +214,4 @@ async fn worker(rx: flume::Receiver<Request>, vm: Vm) -> Result<(), RuntimeError
             }
         }
     }
-
-    Ok(())
 }

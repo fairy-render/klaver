@@ -5,9 +5,12 @@ edition = "2024"
 
 [features]
 default = ["worker"]
-worker = ["flume", "tokio"]
+worker = ["flume"]
 parallel = ["rquickjs/parallel"]
-pool = ["deadpool", "worker", "parallel", "tokio"]
+pool = ["deadpool", "worker", "parallel"]
+tokio = ["dep:tokio"]
+compio = ["dep:compio"]
+
 
 [dependencies]
 klaver-modules = { path = "../klaver-modules" }
@@ -23,3 +26,4 @@ flume = { workspace = true, features = ["async"], optional = true }
 deadpool = { version = "0.12", optional = true }
 
 tokio = { version = "1", features = ["rt"], optional = true }
+compio = { version = "0.19", features = ["runtime"], optional = true }

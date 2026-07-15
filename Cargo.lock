@@ -2720,6 +2720,7 @@ dependencies = [
 name = "klaver-vm"
 version = "0.1.0"
 dependencies = [
+ "compio",
  "deadpool",
  "flume 0.11.1",
  "futures",
