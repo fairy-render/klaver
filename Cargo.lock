@@ -2639,7 +2639,7 @@ dependencies = [
 
 [[package]]
 name = "klaver-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-stream",
  "chrono",
@@ -2703,7 +2703,7 @@ dependencies = [
 
 [[package]]
 name = "klaver-runtime"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "futures",
  "klaver-core",
