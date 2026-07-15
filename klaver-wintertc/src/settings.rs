@@ -54,10 +54,6 @@ impl WinterTcInstance {
     pub fn settings(&self) -> &Settings {
         &self.settings
     }
-
-    pub(crate) fn backend(&self) -> &Arc<dyn Backend + Send + Sync> {
-        &self.backend
-    }
 }
 
 impl<'js> Trace<'js> for WinterTcInstance {

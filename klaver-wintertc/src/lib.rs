@@ -20,6 +20,7 @@ pub mod fetch;
 pub mod fs;
 #[cfg(feature = "intl")]
 pub mod intl;
+#[cfg(feature = "streams")]
 pub mod streams;
 #[cfg(feature = "timers")]
 pub mod timers;

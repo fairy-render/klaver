@@ -7,7 +7,6 @@ use rquickjs::prelude::Func;
 
 use crate::{
     abort_controller::{AbortController, AbortSignal},
-    blob::Blob,
     channel::ChannelModule,
     dom_exception::DOMException,
     encoding::EncodingModule,
@@ -27,16 +26,17 @@ impl<'js> klaver_core::Exportable<'js> for BaseModule {
             target,
             AbortController,
             AbortSignal,
-            DOMException,
-            Blob
+            DOMException
         );
 
         EventsModule::export(ctx, registry, target)?;
         EncodingModule::export(ctx, registry, target)?;
         ChannelModule::export(ctx, registry, target)?;
 
+        #[cfg(feature = "streams")]
         crate::streams::export(ctx, registry, target)?;
-
+        #[cfg(feature = "streams")]
+        crate::blob::Blob::export(ctx, registry, target)?;
         target.set(
             ctx,
             "structuredClone",
