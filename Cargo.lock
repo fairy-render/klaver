@@ -2606,7 +2606,7 @@ dependencies = [
 
 [[package]]
 name = "klaver"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "compio",
  "futures",
@@ -2718,7 +2718,7 @@ dependencies = [
 
 [[package]]
 name = "klaver-vm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "compio",
  "deadpool",
@@ -2733,7 +2733,7 @@ dependencies = [
 
 [[package]]
 name = "klaver-wintertc"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-stream",
  "async-trait",
