@@ -82,6 +82,8 @@ impl<T: Backend + Send + Sync + 'static> Builder<T> {
             file_loader.add_transformer(swc_transformer);
         }
 
+        file_loader.add_transformer(());
+
         opts = opts.loader(file_loader);
 
         let vm = opts.global::<klaver_wintertc::WinterTC>().build().await?;
