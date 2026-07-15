@@ -33,11 +33,11 @@ intl = [
 intl-baked = ["intl", "icu/compiled_data"]
 streams = ["async-trait", "async-stream"]
 worker = ["klaver-vm"]
-fs = ["vfs", "mime_guess"]
+fs = ["vfs", "mime_guess", "relative-path"]
 module = ["klaver-modules"]
 
 tokio = ["reqwest", "dep:tokio", "timers", "fetch", "fs", "vfs-tokio"]
-compio = ["dep:compio", "dep:cyper", "fetch", "timers"]
+compio = ["dep:compio", "dep:cyper", "fetch", "timers", "fs", "vfs-compio"]
 
 [dependencies]
 rquickjs = { workspace = true }
@@ -100,6 +100,9 @@ vfs = { git = "https://github.com/kildevaeld/vfs-rs", features = [
     "std",
 ], optional = true }
 vfs-tokio = { git = "https://github.com/kildevaeld/vfs-rs", optional = true }
+vfs-compio = { git = "https://github.com/kildevaeld/vfs-rs", optional = true }
+relative-path = { version = "2", optional = true }
+
 mime_guess = { version = "2", optional = true }
 
 ## Backend

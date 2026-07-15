@@ -3,11 +3,13 @@ use std::sync::Arc;
 use klaver_core::{Core, throw_if};
 use rquickjs::{Class, Ctx, JsLifetime, class::Trace};
 
+use crate::backend::Backend;
 #[cfg(feature = "fetch")]
 use crate::fetch::{Client, LocalClient, SharedClient};
+#[cfg(feature = "fs")]
+use crate::fs::FileSystemSettings;
 #[cfg(feature = "timers")]
 use crate::timers::TimingBackend;
-use crate::{backend::Backend, timers::TimerBackend};
 
 #[rquickjs::class]
 pub struct WinterTcInstance {
@@ -71,6 +73,8 @@ pub struct Settings {
     http_client: Client,
     #[cfg(feature = "timers")]
     timers: TimingBackend,
+    #[cfg(feature = "fs")]
+    file_system: FileSystemSettings,
 }
 
 impl Default for Settings {
@@ -80,6 +84,8 @@ impl Default for Settings {
             http_client: Client::new(),
             #[cfg(feature = "timers")]
             timers: TimingBackend::null(),
+            #[cfg(feature = "fs")]
+            file_system: FileSystemSettings::default(),
         }
     }
 }
@@ -101,12 +107,22 @@ impl Settings {
     }
 
     #[cfg(feature = "timers")]
-    pub fn set_timers<B: TimerBackend + 'static>(&mut self, timers: B) {
+    pub fn set_timers<B: crate::timers::TimerBackend + 'static>(&mut self, timers: B) {
         self.timers = TimingBackend::new(timers);
     }
 
     #[cfg(feature = "timers")]
     pub fn timers(&self) -> &TimingBackend {
         &self.timers
+    }
+
+    #[cfg(feature = "fs")]
+    pub fn set_file_system(&mut self, fs: FileSystemSettings) {
+        self.file_system = fs;
+    }
+
+    #[cfg(feature = "fs")]
+    pub fn file_system(&self) -> &FileSystemSettings {
+        &self.file_system
     }
 }

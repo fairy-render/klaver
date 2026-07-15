@@ -13,13 +13,13 @@ use rquickjs::{
     class::{JsClass, Trace},
     prelude::This,
 };
-use vfs::boxed::BoxVPath;
+use vfs::boxed::LocalBoxVPath;
 
 use super::file::File;
 
 #[rquickjs::class]
 pub struct FileSystemEntry {
-    pub path: BoxVPath,
+    pub path: LocalBoxVPath,
 }
 
 unsafe impl<'js> JsLifetime<'js> for FileSystemEntry {
@@ -171,7 +171,7 @@ impl<'js> FromJs<'js> for OpenOptions {
 pin_project! {
     pub struct ListMap {
         #[pin]
-        stream: BoxStream<'static, Result<BoxVPath, vfs::Error>>,
+        stream: BoxStream<'static, Result<LocalBoxVPath, vfs::Error>>,
     }
 }
 

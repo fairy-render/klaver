@@ -1,12 +1,15 @@
 use std::borrow::Cow;
 
 use klaver_core::value::StringRef;
-use klaver_core::{Exportable, Registry};
+use klaver_core::{Exportable, Registry, throw_if};
 use klaver_modules::{Global, GlobalInfo};
+use relative_path::RelativePath;
 use rquickjs::{
     Ctx,
     prelude::{Async, Func},
 };
+
+use crate::WinterTcInstance;
 
 use super::{File, FileSystem, FileSystemEntry};
 
@@ -29,7 +32,19 @@ impl<'js> Exportable<'js> for FsModule {
             ctx,
             "open",
             Func::new(Async(|ctx: Ctx<'js>, path: StringRef<'js>| async move {
-                FileSystem::from_path(ctx, "", std::path::Path::new(path.as_str())).await
+                let instance = WinterTcInstance::from_ctx(&ctx)?;
+
+                let path = throw_if!(
+                    ctx,
+                    instance
+                        .borrow()
+                        .settings()
+                        .file_system()
+                        .open(&path.as_str())
+                        .await
+                );
+
+                FileSystem::new(ctx, "main", path)
             })),
         )?;
 

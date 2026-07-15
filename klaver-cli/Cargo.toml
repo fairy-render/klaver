@@ -19,7 +19,7 @@ klaver = { path = "../klaver", features = ["fetch", "crypto", "swc"] }
 klaver-core = { path = "../klaver-core" }
 klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules", features = ["filelist"] }
-klaver-wintertc = { path = "../klaver-wintertc", features = ["fs"] }
+klaver-wintertc = { path = "../klaver-wintertc", features = ["fs", "tokio"] }
 
 klaver-image = { path = "../klaver-image" }
 # klaver-dom = { path = "../klaver-dom" }

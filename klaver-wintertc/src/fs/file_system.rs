@@ -6,6 +6,7 @@ use rquickjs::{
     Class, Ctx, JsLifetime, String,
     class::{JsClass, Trace},
 };
+use vfs::boxed::{BoxVPath, LocalBoxVPath};
 use vfs::{VFS, VPathExt, boxed::BoxVFS};
 
 use super::file_system_entry::FileSystemEntry;
@@ -30,26 +31,13 @@ impl<'js> Trace<'js> for FileSystem<'js> {
 }
 
 impl<'js> FileSystem<'js> {
-    pub fn new(ctx: Ctx<'js>, name: &str, fs: &BoxVFS) -> rquickjs::Result<FileSystem<'js>> {
-        let path = throw_if!(ctx, fs.path("."));
-        let name = String::from_str(ctx.clone(), name)?;
-
-        let root = Class::instance(ctx.clone(), FileSystemEntry { path })?;
-
-        Ok(FileSystem { name, root })
-    }
-
-    #[cfg(feature = "tokio")]
-    pub async fn from_path(
+    pub fn new(
         ctx: Ctx<'js>,
         name: &str,
-        path: &Path,
+        path: LocalBoxVPath,
     ) -> rquickjs::Result<FileSystem<'js>> {
-        let fs = throw_if!(ctx, vfs_tokio::FS::new(path.to_path_buf()).await);
-
-        let path = throw_if!(ctx, fs.path(".")).boxed();
-
         let name = String::from_str(ctx.clone(), name)?;
+
         let root = Class::instance(ctx.clone(), FileSystemEntry { path })?;
 
         Ok(FileSystem { name, root })

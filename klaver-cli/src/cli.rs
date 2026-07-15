@@ -1,7 +1,11 @@
 use std::path::Path;
 
 use clap::Parser;
+use klaver_core::throw_if;
 use klaver_modules::{Global, global_info};
+use klaver_vm::RuntimeError;
+use klaver_wintertc::{TokioBackend, WinterTcInstance, fs::FileSystemEntry};
+use rquickjs::CatchResultExt;
 
 use crate::run;
 
@@ -19,7 +23,7 @@ impl Cli {
     pub async fn run() -> color_eyre::Result<()> {
         let cli = Cli::parse();
 
-        let builder = klaver::Builder::default()
+        let builder = klaver::Builder::new(TokioBackend)
             .search_path(".")
             .global::<CliGlobal>()
             .module::<klaver_vm::VmModule>()
@@ -28,6 +32,25 @@ impl Cli {
             .module::<klaver_runtime::TaskModule>();
 
         let vm = builder.build().await?;
+
+        vm.async_with(async move |ctx| {
+            //
+            let instance = WinterTcInstance::from_ctx(&ctx).catch(&ctx)?;
+
+            let path = instance
+                .borrow()
+                .settings()
+                .file_system()
+                .open(".")
+                .await
+                .map_err(|err| RuntimeError::Custom(Box::new(err)))?;
+
+            ctx.globals()
+                .set("Fs", FileSystemEntry { path })
+                .catch(&ctx)?;
+            Ok(())
+        })
+        .await?;
 
         klaver_runtime::set_promise_hook(vm.runtime()).await;
 
@@ -44,14 +67,7 @@ impl Global for CliGlobal {
         &'a self,
         ctx: rquickjs::Ctx<'js>,
     ) -> impl Future<Output = rquickjs::Result<()>> + 'a {
-        async move {
-            //
-            let fs =
-                klaver_wintertc::fs::FileSystem::from_path(ctx.clone(), "main", &Path::new("."))
-                    .await?;
-            ctx.globals().set("Fs", fs)?;
-            Ok(())
-        }
+        async move { Ok(()) }
     }
 }
 

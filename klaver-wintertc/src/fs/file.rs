@@ -5,11 +5,11 @@ use rquickjs::{
     class::{JsClass, Trace},
     prelude::This,
 };
-use vfs::{SeekFrom, VFileExt, boxed::BoxVFile};
+use vfs::{SeekFrom, VFileExt, boxed::LocalBoxVFile};
 
 #[rquickjs::class]
 pub struct File<'js> {
-    pub inner: AsyncLock<BoxVFile>,
+    pub inner: AsyncLock<LocalBoxVFile>,
     #[qjs(get, rename = "fileName")]
     pub file_name: String<'js>,
     #[qjs(get, rename = "type")]
