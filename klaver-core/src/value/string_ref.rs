@@ -1,6 +1,8 @@
 use std::{borrow::Borrow, ffi::c_char, fmt::Display, hash::Hash, mem, ptr::NonNull};
 
-use rquickjs::{Ctx, Error, FromAtom, FromJs, IntoJs, Result, String, Value, class::Trace, qjs};
+use rquickjs::{
+    Ctx, Error, FromAtom, FromJs, IntoAtom, IntoJs, Result, String, Value, class::Trace, qjs,
+};
 
 #[derive(Debug)]
 pub struct StringRef<'js> {
@@ -152,5 +154,11 @@ impl<'js> FromAtom<'js> for StringRef<'js> {
     fn from_atom(atom: rquickjs::Atom<'js>) -> Result<Self> {
         let string = String::from_atom(atom)?;
         Self::from_string(string)
+    }
+}
+
+impl<'js> IntoAtom<'js> for StringRef<'js> {
+    fn into_atom(self, ctx: &Ctx<'js>) -> Result<rquickjs::Atom<'js>> {
+        self.as_string().clone().into_atom(ctx)
     }
 }
