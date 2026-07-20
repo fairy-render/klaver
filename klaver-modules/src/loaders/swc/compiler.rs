@@ -1,19 +1,19 @@
 use anyhow::anyhow;
 use std::{path::Path, sync::Arc};
-use swc_common::{source_map::DefaultSourceMapGenConfig, Globals, Mark, GLOBALS};
+use swc_common::{GLOBALS, Globals, Mark, source_map::DefaultSourceMapGenConfig};
 use swc_ecma_ast::{EsVersion, Pass, Program};
 use swc_ecma_codegen::text_writer::JsWriter;
 use swc_ecma_parser::{Syntax, TsSyntax};
 use swc_ecma_transforms::{
     compat::es2017,
     fixer,
-    helpers::{inject_helpers, Helpers, HELPERS},
+    helpers::{HELPERS, Helpers, inject_helpers},
     hygiene,
     proposals::{
-        decorators::{decorators, Config as DecoratorsConfig},
+        decorators::{Config as DecoratorsConfig, decorators},
         explicit_resource_management::explicit_resource_management,
     },
-    resolver, typescript as ts,
+    react, resolver, typescript as ts,
 };
 use swc_ecma_visit::VisitMutWith;
 use swc_node_comments::SwcComments;
@@ -132,6 +132,18 @@ impl Compiler {
                     &self.comments,
                     unresolved_mark,
                     top_level_mark,
+                )
+                .process(&mut program);
+
+                react::react(
+                    self.cm.clone(),
+                    Some(&self.comments),
+                    react::Options {
+                        runtime: Some(react::Runtime::Automatic),
+                        ..Default::default()
+                    },
+                    top_level_mark,
+                    unresolved_mark,
                 )
                 .process(&mut program);
 

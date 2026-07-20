@@ -17,6 +17,8 @@ pub struct Cli {
     exec: bool,
     #[clap(short, long, default_value_t = false)]
     types: bool,
+    #[clap(short, long, default_value_t = false)]
+    compile: bool,
 }
 
 impl Cli {
@@ -54,7 +56,14 @@ impl Cli {
 
         klaver_runtime::set_promise_hook(vm.runtime()).await;
 
-        run::run(vm, cli.path.as_ref().map(|m| &**m), cli.exec, cli.types).await?;
+        run::run(
+            vm,
+            cli.path.as_ref().map(|m| &**m),
+            cli.exec,
+            cli.types,
+            cli.compile,
+        )
+        .await?;
 
         Ok(())
     }
@@ -65,7 +74,7 @@ pub struct CliGlobal;
 impl Global for CliGlobal {
     fn define<'a, 'js: 'a>(
         &'a self,
-        ctx: rquickjs::Ctx<'js>,
+        _ctx: rquickjs::Ctx<'js>,
     ) -> impl Future<Output = rquickjs::Result<()>> + 'a {
         async move { Ok(()) }
     }
