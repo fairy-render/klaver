@@ -13,4 +13,4 @@ mod worker;
 
 #[cfg(feature = "worker")]
 pub use self::worker::*;
-pub use self::{builder::*, module::*, util::*, vm::*};
+pub use self::{builder::*, context::Context, module::*, util::*, vm::*};
