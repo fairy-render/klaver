@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use klaver_core::{Inheritable, StringExt, SuperClass, value::StringRef};
 use rquickjs::{
-    Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value,
+    CatchResultExt, Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value,
     class::{JsClass, Trace},
     object::Accessor,
     prelude::This,
@@ -85,8 +85,11 @@ impl<'js, T> Inheritable<'js, T> for Event<'js>
 where
     T: JsClass<'js> + NativeEvent<'js>,
 {
-    fn additional_override(_ctx: &Ctx<'js>, proto: &rquickjs::Object<'js>) -> rquickjs::Result<()> {
-        proto.prop("type", Accessor::new_get(T::ty).enumerable())?;
+    fn additional_override(ctx: &Ctx<'js>, proto: &rquickjs::Object<'js>) -> rquickjs::Result<()> {
+        if proto.contains_key("type")? {
+            return Ok(());
+        }
+        proto.prop("type", Accessor::new_get(T::ty).enumerable().configurable())?;
 
         Ok(())
     }
@@ -143,7 +146,9 @@ where
 
     fn add_event_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
         let proto = Class::<Self>::prototype(ctx)?.expect("EventEmitter.prototype");
-        proto.prop("type", Accessor::new_get(Self::ty).enumerable())?;
+        proto
+            .prop("type", Accessor::new_get(Self::ty).enumerable())
+            .ok();
 
         Ok(())
     }
