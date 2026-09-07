@@ -1,4 +1,4 @@
-use klaver_core::Subclass;
+use klaver_core::{Subclass, value::StringRef};
 use rquickjs::{
     Class, Ctx, FromJs, JsLifetime, Object, String, Value,
     class::{JsClass, Trace},
@@ -10,7 +10,7 @@ use crate::events::{DynEvent, Event, IntoDynEvent, NativeEvent};
 #[derive(Debug, Trace, JsLifetime)]
 #[rquickjs::class]
 pub struct MessageEvent<'js> {
-    pub ty: String<'js>,
+    pub base: Event<'js>,
     #[qjs(get)]
     pub data: Option<Value<'js>>,
 }
@@ -40,8 +40,8 @@ impl<'js> MessageEvent<'js> {
         let opts = ops.0.unwrap_or_default();
 
         Ok(MessageEvent {
+            base: Event::new(StringRef::from_string(ty)?, Opt(None))?,
             data: opts.data,
-            ty,
         })
     }
 }
@@ -51,7 +51,11 @@ impl<'js> NativeEvent<'js> for MessageEvent<'js> {
         this: rquickjs::prelude::This<Class<'js, Self>>,
         _ctx: Ctx<'js>,
     ) -> rquickjs::Result<String<'js>> {
-        Ok(this.borrow().ty.clone())
+        Ok(this.borrow().base.ty.to_js_string())
+    }
+
+    fn event(&self) -> &Event<'js> {
+        &self.base
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
     WinterTcInstance,
     channel::{MessageChannel, MessagePort},
-    events::{Emitter, EventKey},
+    events::{Emitter, EventCallback, EventKey},
 };
 use klaver_core::{Exportable, Registry, value::structured_clone::SerializationOptions};
 use klaver_modules::WeakEnviron;
@@ -93,24 +93,22 @@ impl<'js> WebWorker<'js> {
     #[qjs(rename = "addEventListener")]
     pub fn add_event_listener(
         &self,
+        ctx: Ctx<'js>,
         event: EventKey<'js>,
-        cb: Function<'js>,
+        cb: EventCallback<'js>,
     ) -> rquickjs::Result<()> {
-        self.port
-            .borrow_mut()
-            .add_event_listener_native(event, cb)?;
-        Ok(())
+        MessagePort::add_event_listener_native(&self.port, &ctx, event, cb, Default::default())
     }
 
     #[qjs(rename = "removeEventListener")]
     pub fn remove_event_listener(
         &self,
         event: EventKey<'js>,
-        cb: Function<'js>,
+        cb: EventCallback<'js>,
     ) -> rquickjs::Result<()> {
         self.port
             .borrow_mut()
-            .remove_event_listener_native(event, cb)?;
+            .remove_event_listener_native(event, cb, false);
         Ok(())
     }
 

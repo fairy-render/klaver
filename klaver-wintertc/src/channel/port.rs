@@ -324,7 +324,7 @@ impl<'js> Resource<'js> for MessagePortResource<'js> {
                     let event =
                         MessageEvent::new(msg, Opt(Some(MessageEventOptions { data: Some(data) })))?;
 
-                    self.message_port.borrow_mut().dispatch_native(&ctx, event)?;
+                    MessagePort::dispatch_native(&self.message_port, &ctx, event)?;
                 }
                 _ = &mut self.kill => {
                     break;

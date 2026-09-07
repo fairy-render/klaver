@@ -15,6 +15,27 @@ impl<'js> DynEvent<'js> {
 
         obj.get("type")
     }
+
+    /// Reads the event's `defaultPrevented` property. Read generically off the JS object
+    /// (rather than by downcasting to a concrete Rust `Event` type) so this works for any
+    /// event subtype, not just plain `Event` instances - see [`super::NativeEvent`].
+    pub fn default_prevented(&self, ctx: &Ctx<'js>) -> rquickjs::Result<bool> {
+        let Some(obj) = self.inner.as_object() else {
+            throw!(@type ctx, "Expected object");
+        };
+
+        obj.get("defaultPrevented")
+    }
+
+    /// Reads the event's `stopImmediatePropagation()`-was-called flag, generically (see
+    /// [`Self::default_prevented`] for why).
+    pub fn stop_immediate_propagation_called(&self, ctx: &Ctx<'js>) -> rquickjs::Result<bool> {
+        let Some(obj) = self.inner.as_object() else {
+            throw!(@type ctx, "Expected object");
+        };
+
+        obj.get("$$stopImmediatePropagation")
+    }
 }
 
 impl<'js> AsRef<Value<'js>> for DynEvent<'js> {

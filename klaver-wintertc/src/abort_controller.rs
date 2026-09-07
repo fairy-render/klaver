@@ -56,9 +56,7 @@ impl<'js> AbortController<'js> {
             onabort.call_arg::<()>(args)?;
         }
 
-        self.signal
-            .borrow()
-            .dispatch_native(&ctx, Event::new_native(&ctx, "abort")?)?;
+        AbortSignal::dispatch_native(&self.signal, &ctx, Event::new_native(&ctx, "abort")?)?;
 
         Ok(())
     }
