@@ -68,6 +68,31 @@ impl<'js> StreamData<'js> {
         }
     }
 
+    /// Like [`Self::throw_state`], but builds the error *value* instead of throwing it -
+    /// for rejecting a promise (e.g. `writer.write()` on an errored/closed stream) rather than
+    /// throwing synchronously.
+    pub fn state_error_value(&self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+        Ok(match &self.state {
+            ControllerState::Aborted(Some(err)) => err.clone(),
+            ControllerState::Aborted(None) => {
+                rquickjs::Exception::from_message(ctx.clone(), "Writable stream is aborted")?
+                    .into_object()
+                    .into_value()
+            }
+            ControllerState::Failed(err) => err.clone(),
+            ControllerState::Closed | ControllerState::Done => {
+                rquickjs::Exception::from_message(ctx.clone(), "Writable stream is closed")?
+                    .into_object()
+                    .into_value()
+            }
+            ControllerState::Running => {
+                rquickjs::Exception::from_message(ctx.clone(), "Writable stream is not writable")?
+                    .into_object()
+                    .into_value()
+            }
+        })
+    }
+
     pub fn is_write_ready(&self) -> bool {
         !self.queue.is_full() && self.is_running()
     }
@@ -92,8 +117,11 @@ impl<'js> StreamData<'js> {
             return self.throw_state(ctx);
         }
 
+        let reject_reason = reason
+            .clone()
+            .unwrap_or_else(|| Value::new_undefined(ctx.clone()));
         self.state = ControllerState::Aborted(reason);
-        self.queue.clear();
+        self.queue.reject_all(reject_reason);
         self.wait.notify(usize::MAX);
 
         Ok(())
@@ -104,8 +132,8 @@ impl<'js> StreamData<'js> {
             return self.throw_state(ctx);
         }
 
-        self.state = ControllerState::Failed(error);
-        self.queue.clear();
+        self.state = ControllerState::Failed(error.clone());
+        self.queue.reject_all(error);
 
         self.wait.notify(usize::MAX);
 

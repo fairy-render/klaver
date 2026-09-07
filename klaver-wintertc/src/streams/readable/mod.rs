@@ -1,3 +1,4 @@
+mod byob_reader;
 mod controller;
 mod from;
 mod queue;
@@ -6,10 +7,12 @@ mod resource;
 mod source;
 mod state;
 mod stream;
+mod tee;
 
 use klaver_core::ExportTarget;
 
 pub use self::{
+    byob_reader::ReadableStreamBYOBReader,
     controller::ReadableStreamDefaultController,
     from::from,
     reader::ReadableStreamDefaultReader,
@@ -29,7 +32,8 @@ pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Res
         decl,
         ReadableStream,
         ReadableStreamDefaultController,
-        ReadableStreamDefaultReader
+        ReadableStreamDefaultReader,
+        ReadableStreamBYOBReader
     );
     Ok(())
 }
@@ -45,7 +49,8 @@ pub fn export<'js, T: ExportTarget<'js>>(
         exports,
         ReadableStream,
         ReadableStreamDefaultController,
-        ReadableStreamDefaultReader
+        ReadableStreamDefaultReader,
+        ReadableStreamBYOBReader
     );
     Ok(())
 }

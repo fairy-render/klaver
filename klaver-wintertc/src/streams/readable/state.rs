@@ -25,6 +25,9 @@ pub struct ReadableStreamData<'js> {
     pub locked: Observable<bool>,
     pub resource_active: Observable<bool>,
     pub disturbed: bool,
+    /// Set when constructed from an `UnderlyingSource` with `type: "bytes"` - gates whether
+    /// `getReader({ mode: "byob" })` is allowed.
+    pub is_byte_stream: bool,
 }
 
 unsafe impl<'js> JsLifetime<'js> for ReadableStreamData<'js> {
@@ -40,6 +43,7 @@ impl<'js> ReadableStreamData<'js> {
             locked: Observable::new(false),
             resource_active: Observable::new(true),
             disturbed: false,
+            is_byte_stream: false,
         }
     }
 

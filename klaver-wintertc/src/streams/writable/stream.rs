@@ -39,9 +39,7 @@ impl<'js> WritableStream<'js> {
 
         let ctrl = Class::instance(
             ctx.clone(),
-            WritableStreamDefaultController {
-                data: state.clone(),
-            },
+            WritableStreamDefaultController::new_with(ctx, state.clone())?,
         )?;
 
         AsyncState::push(
@@ -60,16 +58,22 @@ impl<'js> WritableStream<'js> {
 #[rquickjs::methods]
 impl<'js> WritableStream<'js> {
     #[qjs(constructor)]
-    fn new(ctx: Ctx<'js>, sink: JsUnderlyingSink<'js>) -> rquickjs::Result<WritableStream<'js>> {
-        let state = StreamData::new(QueuingStrategy::create_default(&ctx)?);
+    fn new(
+        ctx: Ctx<'js>,
+        sink: JsUnderlyingSink<'js>,
+        strategy: Opt<QueuingStrategy<'js>>,
+    ) -> rquickjs::Result<WritableStream<'js>> {
+        let strategy = match strategy.0 {
+            Some(ret) => ret,
+            None => QueuingStrategy::create_default(&ctx)?,
+        };
+        let state = StreamData::new(strategy);
 
         let state = Class::instance(ctx.clone(), state)?;
 
         let ctrl = Class::instance(
             ctx.clone(),
-            WritableStreamDefaultController {
-                data: state.clone(),
-            },
+            WritableStreamDefaultController::new_with(&ctx, state.clone())?,
         )?;
 
         AsyncState::push(
@@ -157,10 +161,12 @@ impl<'js> Resource<'js> for WritableStreamResource<'js> {
 
         loop {
             if self.data.borrow().is_aborted() {
-                self.sink
-                    .abort(&ctx, self.data.borrow().abort_reason())
-                    .await
+                let reason = self.data.borrow().abort_reason();
+                self.ctrl
+                    .borrow()
+                    .signal_abort(ctx.ctx(), reason.clone())
                     .ok();
+                self.sink.abort(&ctx, reason).await.ok();
                 break;
             }
 

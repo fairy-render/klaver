@@ -161,9 +161,17 @@ impl<'js> TransformStream<'js> {
         writable_strategy: Opt<QueuingStrategy<'js>>,
         readable_strategy: Opt<QueuingStrategy<'js>>,
     ) -> rquickjs::Result<TransformStream<'js>> {
+        // Per spec, `readableStrategy` defaults to a high water mark of 0 (not 1, unlike every
+        // other stream default) - so that backpressure on the readable side is communicated to
+        // the writable side as soon as a single chunk is buffered.
+        let readable_strategy = match readable_strategy.0 {
+            Some(strategy) => strategy,
+            None => QueuingStrategy::create_with_high_water_mark(&ctx, 0)?,
+        };
+
         let readable = Class::instance(
             ctx.clone(),
-            ReadableStream::from_native(&ctx, PassiveSource, readable_strategy.0)?,
+            ReadableStream::from_native(&ctx, PassiveSource, Some(readable_strategy))?,
         )?;
 
         let controller = Class::instance(

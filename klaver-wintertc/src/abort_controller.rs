@@ -30,6 +30,13 @@ impl<'js> AbortController<'js> {
         })
     }
 
+    /// The controller's signal, for other Rust code in the crate that needs to key off of or
+    /// hand out the same `AbortSignal` (e.g. `WritableStreamDefaultController.signal`) without
+    /// going through JS.
+    pub(crate) fn signal_handle(&self) -> Class<'js, AbortSignal<'js>> {
+        self.signal.clone()
+    }
+
     pub fn abort(&self, ctx: Ctx<'js>, reason: Opt<rquickjs::Value<'js>>) -> rquickjs::Result<()> {
         if self.signal.borrow().aborted {
             return Ok(());

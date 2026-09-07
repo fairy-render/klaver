@@ -182,6 +182,13 @@ pub struct JsUnderlyingSource<'js> {
     start: Option<Function<'js>>,
     pull: Option<Function<'js>>,
     cancel: Option<Function<'js>>,
+    /// `"bytes"` marks this as a byte stream (enabling a BYOB reader via
+    /// `getReader({ mode: "byob" })`); anything else (including absent) means a default stream.
+    pub r#type: Option<std::string::String>,
+    /// Accepted for API-shape compatibility; not currently acted on (this implementation
+    /// doesn't support the zero-copy `byobRequest` auto-allocation path).
+    #[allow(unused)]
+    pub auto_allocate_chunk_size: Option<u64>,
 }
 
 impl<'js> JsUnderlyingSource<'js> {
@@ -248,6 +255,8 @@ impl<'js> FromJs<'js> for JsUnderlyingSource<'js> {
             start: obj.get("start")?,
             pull: obj.get("pull")?,
             cancel: obj.get("cancel")?,
+            r#type: obj.get("type")?,
+            auto_allocate_chunk_size: obj.get("autoAllocateChunkSize")?,
         })
     }
 }

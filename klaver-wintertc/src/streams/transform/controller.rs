@@ -25,12 +25,14 @@ impl<'js> TransformStreamDefaultController<'js> {
     }
 
     #[qjs(get, rename = "desiredSize")]
-    pub fn desired_size(&self) -> Option<f64> {
+    pub fn desired_size(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let data = self.readable.borrow();
-        if data.is_failed() || data.is_cancled() {
-            return None;
-        }
-        Some(data.queue.desired_size())
+        let size = if data.is_failed() || data.is_cancled() {
+            None
+        } else {
+            Some(data.queue.desired_size())
+        };
+        crate::streams::desired_size_value(&ctx, size)
     }
 
     pub fn enqueue(&self, ctx: Ctx<'js>, chunk: Value<'js>) -> rquickjs::Result<()> {

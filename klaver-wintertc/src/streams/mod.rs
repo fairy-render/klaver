@@ -5,13 +5,30 @@ pub mod readable;
 pub mod transform;
 pub mod writable;
 
-use rquickjs::class::JsClass;
+use rquickjs::{Ctx, IntoJs, Value, class::JsClass};
 
 use klaver_core::Registry;
 
+/// `Option<f64>::IntoJs` maps `None` to `undefined`, but spec-defined `desiredSize` getters
+/// (`ReadableStreamDefaultController`, `WritableStreamDefaultWriter`,
+/// `TransformStreamDefaultController`) are specifically documented to return `null` once
+/// errored/closed, not `undefined`.
+pub(crate) fn desired_size_value<'js>(
+    ctx: &Ctx<'js>,
+    size: Option<f64>,
+) -> rquickjs::Result<Value<'js>> {
+    match size {
+        Some(size) => size.into_js(ctx),
+        None => Ok(Value::new_null(ctx.clone())),
+    }
+}
+
 pub use self::{
     queue_strategy::{ByteLengthQueuingStrategy, CountQueuingStrategy, QueuingStrategy},
-    readable::{ReadableStream, ReadableStreamDefaultController, ReadableStreamDefaultReader},
+    readable::{
+        ReadableStream, ReadableStreamBYOBReader, ReadableStreamDefaultController,
+        ReadableStreamDefaultReader,
+    },
     transform::{TransformStream, TransformStreamDefaultController},
     writable::{WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter},
 };
@@ -438,6 +455,390 @@ mod tests {
         run(r#"
             const strategy = new ByteLengthQueuingStrategy({ highWaterMark: 16 });
             if (strategy.highWaterMark !== 16) throw new Error(`highWaterMark was ${strategy.highWaterMark}`);
+        "#)
+        .await;
+    }
+
+    // ---- WritableStream writer completeness ----
+
+    #[tokio::test]
+    async fn writer_desired_size_reflects_high_water_mark_and_queue_size() {
+        run(r#"
+            const stream = new WritableStream({}, new CountQueuingStrategy({ highWaterMark: 3 }));
+            const writer = stream.getWriter();
+            if (writer.desiredSize !== 3) throw new Error(`desiredSize was ${writer.desiredSize}`);
+
+            writer.write(1);
+            writer.write(2);
+            // desiredSize reflects the queue before the sink has drained it.
+            if (writer.desiredSize > 1) throw new Error(`desiredSize was ${writer.desiredSize}`);
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn writer_desired_size_is_null_once_errored() {
+        run(r#"
+            const stream = new WritableStream({
+                write() { throw new Error("boom"); },
+            });
+            const writer = stream.getWriter();
+
+            let threw = false;
+            try {
+                await writer.write("x");
+            } catch {
+                threw = true;
+            }
+            if (!threw) throw new Error("expected write() to reject");
+            if (writer.desiredSize !== null) throw new Error(`desiredSize was ${writer.desiredSize}`);
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn writer_closed_resolves_once_the_stream_finishes_closing() {
+        run(r#"
+            const stream = new WritableStream({});
+            const writer = stream.getWriter();
+            await writer.close();
+            await writer.closed;
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn writer_write_rejects_once_the_stream_is_closed() {
+        run(r#"
+            const stream = new WritableStream({});
+            const writer = stream.getWriter();
+            await writer.close();
+
+            let threw = false;
+            try {
+                await writer.write("too late");
+            } catch {
+                threw = true;
+            }
+            if (!threw) throw new Error("expected write() after close() to reject");
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn writer_write_rejects_with_the_abort_reason_once_aborted() {
+        run(r#"
+            const stream = new WritableStream({});
+            const writer = stream.getWriter();
+            await writer.abort("stop");
+
+            let seen;
+            try {
+                await writer.write("too late");
+            } catch (e) {
+                seen = e;
+            }
+            if (seen !== "stop") throw new Error(`rejection reason was ${seen}`);
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn writable_controller_signal_aborts_with_the_stream() {
+        run(r#"
+            let seenReason;
+            const stream = new WritableStream({
+                start(controller) {
+                    controller.signal.addEventListener("abort", () => {
+                        seenReason = controller.signal.reason;
+                    });
+                },
+            });
+
+            await stream.abort("stop");
+            if (seenReason !== "stop") throw new Error(`signal reason was ${seenReason}`);
+        "#)
+        .await;
+    }
+
+    // ---- pipeTo options ----
+
+    #[tokio::test]
+    async fn pipe_to_prevent_close_leaves_destination_open() {
+        run(r#"
+            const source = new ReadableStream({
+                start(controller) { controller.enqueue("x"); controller.close(); },
+            });
+
+            let closed = false;
+            const dest = new WritableStream({
+                close() { closed = true; },
+            });
+
+            await source.pipeTo(dest, { preventClose: true });
+            if (closed) throw new Error("destination should not have been closed");
+
+            // The destination writer is free (pipeTo released its lock on completion).
+            const writer = dest.getWriter();
+            await writer.close();
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn pipe_to_aborts_destination_when_source_errors() {
+        run(r#"
+            const source = new ReadableStream({
+                start(controller) { controller.error(new Error("source broke")); },
+            });
+
+            let abortReason;
+            const dest = new WritableStream({
+                abort(reason) { abortReason = reason; },
+            });
+
+            let threw = false;
+            try {
+                await source.pipeTo(dest);
+            } catch (e) {
+                threw = true;
+                if (e.message !== "source broke") throw new Error(`wrong error: ${e.message}`);
+            }
+            if (!threw) throw new Error("expected pipeTo() to reject");
+            if (!abortReason || abortReason.message !== "source broke") {
+                throw new Error(`destination was not aborted with the source's error`);
+            }
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn pipe_to_cancels_source_when_destination_errors() {
+        run(r#"
+            let cancelReason;
+            const source = new ReadableStream({
+                start(controller) { controller.enqueue("x"); },
+                cancel(reason) { cancelReason = reason; },
+            });
+
+            const dest = new WritableStream({
+                write() { throw new Error("dest broke"); },
+            });
+
+            let threw = false;
+            try {
+                await source.pipeTo(dest);
+            } catch (e) {
+                threw = true;
+                if (e.message !== "dest broke") throw new Error(`wrong error: ${e.message}`);
+            }
+            if (!threw) throw new Error("expected pipeTo() to reject");
+            if (!cancelReason || cancelReason.message !== "dest broke") {
+                throw new Error("source was not cancelled with the destination's error");
+            }
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn pipe_to_respects_an_already_aborted_signal() {
+        run(r#"
+            const controller = new AbortController();
+            controller.abort("nope");
+
+            const source = new ReadableStream({ start(c) { c.enqueue("x"); } });
+            const dest = new WritableStream({});
+
+            let seen;
+            try {
+                await source.pipeTo(dest, { signal: controller.signal });
+            } catch (e) {
+                seen = e;
+            }
+            if (seen !== "nope") throw new Error(`rejection reason was ${seen}`);
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn pipe_through_returns_the_transforms_readable_side() {
+        run(r#"
+            const source = new ReadableStream({
+                start(controller) {
+                    controller.enqueue("a");
+                    controller.enqueue("b");
+                    controller.close();
+                },
+            });
+
+            const ts = new TransformStream({
+                transform(chunk, controller) { controller.enqueue(chunk.toUpperCase()); },
+            });
+
+            const out = source.pipeThrough(ts);
+            const reader = out.getReader();
+            const seen = [];
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                seen.push(value);
+            }
+            if (seen.join(",") !== "A,B") throw new Error(`values were ${seen}`);
+        "#)
+        .await;
+    }
+
+    // ---- tee() ----
+
+    #[tokio::test]
+    async fn tee_delivers_every_chunk_to_both_branches() {
+        run(r#"
+            const source = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(1);
+                    controller.enqueue(2);
+                    controller.enqueue(3);
+                    controller.close();
+                },
+            });
+
+            const [a, b] = source.tee();
+
+            async function drain(stream) {
+                const reader = stream.getReader();
+                const seen = [];
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    seen.push(value);
+                }
+                return seen.join(",");
+            }
+
+            const [aValues, bValues] = await Promise.all([drain(a), drain(b)]);
+            if (aValues !== "1,2,3") throw new Error(`branch a saw ${aValues}`);
+            if (bValues !== "1,2,3") throw new Error(`branch b saw ${bValues}`);
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn tee_branches_are_independently_readable_streams() {
+        run(r#"
+            const source = new ReadableStream({
+                start(controller) { controller.enqueue("x"); controller.close(); },
+            });
+            const [a, b] = source.tee();
+            if (a === b) throw new Error("branches should be distinct streams");
+            if (!(a instanceof ReadableStream) || !(b instanceof ReadableStream)) {
+                throw new Error("branches should be ReadableStream instances");
+            }
+        "#)
+        .await;
+    }
+
+    // ---- Byte streams / BYOB reader ----
+
+    #[tokio::test]
+    async fn byte_stream_enqueues_and_reads_typed_arrays_via_default_reader() {
+        run(r#"
+            const stream = new ReadableStream({
+                type: "bytes",
+                start(controller) {
+                    controller.enqueue(new Uint8Array([1, 2, 3]));
+                    controller.close();
+                },
+            });
+
+            const reader = stream.getReader();
+            const { value, done } = await reader.read();
+            if (done) throw new Error("expected a chunk");
+            if (value.length !== 3 || value[0] !== 1 || value[2] !== 3) {
+                throw new Error(`chunk was ${value}`);
+            }
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn byte_stream_enqueue_rejects_non_array_buffer_view() {
+        run(r#"
+            const stream = new ReadableStream({
+                type: "bytes",
+                start(controller) {
+                    let threw = false;
+                    try {
+                        controller.enqueue("not a view");
+                    } catch {
+                        threw = true;
+                    }
+                    if (!threw) throw new Error("expected enqueue() to throw for a non-view chunk");
+                    controller.close();
+                },
+            });
+            await stream.getReader().read();
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn get_reader_byob_mode_requires_a_byte_stream() {
+        run(r#"
+            const stream = new ReadableStream({});
+            let threw = false;
+            try {
+                stream.getReader({ mode: "byob" });
+            } catch {
+                threw = true;
+            }
+            if (!threw) throw new Error("expected getReader({mode:'byob'}) to throw for a non-byte stream");
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn byob_reader_reads_enqueued_bytes() {
+        run(r#"
+            const stream = new ReadableStream({
+                type: "bytes",
+                start(controller) {
+                    controller.enqueue(new Uint8Array([10, 20, 30]));
+                    controller.close();
+                },
+            });
+
+            const reader = stream.getReader({ mode: "byob" });
+            const buffer = new Uint8Array(3);
+            const { value, done } = await reader.read(buffer);
+            if (done) throw new Error("expected a chunk");
+            if (value.length !== 3 || value[0] !== 10 || value[1] !== 20 || value[2] !== 30) {
+                throw new Error(`value was ${value}`);
+            }
+
+            const next = await reader.read(buffer);
+            if (!next.done) throw new Error("expected the stream to be done");
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn byob_reader_controller_byob_request_is_null() {
+        // Documented simplification: this implementation doesn't support the zero-copy
+        // `byobRequest` path.
+        run(r#"
+            let seenRequest = "unset";
+            const stream = new ReadableStream({
+                type: "bytes",
+                pull(controller) {
+                    seenRequest = controller.byobRequest;
+                    controller.enqueue(new Uint8Array([1]));
+                    controller.close();
+                },
+            });
+
+            const reader = stream.getReader({ mode: "byob" });
+            await reader.read(new Uint8Array(1));
+            if (seenRequest !== null) throw new Error(`byobRequest was ${seenRequest}`);
         "#)
         .await;
     }

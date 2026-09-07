@@ -58,6 +58,36 @@ impl<'js> ReadableStreamDefaultReader<'js> {
 
         Ok(data.borrow_mut().queue.pop())
     }
+
+    /// The implementation behind the JS-facing `cancel()`, usable directly on a plain
+    /// (non-`Class`-wrapped) reader value - e.g. by `pipeTo`, which needs to cancel the source
+    /// on a writable-side failure without round-tripping through a JS `Class` handle.
+    pub async fn cancel_native(
+        &self,
+        ctx: &Ctx<'js>,
+        reason: Option<Value<'js>>,
+    ) -> rquickjs::Result<()> {
+        let Some(data) = &self.data else {
+            throw!(@type ctx, "Lock released");
+        };
+
+        if data.borrow().is_failed() || data.borrow().is_cancled() {
+            throw!(@type ctx, "Stream already canceled");
+        }
+
+        data.borrow_mut().cancel(ctx, reason)?;
+
+        loop {
+            if !data.borrow().resource_active.get() {
+                break;
+            }
+
+            let listener = data.borrow().resource_active.subscribe();
+            listener.await;
+        }
+
+        Ok(())
+    }
 }
 
 #[rquickjs::methods]
@@ -105,75 +135,24 @@ impl<'js> ReadableStreamDefaultReader<'js> {
         ctx: Ctx<'js>,
         reason: Opt<Value<'js>>,
     ) -> rquickjs::Result<()> {
-        let Some(data) = this.borrow().data.clone() else {
-            throw!(@type ctx, "Lock released");
-        };
-
-        if data.borrow().is_failed() || data.borrow().is_cancled() {
-            throw!(@type ctx, "Stream already canceled");
-        }
-
-        data.borrow_mut().cancel(&ctx, reason.0)?;
-
-        loop {
-            if !data.borrow().resource_active.get() {
-                break;
-            }
-
-            let listener = data.borrow().resource_active.subscribe();
-            listener.await;
-        }
-
-        Ok(())
+        let data = this.borrow().data.clone();
+        ReadableStreamDefaultReader { data }
+            .cancel_native(&ctx, reason.0)
+            .await
     }
 
     pub async fn read(
         This(this): This<Class<'js, Self>>,
         ctx: Ctx<'js>,
     ) -> rquickjs::Result<IteratorResult<Value<'js>>> {
-        let Some(data) = this.borrow().data.clone() else {
-            throw!(@type ctx, "Lock released");
-        };
-
-        if data.borrow().is_failed() || data.borrow().is_cancled() {
-            if let Some(data) = data.borrow().reason.clone() {
-                return Err(ctx.throw(data));
-            }
-            throw!(@type ctx, "Stream was cancled")
+        let data = this.borrow().data.clone();
+        match (ReadableStreamDefaultReader { data })
+            .read_native(&ctx)
+            .await?
+        {
+            Some(value) => Ok(IteratorResult::Value(value)),
+            None => Ok(IteratorResult::Done),
         }
-
-        // Not data in the queue, so we'll wait for a state change
-        if data.borrow().queue.is_empty() && !data.borrow().is_closed() {
-            loop {
-                let state = data.borrow().state.subscribe();
-                let queue = data.borrow().queue.subscribe();
-
-                futures::select! {
-                    _ = state.fuse() => {
-                        // A state change means some kind of errors happended
-                        break;
-                    }
-                    _ = queue.fuse() => {
-                        if !data.borrow().queue.is_empty() {
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if data.borrow().is_failed() || data.borrow().is_cancled() {
-                if let Some(data) = data.borrow().reason.clone() {
-                    return Err(ctx.throw(data));
-                }
-                throw!(@type ctx, "Stream was cancled")
-            }
-        }
-
-        let Some(value) = data.borrow_mut().queue.pop() else {
-            return Ok(IteratorResult::Done);
-        };
-
-        Ok(IteratorResult::Value(value))
     }
 
     #[qjs(rename = "releaseLock")]

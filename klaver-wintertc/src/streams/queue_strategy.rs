@@ -78,9 +78,16 @@ pub enum QueuingStrategy<'js> {
 
 impl<'js> QueuingStrategy<'js> {
     pub fn create_default(ctx: &Ctx<'js>) -> rquickjs::Result<QueuingStrategy<'js>> {
+        Self::create_with_high_water_mark(ctx, 1)
+    }
+
+    pub fn create_with_high_water_mark(
+        ctx: &Ctx<'js>,
+        high_water_mark: u64,
+    ) -> rquickjs::Result<QueuingStrategy<'js>> {
         Ok(Self::Count(Class::instance(
             ctx.clone(),
-            CountQueuingStrategy { high_water_mark: 1 },
+            CountQueuingStrategy { high_water_mark },
         )?))
     }
 

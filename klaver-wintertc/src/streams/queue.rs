@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, fmt::Debug};
 
-use klaver_core::sync::Event;
 use rquickjs::{Ctx, Function, Promise, Value, class::Trace};
 
 use crate::streams::queue_strategy::QueuingStrategy;
@@ -17,7 +16,6 @@ pub struct Queue<'js> {
     chunks: VecDeque<Entry<'js>>,
     strategy: QueuingStrategy<'js>,
     current_size: u64,
-    ready: Event,
 }
 
 impl<'js> Debug for Queue<'js> {
@@ -42,7 +40,6 @@ impl<'js> Queue<'js> {
             chunks: Default::default(),
             strategy,
             current_size: 0,
-            ready: Event::new(),
         }
     }
 
@@ -58,6 +55,16 @@ impl<'js> Queue<'js> {
     pub fn clear(&mut self) {
         self.current_size = 0;
         self.chunks.clear();
+    }
+
+    /// Drains the queue, rejecting every pending write's promise with `reason` - per spec, an
+    /// error/abort must reject *all* outstanding `writer.write()` promises, not just silently
+    /// drop them.
+    pub fn reject_all(&mut self, reason: Value<'js>) {
+        self.current_size = 0;
+        for entry in self.chunks.drain(..) {
+            entry.reject.call::<_, ()>((reason.clone(),)).ok();
+        }
     }
 
     pub fn push(
@@ -89,5 +96,11 @@ impl<'js> Queue<'js> {
         }
 
         Some(entry)
+    }
+
+    /// The standard `desiredSize`: how much more (by strategy-defined size units) could be
+    /// enqueued before the queue is considered full. Negative once over the high water mark.
+    pub fn desired_size(&self) -> f64 {
+        self.strategy.high_water_mark() as f64 - self.current_size as f64
     }
 }
