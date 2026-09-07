@@ -1,5 +1,5 @@
 use crate::{
-    blob::Blob,
+    blob::{Blob, File},
     streams::{ReadableStream, readable::One},
 };
 use futures::{Stream, StreamExt, TryStreamExt, future::LocalBoxFuture, stream::LocalBoxStream};
@@ -14,6 +14,7 @@ use std::{
 };
 
 use super::body_static::{Body, to_bytes};
+use super::form_data::FormData;
 
 pub enum BodyState<'js> {
     Empty,
@@ -207,6 +208,73 @@ impl<'js> BodyMixin<'js> {
             buffer: array_buffer,
             ty: content_type,
         })
+    }
+
+    /// Parses the body as either `multipart/form-data` or
+    /// `application/x-www-form-urlencoded`, per the `Body.formData()` algorithm.
+    pub async fn form_data(
+        &self,
+        ctx: &Ctx<'js>,
+        content_type: Option<String<'js>>,
+    ) -> rquickjs::Result<FormData<'js>> {
+        let Some(content_type) = content_type else {
+            throw!(@type ctx, "No Content-Type header, cannot determine formData() encoding")
+        };
+
+        let content_type = content_type.to_string()?;
+
+        if let Ok(boundary) = multer::parse_boundary(&content_type) {
+            let bytes = self.to_bytes(ctx).await?;
+
+            let stream = futures::stream::once(async move {
+                Result::<_, std::convert::Infallible>::Ok(bytes::Bytes::from(bytes))
+            });
+
+            let mut multipart = multer::Multipart::new(stream, boundary);
+            let form = FormData::new_native();
+
+            while let Some(field) = throw_if!(ctx, multipart.next_field().await) {
+                let name = field.name().unwrap_or_default().to_string();
+                let file_name = field.file_name().map(std::string::String::from);
+                let field_content_type = field.content_type().map(|m| m.to_string());
+
+                if let Some(file_name) = file_name {
+                    let ty = field_content_type
+                        .map(|ty| String::from_str(ctx.clone(), &ty))
+                        .transpose()?;
+                    let data = throw_if!(ctx, field.bytes().await);
+                    let buffer = ArrayBuffer::new(ctx.clone(), data.to_vec())?;
+                    let file_name_js = String::from_str(ctx.clone(), &file_name)?;
+                    let file = Class::instance(
+                        ctx.clone(),
+                        File::new_native(buffer, ty, file_name_js, None),
+                    )?;
+                    form.push_file(ctx, &name, file)?;
+                } else {
+                    let text = throw_if!(ctx, field.text().await);
+                    form.push_string(ctx, &name, &text)?;
+                }
+            }
+
+            Ok(form)
+        } else if content_type
+            .split(';')
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .eq_ignore_ascii_case("application/x-www-form-urlencoded")
+        {
+            let text = self.to_text(ctx).await?;
+            let form = FormData::new_native();
+
+            for (key, value) in form_urlencoded::parse(text.to_string()?.as_bytes()) {
+                form.push_string(ctx, &key, &value)?;
+            }
+
+            Ok(form)
+        } else {
+            throw!(@type ctx, "Unsupported Content-Type for formData()")
+        }
     }
 
     // TODO: Take fast path, if body isnt a ReadableStream

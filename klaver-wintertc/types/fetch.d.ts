@@ -23,7 +23,31 @@ declare type Body =
     | Int16Array
     | Int32Array
     | Uint32Array
-    | string;
+    | string
+    | URLSearchParams
+    | FormData;
+
+declare type FormDataEntryValue = string | File;
+
+declare class FormData {
+    constructor();
+
+    append(name: string, value: string): void;
+    append(name: string, value: Blob, filename?: string): void;
+    set(name: string, value: string): void;
+    set(name: string, value: Blob, filename?: string): void;
+    get(name: string): FormDataEntryValue | undefined;
+    getAll(name: string): FormDataEntryValue[];
+    has(name: string): boolean;
+    delete(name: string): void;
+    forEach(
+        callback: (value: FormDataEntryValue, key: string) => void,
+    ): void;
+    entries(): IterableIterator<[string, FormDataEntryValue]>;
+    keys(): IterableIterator<string>;
+    values(): IterableIterator<FormDataEntryValue>;
+    [Symbol.iterator](): IterableIterator<[string, FormDataEntryValue]>;
+}
 
 declare interface RequestInit {
     body?: Body;
@@ -41,6 +65,7 @@ declare class Request {
 
     text(): Promise<string>;
     json<T = unknown>(): Promise<T>;
+    formData(): Promise<FormData>;
     readonly body: ReadableStream;
 }
 
@@ -60,6 +85,7 @@ declare class Response {
 
     text(): Promise<string>;
     json<T = unknown>(): Promise<T>;
+    formData(): Promise<FormData>;
     arrayBuffer(): Promise<ArrayBuffer>;
     stream(): AsyncIterable<ArrayBuffer>;
 }

@@ -3,6 +3,7 @@ use super::{
     body::{BodyMixin, JsBody},
     body_init::BodyInit,
     body_static::Body,
+    form_data::FormData,
     response_init::ResponseInit,
 };
 use crate::{blob::Blob, streams::ReadableStream};
@@ -160,6 +161,16 @@ impl<'js> Response<'js> {
 
     pub async fn json(&self, ctx: Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         self.body.json(&ctx).await
+    }
+
+    #[qjs(rename = "formData")]
+    pub async fn form_data(&self, ctx: Ctx<'js>) -> rquickjs::Result<FormData<'js>> {
+        let content_type = self
+            .headers
+            .borrow()
+            .get(ctx.clone(), String::from_str(ctx.clone(), "content-type")?)?;
+
+        self.body.form_data(&ctx, content_type).await
     }
 }
 

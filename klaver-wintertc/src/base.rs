@@ -37,6 +37,8 @@ impl<'js> klaver_core::Exportable<'js> for BaseModule {
         crate::streams::export(ctx, registry, target)?;
         #[cfg(feature = "streams")]
         crate::blob::Blob::export(ctx, registry, target)?;
+        #[cfg(feature = "streams")]
+        crate::blob::File::export(ctx, registry, target)?;
         target.set(
             ctx,
             "structuredClone",

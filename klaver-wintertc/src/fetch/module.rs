@@ -5,7 +5,9 @@ use rquickjs::{
     prelude::{Async, Func},
 };
 
-use super::{Headers, URLSearchParams, Url, fetch::fetch, request::Request, response::Response};
+use super::{
+    FormData, Headers, URLSearchParams, Url, fetch::fetch, request::Request, response::Response,
+};
 
 pub struct FetchModule;
 
@@ -16,6 +18,7 @@ impl ModuleDef for FetchModule {
         decl.declare(Request::NAME)?;
         decl.declare(Response::NAME)?;
         decl.declare(URLSearchParams::NAME)?;
+        decl.declare(FormData::NAME)?;
         decl.declare("fetch")?;
         Ok(())
     }
@@ -40,6 +43,7 @@ impl<'js> Exportable<'js> for FetchModule {
         Headers::export(ctx, registry, target)?;
         Url::export(ctx, registry, target)?;
         URLSearchParams::export(ctx, registry, target)?;
+        FormData::export(ctx, registry, target)?;
         Request::export(ctx, registry, target)?;
         Response::export(ctx, registry, target)?;
 

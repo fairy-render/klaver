@@ -3,6 +3,7 @@ mod body_init;
 mod body_static;
 mod client;
 mod fetch;
+mod form_data;
 mod headers;
 mod method;
 mod module;
@@ -14,9 +15,9 @@ mod url;
 mod url_search_params;
 
 pub use self::{
-    body::*, body_init::BodyInit, client::*, headers::Headers, method::Method, module::FetchModule,
-    request::Request, request_init::RequestInit, response::Response, response_init::ResponseInit,
-    url::Url, url_search_params::URLSearchParams,
+    body::*, body_init::BodyInit, client::*, form_data::FormData, headers::Headers,
+    method::Method, module::FetchModule, request::Request, request_init::RequestInit,
+    response::Response, response_init::ResponseInit, url::Url, url_search_params::URLSearchParams,
 };
 
 pub use body_static::Body;

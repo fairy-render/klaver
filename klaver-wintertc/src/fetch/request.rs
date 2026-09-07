@@ -10,6 +10,7 @@ use super::{
     Headers, Method, StaticBody,
     body::{BodyMixin, JsBody},
     body_static::Body,
+    form_data::FormData,
     request_init::RequestInit,
 };
 
@@ -188,6 +189,114 @@ impl<'js> Request<'js> {
 
         self.body.blob(&ctx, content_type).await
     }
+
+    #[qjs(rename = "formData")]
+    pub async fn form_data(&self, ctx: Ctx<'js>) -> rquickjs::Result<FormData<'js>> {
+        let content_type = self
+            .headers
+            .borrow()
+            .get(ctx.clone(), String::from_str(ctx.clone(), "content-type")?)?;
+
+        self.body.form_data(&ctx, content_type).await
+    }
 }
 
 klaver_core::create_export!(Request<'js>);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::blob::{File, NativeBlob};
+    use crate::fetch::URLSearchParams;
+    use klaver_core::value::{FunctionExt, iterable::IterableProtocol};
+    use klaver_core::Subclass;
+    use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Function, class::JsClass};
+
+    /// Runs `body` as the contents of an `async` function, with `Request`/`FormData`/`Blob`/
+    /// `File` and their transitive dependencies registered as globals. `body` is expected to
+    /// throw on failure (e.g. via a plain `if (...) throw ...`).
+    fn run(body: &str) {
+        futures::executor::block_on(async move {
+            let rt = AsyncRuntime::new().unwrap();
+            let ctx = AsyncContext::full(&rt).await.unwrap();
+
+            ctx.async_with(async |ctx| {
+                // `Headers` (via `TypedMultiMap`) goes through `BasePrimordials`, which needs
+                // the `$runtime` Core global that `klaver_core::register` sets up - normally
+                // done by the `Environ`/`Vm` builder, but this test drives a bare `Context`.
+                klaver_core::register(&ctx)?;
+
+                ctx.globals()
+                    .set(Headers::NAME, Class::<Headers>::create_constructor(&ctx)?)?;
+                ctx.globals().set(
+                    URLSearchParams::NAME,
+                    Class::<URLSearchParams>::create_constructor(&ctx)?,
+                )?;
+                ctx.globals()
+                    .set(Blob::NAME, Class::<Blob>::create_constructor(&ctx)?)?;
+                Blob::add_blob_prototype(&ctx)?;
+                ctx.globals()
+                    .set(File::NAME, Class::<File>::create_constructor(&ctx)?)?;
+                File::inherit(&ctx)?;
+                ctx.globals()
+                    .set(FormData::NAME, Class::<FormData>::create_constructor(&ctx)?)?;
+                FormData::add_iterable_prototype(&ctx)?;
+                ctx.globals()
+                    .set(Request::NAME, Class::<Request>::create_constructor(&ctx)?)?;
+
+                let test_fn: Function = ctx.eval(format!("(async () => {{\n{body}\n}})"))?;
+
+                if let Err(err) = test_fn.call_async::<_, ()>(()).await.catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .await
+            .unwrap();
+        });
+    }
+
+    #[test]
+    fn form_data_round_trips_through_request_body() {
+        run(r#"
+            const fd = new FormData();
+            fd.append("name", "klaver");
+            fd.append("file", new Blob(["hello"], { type: "text/plain" }), "hello.txt");
+
+            const req = new Request("https://example.com", { method: "POST", body: fd });
+
+            const contentType = req.headers.get("content-type");
+            if (!contentType || !contentType.startsWith("multipart/form-data")) {
+                throw new Error(`content-type was ${contentType}`);
+            }
+
+            const parsed = await req.formData();
+            if (parsed.get("name") !== "klaver") {
+                throw new Error(`name was ${parsed.get("name")}`);
+            }
+
+            const file = parsed.get("file");
+            if (!(file instanceof File)) throw new Error("expected a File instance");
+            if (!(file instanceof Blob)) throw new Error("expected File to be a Blob");
+            if (file.name !== "hello.txt") throw new Error(`file name was ${file.name}`);
+
+            const text = await file.text();
+            if (text !== "hello") throw new Error(`file text was ${text}`);
+        "#);
+    }
+
+    #[test]
+    fn url_encoded_body_parses_as_form_data() {
+        run(r#"
+            const req = new Request("https://example.com", {
+                method: "POST",
+                body: new URLSearchParams({ a: "1", b: "2" }),
+            });
+
+            const parsed = await req.formData();
+            if (parsed.get("a") !== "1") throw new Error(`a was ${parsed.get("a")}`);
+            if (parsed.get("b") !== "2") throw new Error(`b was ${parsed.get("b")}`);
+        "#);
+    }
+}

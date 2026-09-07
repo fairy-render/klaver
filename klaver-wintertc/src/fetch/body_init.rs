@@ -2,7 +2,7 @@ use crate::{blob::Blob, streams::ReadableStream};
 use klaver_core::value::{Buffer, StringExt};
 use rquickjs::{ArrayBuffer, Class, Coerced, Ctx, FromJs, String, class::Trace};
 
-use super::{Headers, URLSearchParams, body::BodyMixin};
+use super::{Headers, URLSearchParams, body::BodyMixin, form_data::FormData};
 
 #[derive(Trace)]
 pub enum BodyInit<'js> {
@@ -10,6 +10,7 @@ pub enum BodyInit<'js> {
     String(rquickjs::String<'js>),
     UrlSearchParam(Class<'js, URLSearchParams<'js>>),
     Blob(Class<'js, Blob<'js>>),
+    FormData(Class<'js, FormData<'js>>),
     Stream(Class<'js, ReadableStream<'js>>),
 }
 
@@ -54,6 +55,23 @@ impl<'js> BodyInit<'js> {
 
                 Ok(buffer.into())
             }
+            BodyInit::FormData(form) => {
+                let (boundary, bytes) = form.borrow().encode_multipart()?;
+                let buffer = ArrayBuffer::new(ctx.clone(), bytes)?;
+
+                if !headers.borrow().has(ctx.clone(), content_type.clone())? {
+                    headers.borrow_mut().append(
+                        ctx.clone(),
+                        content_type,
+                        Coerced(String::from_str(
+                            ctx.clone(),
+                            &format!("multipart/form-data; boundary={boundary}"),
+                        )?),
+                    )?;
+                }
+
+                Ok(buffer.into())
+            }
             BodyInit::Stream(stream) => Ok(stream.into()),
         }
     }
@@ -77,6 +95,8 @@ impl<'js> FromJs<'js> for BodyInit<'js> {
             BodyInit::UrlSearchParam(params)
         } else if let Ok(blob) = value.get::<Class<'js, Blob<'js>>>() {
             BodyInit::Blob(blob)
+        } else if let Ok(form) = value.get::<Class<'js, FormData<'js>>>() {
+            BodyInit::FormData(form)
         } else {
             return Err(rquickjs::Error::new_from_js("value", "string or buffer"));
         };

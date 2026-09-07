@@ -1,5 +1,7 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use klaver_core::{
-    Inheritable, SuperClass, throw, throw_if,
+    Inheritable, Subclass, SuperClass, throw, throw_if,
     value::{
         Buffer, StringRef,
         structured_clone::{
@@ -8,13 +10,23 @@ use klaver_core::{
     },
 };
 use rquickjs::{
-    ArrayBuffer, Class, Ctx, FromJs, JsLifetime, Object, String,
+    ArrayBuffer, Class, Ctx, FromJs, JsLifetime, Object, String, TypedArray, Value,
     class::{JsClass, Trace},
-    prelude::Opt,
+    object::Accessor,
+    prelude::{Async, Func, Opt, This},
 };
 
 #[cfg(feature = "streams")]
 use crate::streams::{QueuingStrategy, ReadableStream, readable::One};
+
+/// Whole milliseconds since the Unix epoch, matching `Date.now()` (used as the default
+/// `File.lastModified`, which per spec is an integer millisecond timestamp).
+fn now_ms() -> f64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as f64)
+        .unwrap_or(0.0)
+}
 
 #[derive(Debug, JsLifetime)]
 #[rquickjs::class]
@@ -49,56 +61,78 @@ impl<'js> Blob<'js> {
             ty: options.0.and_then(|m| m.ty),
         })
     }
+}
 
-    #[qjs(rename = "arrayBuffer")]
-    pub async fn array_buffer(&self, _ctx: Ctx<'js>) -> rquickjs::Result<ArrayBuffer<'js>> {
-        Ok(self.buffer.clone())
+/// Every `Blob`-family class (`Blob` itself, and `File`) implements this so `Blob`'s behavior -
+/// `size`, `type`, `arrayBuffer()`, `bytes()`, `text()`, `stream()`, `slice()` - works correctly
+/// regardless of the concrete Rust type behind the JS object.
+///
+/// This indirection exists because rquickjs classes aren't really JS-prototype-polymorphic at
+/// the Rust binding layer: a native method bound via `#[rquickjs::methods] impl Blob` expects
+/// `this` to literally *be* a `Class<'js, Blob>`, so calling it on a `Class<'js, File>` (even
+/// though `File.prototype`'s prototype chain includes `Blob.prototype`) would fail to unwrap
+/// `this`. Instead, each subtype implements [`NativeBlob::blob`] to expose its embedded [`Blob`]
+/// data, and `add_blob_prototype`/`add_blob_prototype_to` bind every Blob-family method/accessor
+/// generically per concrete subtype (parameterized on `Self`, not hardcoded to `Blob`) - the
+/// same trick `events::event::NativeEvent` uses for `Event`/`MessageEvent`.
+pub trait NativeBlob<'js>
+where
+    Self: JsClass<'js> + Sized + 'js,
+{
+    /// The shared `Blob` data embedded in this concrete type.
+    fn blob(&self) -> &Blob<'js>;
+
+    fn size(this: This<Class<'js, Self>>) -> usize {
+        this.borrow().blob().buffer.len()
     }
 
-    pub async fn bytes(&self) -> rquickjs::Result<rquickjs::TypedArray<'js, u8>> {
-        rquickjs::TypedArray::from_arraybuffer(self.buffer.clone())
-    }
-
-    pub async fn text(&self, ctx: Ctx<'js>) -> rquickjs::Result<std::string::String> {
-        let Some(bytes) = self.buffer.as_bytes() else {
-            throw!(@type ctx, "Buffer is detached")
-        };
-        Ok(throw_if!(ctx, str::from_utf8(bytes).map(|m| m.to_string())))
-    }
-
-    pub fn stream(
-        &self,
-        ctx: Ctx<'js>,
-        strategy: Option<QueuingStrategy<'js>>,
-    ) -> rquickjs::Result<ReadableStream<'js>> {
-        ReadableStream::from_native(
-            &ctx,
-            One::new(Buffer::ArrayBuffer(self.buffer.clone())),
-            strategy,
-        )
-    }
-
-    #[qjs(get, enumerable)]
-    pub fn size(&self) -> usize {
-        self.buffer.len()
-    }
-
-    #[qjs(rename = "type", get, enumerable)]
-    pub fn ty(&self, ctx: Ctx<'js>) -> rquickjs::Result<String<'js>> {
-        match &self.ty {
+    fn ty(this: This<Class<'js, Self>>, ctx: Ctx<'js>) -> rquickjs::Result<String<'js>> {
+        match &this.borrow().blob().ty {
             Some(ty) => Ok(ty.clone()),
             None => String::from_str(ctx, ""),
         }
     }
 
-    pub fn slice(
-        &self,
+    async fn array_buffer(this: This<Class<'js, Self>>) -> rquickjs::Result<ArrayBuffer<'js>> {
+        Ok(this.borrow().blob().buffer.clone())
+    }
+
+    async fn bytes(this: This<Class<'js, Self>>) -> rquickjs::Result<TypedArray<'js, u8>> {
+        TypedArray::from_arraybuffer(this.borrow().blob().buffer.clone())
+    }
+
+    async fn text(
+        this: This<Class<'js, Self>>,
+        ctx: Ctx<'js>,
+    ) -> rquickjs::Result<std::string::String> {
+        let this = this.borrow();
+        let Some(bytes) = this.blob().buffer.as_bytes() else {
+            throw!(@type ctx, "Buffer is detached")
+        };
+        Ok(throw_if!(ctx, str::from_utf8(bytes).map(|m| m.to_string())))
+    }
+
+    fn stream(
+        this: This<Class<'js, Self>>,
+        ctx: Ctx<'js>,
+        strategy: Option<QueuingStrategy<'js>>,
+    ) -> rquickjs::Result<ReadableStream<'js>> {
+        ReadableStream::from_native(
+            &ctx,
+            One::new(Buffer::ArrayBuffer(this.borrow().blob().buffer.clone())),
+            strategy,
+        )
+    }
+
+    fn slice(
+        this: This<Class<'js, Self>>,
         ctx: Ctx<'js>,
         start: Opt<i64>,
         end: Opt<i64>,
         content_type: Opt<String<'js>>,
     ) -> rquickjs::Result<Blob<'js>> {
-        let Some(bytes) = self.buffer.as_bytes() else {
+        let this = this.borrow();
+        let Some(bytes) = this.blob().buffer.as_bytes() else {
             throw!(@type ctx, "Buffer is detached")
         };
 
@@ -123,6 +157,31 @@ impl<'js> Blob<'js> {
             ty: content_type.0,
         })
     }
+
+    fn add_blob_prototype(ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+        let proto = Class::<Self>::prototype(ctx)?.expect("Blob.prototype");
+        Self::add_blob_prototype_to(&proto)
+    }
+
+    fn add_blob_prototype_to(proto: &Object<'js>) -> rquickjs::Result<()> {
+        // No "already installed" guard here: see the equivalent comment on
+        // `NativeEvent::add_event_prototype_to` - each subtype needs its own copies.
+        proto.prop("size", Accessor::new_get(Self::size).enumerable())?;
+        proto.prop("type", Accessor::new_get(Self::ty).enumerable())?;
+        proto.set("arrayBuffer", Func::from(Async(Self::array_buffer)))?;
+        proto.set("bytes", Func::from(Async(Self::bytes)))?;
+        proto.set("text", Func::from(Async(Self::text)))?;
+        proto.set("stream", Func::new(Self::stream))?;
+        proto.set("slice", Func::new(Self::slice))?;
+
+        Ok(())
+    }
+}
+
+impl<'js> NativeBlob<'js> for Blob<'js> {
+    fn blob(&self) -> &Blob<'js> {
+        self
+    }
 }
 
 pub struct BlobOptions<'js> {
@@ -141,6 +200,7 @@ impl<'js> FromJs<'js> for BlobOptions<'js> {
 
 pub enum BlobInit<'js> {
     Blob(Class<'js, Blob<'js>>),
+    File(Class<'js, File<'js>>),
     String(StringRef<'js>),
     Buffer(Buffer<'js>),
 }
@@ -161,6 +221,13 @@ impl<'js> BlobInit<'js> {
                 };
                 output.extend_from_slice(bytes);
             }
+            BlobInit::File(f) => {
+                let file = f.borrow();
+                let Some(bytes) = file.base.buffer.as_bytes() else {
+                    todo!("Detached buffer")
+                };
+                output.extend_from_slice(bytes);
+            }
         };
 
         Ok(())
@@ -169,7 +236,9 @@ impl<'js> BlobInit<'js> {
 
 impl<'js> FromJs<'js> for BlobInit<'js> {
     fn from_js(ctx: &Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
-        if let Ok(blob) = Class::<Blob<'js>>::from_js(ctx, value.clone()) {
+        if let Ok(file) = Class::<File<'js>>::from_js(ctx, value.clone()) {
+            Ok(Self::File(file))
+        } else if let Ok(blob) = Class::<Blob<'js>>::from_js(ctx, value.clone()) {
             Ok(Self::Blob(blob))
         } else if let Ok(buffer) = Buffer::from_js(ctx, value.clone()) {
             Ok(Self::Buffer(buffer))
@@ -183,9 +252,16 @@ impl<'js> FromJs<'js> for BlobInit<'js> {
 
 // Inheritance
 
-impl<'js, T> Inheritable<'js, T> for Blob<'js> where T: JsClass<'js> {}
-
 impl<'js> SuperClass<'js> for Blob<'js> {}
+
+impl<'js, T> Inheritable<'js, T> for Blob<'js>
+where
+    T: JsClass<'js> + NativeBlob<'js>,
+{
+    fn additional_override(_ctx: &Ctx<'js>, proto: &Object<'js>) -> rquickjs::Result<()> {
+        T::add_blob_prototype_to(proto)
+    }
+}
 
 // Structured Cloning;
 
@@ -238,6 +314,127 @@ impl<'js> klaver_core::Exportable<'js> for Blob<'js> {
     {
         structured_clone::register::<Blob>(ctx, registry)?;
         target.set(ctx, Blob::NAME, Class::<Blob>::create_constructor(ctx)?)?;
+        Blob::add_blob_prototype(ctx)?;
+        Ok(())
+    }
+}
+
+// File, per https://w3c.github.io/FileAPI/#file-section - a `Blob` with a `name` and
+// `lastModified` timestamp attached.
+
+#[derive(Debug, JsLifetime)]
+#[rquickjs::class]
+pub struct File<'js> {
+    pub base: Blob<'js>,
+    pub name: String<'js>,
+    pub last_modified: f64,
+}
+
+impl<'js> Trace<'js> for File<'js> {
+    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.base.trace(tracer);
+        self.name.trace(tracer);
+    }
+}
+
+impl<'js> NativeBlob<'js> for File<'js> {
+    fn blob(&self) -> &Blob<'js> {
+        &self.base
+    }
+}
+
+pub struct FileOptions<'js> {
+    ty: Option<String<'js>>,
+    last_modified: Option<f64>,
+}
+
+impl<'js> FromJs<'js> for FileOptions<'js> {
+    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+        let obj = Object::from_js(ctx, value)?;
+
+        Ok(FileOptions {
+            ty: obj.get("type")?,
+            last_modified: obj.get("lastModified")?,
+        })
+    }
+}
+
+impl<'js> File<'js> {
+    /// Builds a `File` natively (e.g. from a parsed `multipart/form-data` field or a
+    /// `FormData.append(name, blob, filename)` call), bypassing the JS-facing constructor.
+    /// `last_modified` defaults to "now" per the spec's "create a new `File` object" step.
+    pub fn new_native(
+        buffer: ArrayBuffer<'js>,
+        ty: Option<String<'js>>,
+        name: String<'js>,
+        last_modified: Option<f64>,
+    ) -> File<'js> {
+        File {
+            base: Blob { buffer, ty },
+            name,
+            last_modified: last_modified.unwrap_or_else(now_ms),
+        }
+    }
+}
+
+#[rquickjs::methods]
+impl<'js> File<'js> {
+    #[qjs(constructor)]
+    pub fn new(
+        ctx: Ctx<'js>,
+        inits: Opt<Vec<BlobInit<'js>>>,
+        name: String<'js>,
+        options: Opt<FileOptions<'js>>,
+    ) -> rquickjs::Result<File<'js>> {
+        let mut data = Vec::<u8>::new();
+
+        for init in inits.0.into_iter().flatten() {
+            init.extend(&ctx, &mut data)?;
+        }
+
+        let options = options.0;
+
+        Ok(File {
+            base: Blob {
+                buffer: ArrayBuffer::new(ctx, data)?,
+                ty: options.as_ref().and_then(|o| o.ty.clone()),
+            },
+            name,
+            last_modified: options
+                .and_then(|o| o.last_modified)
+                .unwrap_or_else(now_ms),
+        })
+    }
+
+    #[qjs(get, enumerable)]
+    pub fn name(&self) -> String<'js> {
+        self.name.clone()
+    }
+
+    #[qjs(rename = "lastModified", get, enumerable)]
+    pub fn last_modified(&self) -> f64 {
+        self.last_modified
+    }
+}
+
+// Inheritance
+
+impl<'js> SuperClass<'js> for File<'js> {}
+
+impl<'js> Subclass<'js, Blob<'js>> for File<'js> {}
+
+// Export
+
+impl<'js> klaver_core::Exportable<'js> for File<'js> {
+    fn export<T>(ctx: &Ctx<'js>, _registry: &Registry, target: &T) -> rquickjs::Result<()>
+    where
+        T: klaver_core::ExportTarget<'js>,
+    {
+        target.set(ctx, File::NAME, Class::<File>::create_constructor(ctx)?)?;
+        // Sets `File.prototype`'s `__proto__` to `Blob.prototype` (so `instanceof Blob` holds)
+        // and binds the `NativeBlob` methods/accessors onto `File.prototype` itself (see the
+        // comment on `NativeBlob` for why the latter is needed too).
+        File::inherit(ctx)?;
         Ok(())
     }
 }
@@ -248,8 +445,9 @@ mod tests {
     use klaver_core::value::FunctionExt;
     use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Function};
 
-    /// Runs `body` as the contents of an `async` function, with a global `Blob` constructor
-    /// available. `body` is expected to throw on failure (e.g. via a plain `if (...) throw ...`).
+    /// Runs `body` as the contents of an `async` function, with global `Blob` and `File`
+    /// constructors available. `body` is expected to throw on failure (e.g. via a plain
+    /// `if (...) throw ...`).
     fn run(body: &str) {
         futures::executor::block_on(async move {
             let rt = AsyncRuntime::new().unwrap();
@@ -258,6 +456,11 @@ mod tests {
             ctx.async_with(async |ctx| {
                 ctx.globals()
                     .set("Blob", Class::<Blob>::create_constructor(&ctx)?)?;
+                Blob::add_blob_prototype(&ctx)?;
+
+                ctx.globals()
+                    .set("File", Class::<File>::create_constructor(&ctx)?)?;
+                File::inherit(&ctx)?;
 
                 let test_fn: Function = ctx.eval(format!("(async () => {{\n{body}\n}})"))?;
 
@@ -370,6 +573,60 @@ mod tests {
             const blob = new Blob([buf]);
             const text = await blob.text();
             if (text !== "hi") throw new Error(`text was ${text}`);
+        "#);
+    }
+
+    #[test]
+    fn file_is_a_blob_with_name_and_last_modified() {
+        run(r#"
+            const file = new File(["hello"], "greeting.txt", { type: "text/plain", lastModified: 123 });
+
+            if (!(file instanceof Blob)) throw new Error("expected File to be a Blob");
+            if (!(file instanceof File)) throw new Error("expected File to be a File");
+
+            if (file.name !== "greeting.txt") throw new Error(`name was ${file.name}`);
+            if (file.lastModified !== 123) throw new Error(`lastModified was ${file.lastModified}`);
+            if (file.size !== 5) throw new Error(`size was ${file.size}`);
+            if (file.type !== "text/plain") throw new Error(`type was ${file.type}`);
+
+            const text = await file.text();
+            if (text !== "hello") throw new Error(`text was ${text}`);
+        "#);
+    }
+
+    #[test]
+    fn file_defaults_last_modified_to_now() {
+        run(r#"
+            const before = Date.now();
+            const file = new File(["hi"], "a.txt");
+            const after = Date.now();
+
+            if (file.lastModified < before || file.lastModified > after) {
+                throw new Error(`lastModified ${file.lastModified} not within [${before}, ${after}]`);
+            }
+        "#);
+    }
+
+    #[test]
+    fn file_part_can_be_another_file() {
+        run(r#"
+            const a = new File(["foo"], "a.txt");
+            const b = new Blob([a, "bar"]);
+            const text = await b.text();
+            if (text !== "foobar") throw new Error(`text was ${text}`);
+        "#);
+    }
+
+    #[test]
+    fn blob_slice_of_a_file_returns_a_plain_blob() {
+        run(r#"
+            const file = new File(["hello world"], "a.txt");
+            const sliced = file.slice(0, 5);
+            if (sliced instanceof File) throw new Error("slice() should not return a File");
+            if (!(sliced instanceof Blob)) throw new Error("slice() should return a Blob");
+
+            const text = await sliced.text();
+            if (text !== "hello") throw new Error(`text was ${text}`);
         "#);
     }
 }

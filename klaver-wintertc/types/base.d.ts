@@ -120,3 +120,19 @@ declare var Blob: {
     prototype: Blob;
     new(blobParts?: BlobPart[], options?: BlobPropertyBag): Blob;
 };
+
+// File
+
+interface FilePropertyBag extends BlobPropertyBag {
+    lastModified?: number;
+}
+
+interface File extends Blob {
+    readonly name: string;
+    readonly lastModified: number;
+}
+
+declare var File: {
+    prototype: File;
+    new(fileBits: BlobPart[], fileName: string, options?: FilePropertyBag): File;
+};
