@@ -105,7 +105,8 @@ Dependency layering, low-level to high-level:
   Blob-family methods are bound generically rather than just inherited through the prototype chain, the same
   trick `events::event::NativeEvent` uses for `Event`/`MessageEvent`), `encoding/`, `abort_controller.rs`,
   `dom_exception.rs`. A `Backend` trait (implemented by e.g. `TokioBackend`) supplies the async runtime primitives
-  (fs, etc) these need — set per-VM via `klaver_wintertc::set_backend`.
+  (fs, etc) these need — set per-VM via `klaver_wintertc::set_backend`. See
+  `klaver-wintertc/MISSING_APIS.md` for a gap audit against the WinterTC Minimum Common API spec.
 - **klaver** (top-level crate) — the batteries-included `Builder`/`Vm` most consumers use: wires a `Backend`,
   search paths, the file resolver/loader (with the Oxc TS/JSX transform behind the `oxc` feature and/or the SWC
   one behind `swc` — both forward to `klaver-modules`; if both are enabled, Oxc is registered first and wins for
