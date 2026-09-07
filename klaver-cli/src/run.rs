@@ -1,10 +1,8 @@
-use std::path::Path;
-
-use color_eyre::eyre::eyre;
 use klaver::Vm;
-use klaver_modules::loaders::{SwcCompiler, SwcCompilerOptions, SwcDecocators};
 use reedline::{DefaultPrompt, Reedline, Signal};
 use rquickjs::{CatchResultExt, Object, Value};
+
+use crate::compile::compile as do_compile;
 
 pub async fn run(
     vm: Vm,
@@ -25,16 +23,8 @@ pub async fn run(
             })
             .await?;
         } else if compile {
-            let compiler = SwcCompiler::new_with(SwcCompilerOptions {
-                decorators: SwcDecocators::Legacy,
-                async_context: false,
-                explicit_resource_management: true,
-            });
-
-            let ret = compiler
-                .compile(Path::new(source))
-                .map_err(|err| eyre!("{err}"))?;
-            println!("{}", String::from_utf8(ret.code)?);
+            let ret = do_compile(source)?;
+            println!("{}", String::from_utf8(ret)?);
         } else if types {
             vm.env().typings().files().write_to(source, true).await?;
         } else {

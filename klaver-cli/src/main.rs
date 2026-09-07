@@ -1,6 +1,7 @@
 use crate::cli::Cli;
 
 mod cli;
+mod compile;
 mod run;
 
 #[tokio::main(flavor = "current_thread")]
