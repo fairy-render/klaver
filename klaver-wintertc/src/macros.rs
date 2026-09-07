@@ -13,3 +13,18 @@ macro_rules! export {
     )+
   };
 }
+
+/// Throws a `DOMException` with the given spec `name` (e.g. `"OperationError"`,
+/// `"NotSupportedError"`, `"InvalidAccessError"`) and message, exactly like `klaver_core::throw!`
+/// does for plain `TypeError`/`RangeError`/etc. Reserve plain `klaver_core::throw!(@type ctx, ...)`
+/// for argument-shape errors (wrong JS value type, missing required dict field) - WebCrypto's own
+/// operational failures are always specifically-named `DOMException`s.
+macro_rules! throw_dom {
+    ($ctx: expr, $name: expr, $msg: expr) => {
+        return Err($crate::dom_exception::DOMException::throw_named(
+            &$ctx,
+            $name,
+            &$msg.to_string(),
+        ))
+    };
+}

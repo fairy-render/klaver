@@ -104,7 +104,7 @@ All done:
 |---|---|---|
 | `crypto.randomUUID` | ✅ | `src/crypto/random.rs`. |
 | `crypto.getRandomValues` | ✅ | `src/crypto/random.rs`, registered as `crypto.getRandomValues` in `src/crypto/module.rs`. |
-| `crypto.subtle` (`SubtleCrypto`) | 🟡 | Plain object, not a real `SubtleCrypto` class; exposes only `digest(algo, buffer)` (SHA-1/256/384/512 via `src/crypto/digest.rs`). Missing `encrypt`/`decrypt`/`sign`/`verify`/`generateKey`/`importKey`/`exportKey`/`deriveKey`/`deriveBits`/`wrapKey`/`unwrapKey`, and there's no `CryptoKey` type at all. |
+| `crypto.subtle` (`SubtleCrypto`) | 🟡 | `digest(algo, buffer)` (SHA-1/256/384/512, `src/crypto/digest.rs`) is always available under the base `crypto` feature. Behind a separate `crypto-cipher` feature (nested under `crypto`, so consumers who only need hashing/random avoid the extra dependencies): a real `CryptoKey` class (`src/crypto/key.rs`) and `generateKey`/`importKey`/`exportKey` (`"raw"`/`"jwk"` formats only), `encrypt`/`decrypt` (AES-GCM/CBC/CTR, `src/crypto/aes.rs`), and `sign`/`verify` (HMAC, `src/crypto/hmac.rs`) - symmetric keys only. Missing: RSA (RSASSA-PKCS1-v1_5/RSA-OAEP), ECDSA/ECDH (P-256/P-384), the `"pkcs8"`/`"spki"` key formats, `deriveKey`/`deriveBits`, and `wrapKey`/`unwrapKey` - all asymmetric-key work, tracked as a follow-up milestone. |
 
 ## High Resolution Time / WebAssembly
 

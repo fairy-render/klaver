@@ -20,6 +20,32 @@ impl Algo {
             Algo::Sha512 => DigestImpl::Sha512(Sha512::new()),
         }
     }
+
+    /// Matches a digest algorithm name (spec form, e.g. `"SHA-256"`, or this crate's historical
+    /// lowercase aliases) to an [`Algo`]. Shared by [`FromJs`] here and, for `crypto-cipher`, by
+    /// `HMAC`'s `hash` sub-algorithm parsing (which goes through the same name after unwrapping
+    /// its own `AlgorithmIdentifier` shape) - see `crypto::algorithm`.
+    pub fn from_name(name: &str) -> Option<Self> {
+        Some(match name {
+            "sha1" | "SHA-1" => Algo::Sha1,
+            "sha256" | "sha2" | "SHA-256" => Algo::Sha256,
+            "sha384" | "SHA-384" => Algo::Sha384,
+            "sha512" | "SHA-512" => Algo::Sha512,
+            _ => return None,
+        })
+    }
+
+    /// The spec-correct name (e.g. `"SHA-256"`), as used in `CryptoKey.algorithm.hash.name` and
+    /// JWK `alg` tags (e.g. `"HS256"`) - distinct from [`IntoJs`]'s lowercase historical form
+    /// below, which predates `crypto-cipher` and is left as-is for compatibility.
+    pub fn spec_name(self) -> &'static str {
+        match self {
+            Algo::Sha1 => "SHA-1",
+            Algo::Sha256 => "SHA-256",
+            Algo::Sha384 => "SHA-384",
+            Algo::Sha512 => "SHA-512",
+        }
+    }
 }
 
 impl<'js> FromJs<'js> for Algo {
@@ -29,15 +55,7 @@ impl<'js> FromJs<'js> for Algo {
     ) -> rquickjs::Result<Self> {
         let str = String::from_js(ctx, value)?;
 
-        let algo = match &*str {
-            "sha1" | "SHA-1" => Algo::Sha1,
-            "sha256" | "sha2" | "SHA-256" => Algo::Sha256,
-            "sha384" | "SHA-384" => Algo::Sha384,
-            "sha512" | "SHA-512" => Algo::Sha512,
-            _ => return Err(rquickjs::Error::new_from_js("string", "algo")),
-        };
-
-        Ok(algo)
+        Algo::from_name(&str).ok_or_else(|| rquickjs::Error::new_from_js("string", "algo"))
     }
 }
 

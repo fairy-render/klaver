@@ -85,6 +85,36 @@ unsafe impl<'js> JsLifetime<'js> for DOMException<'js> {
 }
 
 impl<'js> DOMException<'js> {
+    /// Builds a `DOMException` with the given spec `name` (e.g. `"OperationError"`,
+    /// `"NotSupportedError"`, `"InvalidAccessError"`) and `message`, and returns the
+    /// `rquickjs::Error` produced by throwing it - mirrors `Ctx::throw`'s own
+    /// return-an-`Error`-directly style, so callers write `return Err(DOMException::throw_named(&ctx,
+    /// ...))` or, more commonly, reach for the [`throw_dom!`] macro instead. Matches the
+    /// `Class::instance(...)?.into_value()` + `ctx.throw(...)` idiom already used in
+    /// `abort_controller.rs`'s `AbortController::abort()`, which correctly rejects a Promise when
+    /// returned as `Err(...)` from an `Async` closure/`async fn` (see `fetch.rs`'s abort-signal
+    /// rejection path and its test).
+    pub fn throw_named(ctx: &Ctx<'js>, name: &str, message: &str) -> rquickjs::Error {
+        let message = match String::from_str(ctx.clone(), message) {
+            Ok(m) => m,
+            Err(err) => return err,
+        };
+        let name = match String::from_str(ctx.clone(), name) {
+            Ok(n) => n,
+            Err(err) => return err,
+        };
+        let exception = match DOMException::new(ctx.clone(), Opt(Some(message)), Opt(Some(name))) {
+            Ok(exception) => exception,
+            Err(err) => return err,
+        };
+        let instance = match Class::instance(ctx.clone(), exception) {
+            Ok(instance) => instance,
+            Err(err) => return err,
+        };
+
+        ctx.throw(instance.into_value())
+    }
+
     pub fn init(ctx: &Ctx<'js>, constructor: &Constructor<'js>) -> Result<()> {
         let dom_ex_proto = Class::<DOMException>::prototype(ctx)?.expect("DomExpection.prototype");
         let error_ctor: Object = ctx.globals().get(PredefinedAtom::Error)?;
