@@ -20,13 +20,13 @@ use crate::streams::{QueuingStrategy, ReadableStream, readable::One};
 #[rquickjs::class]
 pub struct Blob<'js> {
     pub buffer: ArrayBuffer<'js>,
-    #[qjs(rename = "type", get)]
     pub ty: Option<String<'js>>,
 }
 
 impl<'js> Trace<'js> for Blob<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.buffer.trace(tracer);
+        self.ty.trace(tracer);
     }
 }
 
@@ -81,6 +81,43 @@ impl<'js> Blob<'js> {
     #[qjs(get, enumerable)]
     pub fn size(&self) -> usize {
         self.buffer.len()
+    }
+
+    #[qjs(rename = "type", get, enumerable)]
+    pub fn ty(&self, ctx: Ctx<'js>) -> rquickjs::Result<String<'js>> {
+        match &self.ty {
+            Some(ty) => Ok(ty.clone()),
+            None => String::from_str(ctx, ""),
+        }
+    }
+
+    pub fn slice(
+        &self,
+        ctx: Ctx<'js>,
+        start: Opt<i64>,
+        end: Opt<i64>,
+        content_type: Opt<String<'js>>,
+    ) -> rquickjs::Result<Blob<'js>> {
+        let Some(bytes) = self.buffer.as_bytes() else {
+            throw!(@type ctx, "Buffer is detached")
+        };
+
+        let size = bytes.len() as i64;
+
+        let clamp = |idx: i64| -> usize {
+            let idx = if idx < 0 { (size + idx).max(0) } else { idx.min(size) };
+            idx as usize
+        };
+
+        let start = start.0.map(clamp).unwrap_or(0);
+        let end = end.0.map(clamp).unwrap_or(size as usize).max(start);
+
+        let slice = bytes[start..end].to_vec();
+
+        Ok(Blob {
+            buffer: ArrayBuffer::new(ctx, slice)?,
+            ty: content_type.0,
+        })
     }
 }
 

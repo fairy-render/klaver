@@ -30,7 +30,7 @@ impl<'js> FromJs<'js> for HeadersInit<'js> {
         for k in obj.keys::<String<'js>>() {
             let k = k?;
             let v: rquickjs::String = obj.get(k.clone())?;
-            inner.append(ctx, k, v)?;
+            inner.append(ctx, k.to_lowercase(ctx.clone())?, v)?;
         }
 
         Ok(HeadersInit {
@@ -91,7 +91,7 @@ impl<'js> Headers<'js> {
         Coerced(value): Coerced<String<'js>>,
     ) -> rquickjs::Result<()> {
         self.inner
-            .append(&ctx, key, value.to_lowercase(ctx.clone())?)
+            .append(&ctx, key.to_lowercase(ctx.clone())?, value)
     }
 
     pub fn set(
@@ -100,7 +100,7 @@ impl<'js> Headers<'js> {
         key: String<'js>,
         Coerced(value): Coerced<String<'js>>,
     ) -> rquickjs::Result<()> {
-        self.inner.set(&ctx, key, value)
+        self.inner.set(&ctx, key.to_lowercase(ctx.clone())?, value)
     }
 
     pub fn get(

@@ -1,6 +1,6 @@
 use rquickjs::{Ctx, Function, IntoJs, String, function::Args};
 
-use crate::value::{ObjectExt, StringRef};
+use crate::value::StringRef;
 
 pub trait StringExt<'js> {
     fn starts_with<K: IntoJs<'js>>(&self, ctx: Ctx<'js>, prefix: K) -> rquickjs::Result<bool>;
@@ -10,8 +10,12 @@ pub trait StringExt<'js> {
 }
 
 impl<'js> StringExt<'js> for rquickjs::String<'js> {
-    fn starts_with<K: IntoJs<'js>>(&self, _ctx: Ctx<'js>, prefix: K) -> rquickjs::Result<bool> {
-        self.call_property("startsWith", (prefix,))
+    fn starts_with<K: IntoJs<'js>>(&self, ctx: Ctx<'js>, prefix: K) -> rquickjs::Result<bool> {
+        // `call_property` (via `ObjectExt for Value`) coerces `self` through `Object::from_js`,
+        // which fails for primitive JS strings (they aren't objects). Route the call through
+        // JS itself, which autoboxes primitives for property/method lookup, like `length` below.
+        ctx.eval::<Function, _>("(a, b) => a.startsWith(b)")?
+            .call((self.clone(), prefix))
     }
 
     fn length(&self, ctx: Ctx<'js>) -> rquickjs::Result<usize> {
@@ -19,8 +23,9 @@ impl<'js> StringExt<'js> for rquickjs::String<'js> {
             .call((self.clone(),))
     }
 
-    fn to_lowercase(&self, _ctx: Ctx<'js>) -> rquickjs::Result<String<'js>> {
-        self.call_property("toLowerCase", ())
+    fn to_lowercase(&self, ctx: Ctx<'js>) -> rquickjs::Result<String<'js>> {
+        ctx.eval::<Function, _>("(a) => a.toLowerCase()")?
+            .call((self.clone(),))
     }
 
     fn str_ref(&self) -> rquickjs::Result<StringRef<'js>> {

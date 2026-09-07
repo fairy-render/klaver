@@ -95,3 +95,27 @@ declare class TextDecoder {
 
 declare function atob(input: string): string;
 declare function btoa(input: string): string;
+
+
+// Blob
+
+type BlobPart = Blob | Buffer | string;
+
+interface BlobPropertyBag {
+    type?: string;
+}
+
+interface Blob {
+    readonly size: number;
+    readonly type: string;
+    arrayBuffer(): Promise<ArrayBuffer>;
+    bytes(): Promise<Uint8Array>;
+    slice(start?: number, end?: number, contentType?: string): Blob;
+    stream(): ReadableStream;
+    text(): Promise<string>;
+}
+
+declare var Blob: {
+    prototype: Blob;
+    new(blobParts?: BlobPart[], options?: BlobPropertyBag): Blob;
+};

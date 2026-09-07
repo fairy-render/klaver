@@ -30,9 +30,11 @@ pub struct Request<'js> {
 
 impl<'js> Trace<'js> for Request<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
+        self.url.trace(tracer);
         self.method.trace(tracer);
         self.headers.trace(tracer);
         self.body.trace(tracer);
+        self.signal.trace(tracer);
     }
 }
 
