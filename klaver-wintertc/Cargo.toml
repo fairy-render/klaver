@@ -36,8 +36,8 @@ worker = ["klaver-vm"]
 fs = ["vfs", "mime_guess", "relative-path"]
 module = ["klaver-modules"]
 
-tokio = ["reqwest", "dep:tokio", "timers", "fetch", "fs", "vfs-tokio"]
-compio = ["dep:compio", "dep:cyper", "fetch", "timers", "fs", "vfs-compio"]
+tokio = ["reqwest", "dep:tokio", "timers", "fetch", "fs", "vfs-tokio", "klaver-vm?/tokio"]
+compio = ["dep:compio", "dep:cyper", "fetch", "timers", "fs", "vfs-compio", "klaver-vm?/compio"]
 
 [dependencies]
 rquickjs = { workspace = true }

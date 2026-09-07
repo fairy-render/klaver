@@ -106,4 +106,26 @@ Both entirely unimplemented - see the Globals table above (`performance`, `WebAs
 `addEventListener`/`removeEventListener` against the worker's `MessagePort`, and now also sets
 `self` (see [Quick wins](#quick-wins)). Per the spec's "if a runtime implements worker global
 scopes, it must expose `onerror`, `onunhandledrejection`, `onrejectionhandled`, and `self`"
-requirement, the first three are still missing there.
+requirement, the last two are still missing there.
+
+## `Worker` (not part of the WinterTC spec, audited here for completeness)
+
+`src/worker/` implements a `Worker` constructor roughly matching the WHATWG HTML `Worker`
+interface: `new Worker(scriptURL)`, `postMessage()`, `onmessage`/`addEventListener`/
+`removeEventListener` (for `"message"`), `onerror` (fired - as a `MessageEvent` carrying a
+description string as `data`, since there's no dedicated `ErrorEvent` type yet - when the
+worker's module throws during its top-level evaluation), and `terminate()`. Known gaps against
+the full spec:
+
+- **`WorkerOptions`** (`type`, `credentials`, `name`) - not accepted; the constructor only takes
+  a `scriptURL`. Every worker script is always loaded as an ES module (i.e. always behaves as
+  `type: "module"`); there's no `"classic"` (`importScripts()`-based) mode.
+- **`onmessageerror`** - not implemented; a structured-clone deserialization failure on either
+  side currently propagates as a hard error on the underlying `MessagePort`'s background resource
+  rather than a `"messageerror"` event.
+- **`Worker instanceof EventTarget`** - `Worker` is not actually a subclass of `EventTarget`
+  (unlike `MessagePort`, which it wraps); `addEventListener`/`removeEventListener` are provided as
+  ad hoc methods that proxy to the underlying port instead.
+- Errors thrown *after* the worker's top-level evaluation (e.g. from within an `onmessage`
+  handler) are not reported to `onerror` - only a failure during the initial
+  `Module::import(...)` (syntax errors, an uncaught top-level throw) is currently caught.

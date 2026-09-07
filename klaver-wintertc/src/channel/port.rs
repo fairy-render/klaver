@@ -23,12 +23,37 @@ use rquickjs::{
 
 pub struct Message {
     pub message: TransObject,
+    pub kind: MessageKind,
+}
+
+/// Distinguishes an ordinary `postMessage()` payload from a worker-startup failure reported
+/// through the same channel (see [`Channel::send_error`]) - the two are dispatched as different
+/// event types (`"message"` vs `"error"`) on the receiving [`MessagePort`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MessageKind {
+    Data,
+    Error,
 }
 
 #[derive(Clone)]
 pub struct Channel {
     remote: Sender<Message>,
     rx: Arc<Receiver<Message>>,
+}
+
+impl Channel {
+    /// Reports a failure on the peer side of this channel (e.g. the worker's module throwing
+    /// during its top-level evaluation) as an `"error"`-typed event on the receiving
+    /// [`MessagePort`], carrying `payload` (typically a serialized error description) as its
+    /// `data`.
+    pub(crate) fn send_error(&self, payload: TransObject) {
+        self.remote
+            .send(Message {
+                message: payload,
+                kind: MessageKind::Error,
+            })
+            .ok();
+    }
 }
 
 impl NativeObject for Channel {
@@ -137,7 +162,13 @@ impl<'js> MessagePort<'js> {
 
         let message = Registry::instance(&ctx)?.serialize(&ctx, &msg, &opts)?;
 
-        channel.remote.send(Message { message }).ok();
+        channel
+            .remote
+            .send(Message {
+                message,
+                kind: MessageKind::Data,
+            })
+            .ok();
 
         Ok(())
     }
@@ -300,7 +331,11 @@ impl<'js> Resource<'js> for MessagePortResource<'js> {
 
                     let data = self.registry.deserialize(&ctx, next.message)?;
 
-                    let msg = String::from_str(ctx.ctx().clone(), "message")?;
+                    let ty = match next.kind {
+                        MessageKind::Data => "message",
+                        MessageKind::Error => "error",
+                    };
+                    let msg = String::from_str(ctx.ctx().clone(), ty)?;
 
                     let event =
                         MessageEvent::new(msg, Opt(Some(MessageEventOptions { data: Some(data) })))?;
