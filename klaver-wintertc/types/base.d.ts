@@ -11,6 +11,10 @@ declare interface ImportMeta {
     url: string;
 }
 
+declare function queueMicrotask(callback: () => void): void;
+
+declare var self: typeof globalThis;
+
 
 declare type Buffer =
     | ArrayBuffer
@@ -92,6 +96,20 @@ declare class TextDecoder {
 
     readonly encoding: string;
     decode(input: ArrayBuffer): string;
+}
+
+declare class TextEncoderStream {
+    readonly encoding: string;
+    readonly readable: ReadableStream;
+    readonly writable: WritableStream;
+}
+
+declare class TextDecoderStream {
+    constructor(label?: string);
+
+    readonly encoding: string;
+    readonly readable: ReadableStream;
+    readonly writable: WritableStream;
 }
 
 declare function atob(input: string): string;

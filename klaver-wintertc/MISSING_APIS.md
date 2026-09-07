@@ -8,26 +8,25 @@ Status legend: ✅ implemented · 🟡 partial · ❌ missing.
 
 ## Quick wins
 
-These are small, isolated fixes/additions relative to everything else on this list:
+All done:
 
-- **`crypto.getRandomValues` is registered under the wrong name.** `src/crypto/module.rs` exports
-  the function as `crypto.randomValues`, not `crypto.getRandomValues` (`types/crypto.d.ts` already
-  declares `getRandomValues`, so the *types* are correct but the *runtime* doesn't back them - the
-  spec-required method is effectively missing today).
-- **`queueMicrotask`** - trivial to implement given the event loop already exists (`klaver-runtime`);
-  just not wired up as a global anywhere yet.
-- **`self`** - not aliased to the global object at all (affects both the main global scope and
-  worker global scopes, see below).
+- ✅ **`crypto.getRandomValues` naming.** `src/crypto/module.rs` now exports the function as
+  `crypto.getRandomValues` (matching `types/crypto.d.ts`) instead of the old `crypto.randomValues`.
+- ✅ **`queueMicrotask`** - implemented in `src/base.rs` as a real QuickJS microtask (via
+  `ctx.promise()` + `Promise#then`, not piggybacked on the `klaver-runtime` event loop/timers), so
+  ordering relative to promise reactions matches spec.
+- ✅ **`self`** - now aliased to the global object in both the main global scope (`src/base.rs`)
+  and worker global scopes (`src/worker/init.js`).
 
 ## Globals
 
 | API | Status | Notes |
 |---|---|---|
 | `globalThis` | ✅ | Provided natively by QuickJS; nothing runtime-specific needed. |
-| `self` | ❌ | Not defined anywhere as an alias for the global object. |
+| `self` | ✅ | `src/base.rs` (main global scope) and `src/worker/init.js` (worker global scope) alias it to the global object. |
 | `setTimeout`/`setInterval`/`clearTimeout`/`clearInterval` | ✅ | `src/timers/` (`timers.rs`, `module.rs`), backed by an `AsyncState`/`TaskHandle` resource. |
 | `atob`/`btoa` | ✅ | `src/encoding/b64.rs`. |
-| `queueMicrotask` | ❌ | Not implemented. |
+| `queueMicrotask` | ✅ | `src/base.rs`. |
 | `reportError` | ❌ | Not implemented. |
 | `onerror` / `onunhandledrejection` / `onrejectionhandled` | ❌ | None of the three exist on the global scope (main or worker). |
 | `navigator.userAgent` | ❌ | No `navigator` object anywhere. |
@@ -85,7 +84,7 @@ These are small, isolated fixes/additions relative to everything else on this li
 | API | Status | Notes |
 |---|---|---|
 | `TextEncoder` / `TextDecoder` | ✅ | `src/encoding/encoding.rs`. |
-| `TextEncoderStream` / `TextDecoderStream` | ❌ | Not implemented. |
+| `TextEncoderStream` / `TextDecoderStream` | ✅ | `src/encoding/streams.rs`, gated behind the `streams` feature (built on the same `TransformStream` machinery, not exposed as JS-visible transformers). |
 | `CompressionStream` / `DecompressionStream` | ❌ | Not implemented. |
 | `Uint8Array.prototype.{to,from,setFrom}Base64`/`{to,from,setFrom}Hex` | ❌ | Not implemented (newer TC39 proposal, now widely shipped in browsers/Node; not present in `klaver-core`'s typed-array code either). |
 
@@ -94,7 +93,7 @@ These are small, isolated fixes/additions relative to everything else on this li
 | API | Status | Notes |
 |---|---|---|
 | `crypto.randomUUID` | ✅ | `src/crypto/random.rs`. |
-| `crypto.getRandomValues` | 🟡 | Implemented, but registered as `crypto.randomValues` - see [Quick wins](#quick-wins). |
+| `crypto.getRandomValues` | ✅ | `src/crypto/random.rs`, registered as `crypto.getRandomValues` in `src/crypto/module.rs`. |
 | `crypto.subtle` (`SubtleCrypto`) | 🟡 | Plain object, not a real `SubtleCrypto` class; exposes only `digest(algo, buffer)` (SHA-1/256/384/512 via `src/crypto/digest.rs`). Missing `encrypt`/`decrypt`/`sign`/`verify`/`generateKey`/`importKey`/`exportKey`/`deriveKey`/`deriveBits`/`wrapKey`/`unwrapKey`, and there's no `CryptoKey` type at all. |
 
 ## High Resolution Time / WebAssembly
@@ -104,6 +103,7 @@ Both entirely unimplemented - see the Globals table above (`performance`, `WebAs
 ## Worker global scope
 
 `src/worker/init.js` (run inside a spawned worker) wires up `onmessage`/`postMessage`/
-`addEventListener`/`removeEventListener` against the worker's `MessagePort`, but per the spec's
-"if a runtime implements worker global scopes, it must expose `onerror`, `onunhandledrejection`,
-`onrejectionhandled`, and `self`" requirement, none of those four are set up there either.
+`addEventListener`/`removeEventListener` against the worker's `MessagePort`, and now also sets
+`self` (see [Quick wins](#quick-wins)). Per the spec's "if a runtime implements worker global
+scopes, it must expose `onerror`, `onunhandledrejection`, `onrejectionhandled`, and `self`"
+requirement, the first three are still missing there.

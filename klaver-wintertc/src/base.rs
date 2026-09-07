@@ -3,7 +3,7 @@ use klaver_core::Registry;
 use klaver_core::{Exportable, value::structured_clone};
 #[cfg(feature = "module")]
 use rquickjs::Ctx;
-use rquickjs::prelude::Func;
+use rquickjs::{Function, function::This, prelude::Func};
 
 use crate::{
     abort_controller::{AbortController, AbortSignal},
@@ -14,6 +14,20 @@ use crate::{
 };
 
 pub struct BaseModule;
+
+fn queue_microtask<'js>(ctx: Ctx<'js>, callback: Function<'js>) -> rquickjs::Result<()> {
+    let (promise, resolve, _reject) = ctx.promise()?;
+    resolve.call::<_, ()>(())?;
+    // `Promise#then` invokes its handler with the resolved value; `queueMicrotask` callbacks
+    // take no arguments, so wrap it to drop that value.
+    let wrapper = Function::new(ctx.clone(), move || -> rquickjs::Result<()> {
+        callback.call(())
+    })?;
+    promise
+        .then()?
+        .call::<_, rquickjs::Value>((This(promise.clone()), wrapper))?;
+    Ok(())
+}
 
 impl<'js> klaver_core::Exportable<'js> for BaseModule {
     fn export<T>(ctx: &Ctx<'js>, registry: &Registry, target: &T) -> rquickjs::Result<()>
@@ -45,6 +59,8 @@ impl<'js> klaver_core::Exportable<'js> for BaseModule {
             Func::from(structured_clone::structured_clone),
         )?;
         target.set(ctx, "serialize", Func::from(structured_clone::serialize))?;
+        target.set(ctx, "queueMicrotask", Func::from(queue_microtask))?;
+        target.set(ctx, "self", ctx.globals())?;
 
         Ok(())
     }
@@ -68,5 +84,71 @@ impl klaver_modules::GlobalInfo for BaseModule {
         Some(std::borrow::Cow::Borrowed(include_str!(
             "../types/base.d.ts"
         )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use klaver_core::value::FunctionExt;
+    use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt};
+
+    /// Runs `body` as the contents of an async IIFE, with `BaseModule` exported onto globals.
+    /// `body` is expected to throw on failure (e.g. via a plain `if (...) throw ...`).
+    fn run(body: &str) {
+        futures::executor::block_on(async move {
+            let rt = AsyncRuntime::new().unwrap();
+            let ctx = AsyncContext::full(&rt).await.unwrap();
+
+            ctx.async_with(async |ctx| {
+                BaseModule::export(&ctx, &Registry::instance(&ctx)?, &ctx.globals())?;
+
+                let test_fn: Function = ctx.eval(format!("(async () => {{\n{body}\n}})"))?;
+
+                if let Err(err) = test_fn.call_async::<_, ()>(()).await.catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .await
+            .unwrap();
+        });
+    }
+
+    #[test]
+    fn self_aliases_global_object() {
+        run(r#"
+            if (typeof self === "undefined") throw new Error("self is not defined");
+            if (self !== globalThis) throw new Error("self !== globalThis");
+        "#);
+    }
+
+    #[test]
+    fn queue_microtask_runs_before_later_microtasks() {
+        run(r#"
+            const order = [];
+            queueMicrotask(() => order.push("microtask"));
+            order.push("sync");
+            await Promise.resolve();
+            if (order.join(",") !== "sync,microtask") {
+                throw new Error(`unexpected order: ${order.join(",")}`);
+            }
+        "#);
+    }
+
+    #[test]
+    fn queue_microtask_passes_no_arguments() {
+        run(r#"
+            await new Promise((resolve, reject) => {
+                queueMicrotask((...args) => {
+                    if (args.length !== 0) {
+                        reject(new Error(`expected no arguments, got ${args.length}`));
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        "#);
     }
 }

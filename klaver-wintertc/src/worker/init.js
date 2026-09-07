@@ -1,6 +1,8 @@
 (port, global) => {
   const event = new EventTarget();
 
+  global.self = global;
+
   Object.defineProperty(global, "onmessage", {
     get() {
       return port.onmessage;

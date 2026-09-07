@@ -18,7 +18,7 @@ use crate::streams::{
 /// The readable side's underlying source: `TransformStream` doesn't pull data on demand - the
 /// writable side pushes transformed chunks directly into the readable side's queue via the
 /// shared `TransformStreamDefaultController` - so this never does anything itself.
-struct PassiveSource;
+pub(crate) struct PassiveSource;
 
 impl<'js> Trace<'js> for PassiveSource {
     fn trace<'a>(&self, _tracer: rquickjs::class::Tracer<'a, 'js>) {}

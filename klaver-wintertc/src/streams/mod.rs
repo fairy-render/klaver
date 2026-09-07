@@ -842,4 +842,132 @@ mod tests {
         "#)
         .await;
     }
+
+    // ---- TextEncoderStream / TextDecoderStream ----
+    //
+    // These live here rather than alongside `TextEncoderStream`/`TextDecoderStream` in
+    // `encoding/streams.rs` because this module's test name sorts after `fetch`'s (whose own
+    // tests build a bare `rquickjs::AsyncRuntime` via `futures::executor::block_on`, not a real
+    // `klaver_vm::Vm`) - running enough real, event-loop-driven `Vm`s *before* that fetch test in
+    // the same test binary made it hang. Consolidating here matches every other stream test.
+
+    #[tokio::test]
+    async fn text_encoder_stream_encodes_written_strings() {
+        run(r#"
+            const stream = new TextEncoderStream();
+            if (stream.encoding !== "utf-8") throw new Error(`encoding was ${stream.encoding}`);
+
+            const writer = stream.writable.getWriter();
+            const reader = stream.readable.getReader();
+
+            writer.write("hello ");
+            writer.write("world");
+            writer.close();
+
+            const chunks = [];
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                if (!(value instanceof Uint8Array)) throw new Error("expected a Uint8Array chunk");
+                chunks.push(...value);
+            }
+
+            const text = new TextDecoder().decode(new Uint8Array(chunks));
+            if (text !== "hello world") throw new Error(`decoded text was ${text}`);
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn text_encoder_stream_encodes_multibyte_utf8() {
+        run(r#"
+            const stream = new TextEncoderStream();
+            const writer = stream.writable.getWriter();
+            const reader = stream.readable.getReader();
+
+            writer.write("é");
+            writer.close();
+
+            const { value, done } = await reader.read();
+            if (done) throw new Error("expected a chunk");
+            // U+00E9 is encoded as the two UTF-8 bytes 0xC3 0xA9.
+            if (value.length !== 2 || value[0] !== 0xc3 || value[1] !== 0xa9) {
+                throw new Error(`bytes were ${value}`);
+            }
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn text_decoder_stream_decodes_written_bytes() {
+        run(r#"
+            const stream = new TextDecoderStream();
+            if (stream.encoding !== "utf-8") throw new Error(`encoding was ${stream.encoding}`);
+
+            const writer = stream.writable.getWriter();
+            const reader = stream.readable.getReader();
+
+            const bytes = new TextEncoder().encode("hello world");
+            writer.write(bytes);
+            writer.close();
+
+            let text = "";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                text += value;
+            }
+            if (text !== "hello world") throw new Error(`text was ${text}`);
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn text_decoder_stream_reassembles_a_multibyte_sequence_split_across_writes() {
+        // The whole point of TextDecoderStream over one-shot TextDecoder: a multi-byte UTF-8
+        // sequence split across two separate `write()` calls must still decode correctly.
+        run(r#"
+            const stream = new TextDecoderStream();
+            const writer = stream.writable.getWriter();
+            const reader = stream.readable.getReader();
+
+            const bytes = new TextEncoder().encode("é"); // [0xc3, 0xa9]
+            writer.write(bytes.slice(0, 1));
+            writer.write(bytes.slice(1));
+            writer.close();
+
+            let text = "";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                text += value;
+            }
+            if (text !== "é") throw new Error(`text was ${JSON.stringify(text)}`);
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn text_decoder_stream_accepts_a_label() {
+        run(r#"
+            if (new TextDecoderStream("UTF8").encoding !== "utf-8") {
+                throw new Error(`encoding was ${new TextDecoderStream("UTF8").encoding}`);
+            }
+        "#)
+        .await;
+    }
+
+    #[tokio::test]
+    async fn text_decoder_stream_rejects_unknown_label() {
+        run(r#"
+            let threw = false;
+            try {
+                new TextDecoderStream("not-a-real-encoding");
+            } catch {
+                threw = true;
+            }
+            if (!threw) throw new Error("expected constructor to throw");
+        "#)
+        .await;
+    }
 }

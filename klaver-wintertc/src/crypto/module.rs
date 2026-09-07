@@ -13,7 +13,7 @@ pub struct CryptoModule;
 impl ModuleDef for CryptoModule {
     fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
         decl.declare("randomUUID")?;
-        decl.declare("randomValues")?;
+        decl.declare("getRandomValues")?;
         decl.declare("subtle")?;
         Ok(())
     }
@@ -52,7 +52,11 @@ impl<'js> Exportable<'js> for CryptoModule {
         )?;
 
         target.set(ctx, "randomUUID", Func::new(super::random::random_uuid))?;
-        target.set(ctx, "randomValues", Func::new(super::random::random_values))?;
+        target.set(
+            ctx,
+            "getRandomValues",
+            Func::new(super::random::random_values),
+        )?;
 
         target.set(ctx, "subtle", subtle)?;
 
@@ -88,5 +92,50 @@ impl klaver_modules::GlobalInfo for CryptoModule {
         Some(std::borrow::Cow::Borrowed(include_str!(
             "../../types/crypto.d.ts"
         )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rquickjs::{CatchResultExt, Context, Runtime};
+
+    /// Runs `body` as the contents of a plain function, with a global `crypto` object available.
+    /// `body` is expected to throw on failure (e.g. via a plain `if (...) throw ...`).
+    fn run(body: &str) {
+        let runtime = Runtime::new().unwrap();
+        let context = Context::full(&runtime).unwrap();
+
+        context
+            .with(|ctx| {
+                let crypto = Object::new(ctx.clone())?;
+                CryptoModule::export(&ctx, &Registry::instance(&ctx)?, &crypto)?;
+                ctx.globals().set("crypto", crypto)?;
+
+                let test_fn: rquickjs::Function = ctx.eval(format!("(() => {{\n{body}\n}})"))?;
+
+                if let Err(err) = test_fn.call::<_, ()>(()).catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn get_random_values_is_registered_under_the_spec_name() {
+        run(r#"
+            if (typeof crypto.getRandomValues !== "function") {
+                throw new Error("crypto.getRandomValues is not a function");
+            }
+            if (typeof crypto.randomValues !== "undefined") {
+                throw new Error("crypto.randomValues should not exist");
+            }
+
+            const buf = new Uint8Array(16);
+            crypto.getRandomValues(buf);
+            if (buf.every((b) => b === 0)) throw new Error("buffer was not filled");
+        "#);
     }
 }

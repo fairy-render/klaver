@@ -1,8 +1,12 @@
 mod b64;
 mod encoding;
+#[cfg(feature = "streams")]
+mod streams;
 
 use klaver_core::{ExportTarget, Exportable};
 
+#[cfg(feature = "streams")]
+pub use self::streams::{TextDecoderStream, TextEncoderStream};
 pub use self::{
     b64::{atob, btoa},
     encoding::{TextDecoder, TextEncoder},
@@ -22,6 +26,11 @@ impl<'js> Exportable<'js> for EncodingModule {
     {
         TextDecoder::export(ctx, registry, target)?;
         TextEncoder::export(ctx, registry, target)?;
+
+        #[cfg(feature = "streams")]
+        TextDecoderStream::export(ctx, registry, target)?;
+        #[cfg(feature = "streams")]
+        TextEncoderStream::export(ctx, registry, target)?;
 
         target.set(ctx, "atob", Func::new(atob))?;
         target.set(ctx, "btoa", Func::new(btoa))?;
