@@ -72,6 +72,7 @@ interface Console {
     error(...data: any[]): void;
     info(...data: any[]): void;
     debug(...data: any[]): void;
+    assert(condition?: boolean, ...data: any[]): void;
     time(label?: string): void;
     timeEnd(label?: string): void;
 }

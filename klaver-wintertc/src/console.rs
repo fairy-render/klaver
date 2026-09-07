@@ -1,13 +1,13 @@
 use core::fmt;
-use std::{collections::HashMap, time::Instant};
+use std::{collections::HashMap, fmt::Write as _, time::Instant};
 
 use rquickjs::{
-    Class, Ctx, Function, JsLifetime, Value,
+    Class, Coerced, Ctx, FromJs, Function, JsLifetime, Type, Value,
     class::{JsClass, Trace},
     function::Rest,
 };
 
-use klaver_core::value::{FormatOptions, format_to};
+use klaver_core::value::{FormatOptions, StringRef, format_to};
 
 use klaver_core::Exportable;
 
@@ -113,19 +113,104 @@ impl<'js> Console<'js> {
         level: Level,
         values: Rest<Value<'js>>,
     ) -> rquickjs::Result<()> {
+        let values = values.0;
         let mut output = String::new();
 
-        for (idx, v) in values.0.into_iter().enumerate() {
-            if idx != 0 {
+        // https://console.spec.whatwg.org/#formatter
+        // The Formatter only applies when there is a format string *and* at least one
+        // more argument to substitute into it.
+        let consumed = if values.len() > 1 && values[0].type_of() == Type::String {
+            format_specifiers(&ctx, &values, &mut output)?
+        } else {
+            0
+        };
+
+        for (idx, v) in values[consumed..].iter().enumerate() {
+            if consumed > 0 || idx != 0 {
                 output.push(' ');
             }
-            format_to(&ctx, &v, &mut output, Some(FormatOptions::default()))?;
+            format_to(&ctx, v, &mut output, Some(FormatOptions::default()))?;
         }
 
         self.writer.write(&ctx, level, output)?;
 
         Ok(())
     }
+}
+
+/// Coerces `value` to a number the way JavaScript's `ToNumber` would, falling back to
+/// `NaN` on any conversion failure (e.g. Symbols, BigInts) rather than throwing, since a
+/// bad format argument must never make `console.log` itself fail.
+fn coerce_number<'js>(ctx: &Ctx<'js>, value: &Value<'js>) -> f64 {
+    Coerced::<f64>::from_js(ctx, value.clone())
+        .map(|c| c.0)
+        .unwrap_or(f64::NAN)
+}
+
+/// Implements the Console Standard's [Formatter](https://console.spec.whatwg.org/#formatter):
+/// scans `values[0]` (already known to be a string) for `%s`, `%d`/`%i`, `%f`, `%o`/`%O`,
+/// `%c` and `%%` specifiers, substituting each recognized one (other than `%%`) with the
+/// next unconsumed argument. A specifier with no argument left to substitute, or an
+/// unrecognized one, is emitted literally. Returns the number of leading `values` consumed
+/// (always at least 1, for the format string itself), so the caller can format and append
+/// any remaining arguments as usual.
+fn format_specifiers<'js>(
+    ctx: &Ctx<'js>,
+    values: &[Value<'js>],
+    output: &mut String,
+) -> rquickjs::Result<usize> {
+    let target = StringRef::from_js(ctx, values[0].clone())?;
+    let mut chars = target.as_str().chars();
+    let mut arg_idx = 1usize;
+
+    while let Some(c) = chars.next() {
+        if c != '%' {
+            output.push(c);
+            continue;
+        }
+
+        match chars.next() {
+            None => output.push('%'),
+            Some('%') => output.push('%'),
+            Some(spec @ ('s' | 'd' | 'i' | 'f' | 'o' | 'O' | 'c')) if arg_idx < values.len() => {
+                let arg = &values[arg_idx];
+                arg_idx += 1;
+
+                match spec {
+                    's' | 'o' | 'O' => {
+                        format_to(ctx, arg, output, Some(FormatOptions::default()))?
+                    }
+                    'd' | 'i' => {
+                        let n = coerce_number(ctx, arg);
+                        if n.is_nan() {
+                            output.push_str("NaN");
+                        } else {
+                            write!(output, "{}", n.trunc() as i64).ok();
+                        }
+                    }
+                    'f' => {
+                        let n = coerce_number(ctx, arg);
+                        if n.is_nan() {
+                            output.push_str("NaN");
+                        } else {
+                            write!(output, "{}", n).ok();
+                        }
+                    }
+                    // CSS styling directive: consumes the argument, produces no output.
+                    'c' => {}
+                    _ => unreachable!(),
+                }
+            }
+            // Unrecognized specifier, or a recognized one with no argument left to
+            // substitute: emit it literally without consuming an argument.
+            Some(spec) => {
+                output.push('%');
+                output.push(spec);
+            }
+        }
+    }
+
+    Ok(arg_idx)
 }
 
 #[rquickjs::methods]
@@ -144,7 +229,7 @@ impl<'js> Console<'js> {
     }
 
     pub fn info(&self, ctx: Ctx<'js>, values: Rest<Value<'js>>) -> rquickjs::Result<()> {
-        self.log_inner(ctx, Level::Debug, values)
+        self.log_inner(ctx, Level::Info, values)
     }
 
     pub fn error(&self, ctx: Ctx<'js>, values: Rest<Value<'js>>) -> rquickjs::Result<()> {
@@ -179,7 +264,17 @@ impl<'js> Console<'js> {
         let ret: rquickjs::Coerced<bool> = ret.call((condition,))?;
 
         if !ret.0 {
-            self.log(ctx, values)?;
+            let mut output = String::from("Assertion failed");
+
+            if !values.0.is_empty() {
+                output.push(':');
+                for v in values.0.iter() {
+                    output.push(' ');
+                    format_to(&ctx, v, &mut output, Some(FormatOptions::default()))?;
+                }
+            }
+
+            self.writer.write(&ctx, Level::Error, output)?;
         }
 
         Ok(())
