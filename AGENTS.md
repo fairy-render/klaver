@@ -94,14 +94,18 @@ Dependency layering, low-level to high-level:
   and (behind features) offers a worker (`flume`) and a pool (`deadpool`) of VMs.
 - **klaver-wintertc** — the actual WinterTC/web-platform surface implemented as globals/modules, each behind its
   own Cargo feature and gated as a `GlobalInfo`/`ModuleInfo` dependency of the top-level `WinterTC` global
-  (`src/module.rs`): `console`, `fetch/` (Request/Response/Headers/URL/fetch), `timers/`, `crypto/`, `streams/`
-  (ReadableStream/WritableStream/TransformStream, including `tee()`/`pipeThrough()` and a simplified BYOB reader —
-  see the doc comments in `streams/readable/byob_reader.rs` for what's *not* zero-copy there), `intl/` (ICU-backed
-  `Intl`), `events/` (a from-scratch, reasonably spec-compliant `EventTarget`/`Event`: synchronous dispatch,
-  `once`/`capture`/`signal` options, `stopImmediatePropagation()`, etc. — see `events/emitter.rs`), `channel/`
-  (MessageChannel/port), `worker/` (Worker), `fs/` (sandboxed filesystem, requires a `Backend`), `blob.rs`,
-  `encoding/`, `abort_controller.rs`, `dom_exception.rs`. A `Backend` trait (implemented by e.g. `TokioBackend`)
-  supplies the async runtime primitives (fs, etc) these need — set per-VM via `klaver_wintertc::set_backend`.
+  (`src/module.rs`): `console`, `fetch/` (Request/Response/Headers/URL/URLSearchParams/FormData/fetch — `FormData`
+  always stores file-like entries as `File`, per the spec's "create an entry" algorithm), `timers/`, `crypto/`,
+  `streams/` (ReadableStream/WritableStream/TransformStream, including `tee()`/`pipeThrough()` and a simplified
+  BYOB reader — see the doc comments in `streams/readable/byob_reader.rs` for what's *not* zero-copy there),
+  `intl/` (ICU-backed `Intl`), `events/` (a from-scratch, reasonably spec-compliant `EventTarget`/`Event`:
+  synchronous dispatch, `once`/`capture`/`signal` options, `stopImmediatePropagation()`, etc. — see
+  `events/emitter.rs`), `channel/` (MessageChannel/port), `worker/` (Worker), `fs/` (sandboxed filesystem, requires
+  a `Backend`), `blob.rs` (`Blob` and `File` — see the `NativeBlob` trait doc comment there for why `File`'s
+  Blob-family methods are bound generically rather than just inherited through the prototype chain, the same
+  trick `events::event::NativeEvent` uses for `Event`/`MessageEvent`), `encoding/`, `abort_controller.rs`,
+  `dom_exception.rs`. A `Backend` trait (implemented by e.g. `TokioBackend`) supplies the async runtime primitives
+  (fs, etc) these need — set per-VM via `klaver_wintertc::set_backend`.
 - **klaver** (top-level crate) — the batteries-included `Builder`/`Vm` most consumers use: wires a `Backend`,
   search paths, the file resolver/loader (with the Oxc TS/JSX transform behind the `oxc` feature and/or the SWC
   one behind `swc` — both forward to `klaver-modules`; if both are enabled, Oxc is registered first and wins for
