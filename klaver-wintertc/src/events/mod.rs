@@ -1,12 +1,17 @@
+mod custom_event;
 mod dyn_event;
 mod emitter;
+mod error_event;
 mod event;
 mod event_target;
 mod listener;
 
 use klaver_core::{ExportTarget, Exportable};
 
-pub use self::{dyn_event::*, emitter::*, event::*, event_target::*, listener::*};
+pub use self::{
+    custom_event::*, dyn_event::*, emitter::*, error_event::*, event::*, event_target::*,
+    listener::*,
+};
 
 pub struct EventsModule;
 
@@ -21,6 +26,8 @@ impl<'js> Exportable<'js> for EventsModule {
     {
         EventTarget::export(ctx, registry, target)?;
         Event::export(ctx, registry, target)?;
+        CustomEvent::export(ctx, registry, target)?;
+        ErrorEvent::export(ctx, registry, target)?;
 
         Ok(())
     }

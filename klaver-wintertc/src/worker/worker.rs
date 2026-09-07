@@ -123,9 +123,9 @@ impl<'js> WebWorker<'js> {
     }
 
     /// Per the spec's `AbstractWorker` mixin. Fired (as a [`crate::channel::MessageEvent`],
-    /// carrying a description of the failure as `data` - there's no dedicated `ErrorEvent` type
-    /// yet, see `MISSING_APIS.md`) when the worker's module fails during its top-level
-    /// evaluation - see `WorkerResource::run` in `resource.rs`.
+    /// carrying a description of the failure as `data`, rather than a proper `ErrorEvent` - see
+    /// `MISSING_APIS.md`) when the worker's module fails during its top-level evaluation - see
+    /// `WorkerResource::run` in `resource.rs`.
     #[qjs(set, rename = "onerror")]
     pub fn set_onerror(&mut self, ctx: Ctx<'js>, cb: Opt<Function<'js>>) -> rquickjs::Result<()> {
         self.port.borrow_mut().set_handler(

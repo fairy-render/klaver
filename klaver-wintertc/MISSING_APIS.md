@@ -17,6 +17,10 @@ All done:
   ordering relative to promise reactions matches spec.
 - ✅ **`self`** - now aliased to the global object in both the main global scope (`src/base.rs`)
   and worker global scopes (`src/worker/init.js`).
+- ✅ **`CustomEvent`** - `src/events/custom_event.rs`, an `Event` subclass with a `detail` field
+  (defaulting to `null`) plus the legacy `initCustomEvent()` method.
+- ✅ **`ErrorEvent`** - `src/events/error_event.rs`, an `Event` subclass with
+  `message`/`filename`/`lineno`/`colno`/`error` fields (per-field spec defaults `""`/`""`/`0`/`0`/`null`).
 
 ## Globals
 
@@ -43,8 +47,8 @@ All done:
 |---|---|---|
 | `EventTarget` | ✅ | `src/events/event_target.rs` - `addEventListener`/`removeEventListener`/`dispatchEvent`, `signal` option support. |
 | `Event` | ✅ | `src/events/event.rs`. |
-| `CustomEvent` | ❌ | No dedicated type; plain `Event` has no generic `detail` field. JS-side subclassing of `Event` does work (see `event_target.rs`'s tests), so user code can approximate this, but there's no built-in `CustomEvent` constructor. |
-| `ErrorEvent` | ❌ | Not implemented. |
+| `CustomEvent` | ✅ | `src/events/custom_event.rs`. |
+| `ErrorEvent` | ✅ | `src/events/error_event.rs`. Not yet wired up to anything that would dispatch one automatically (see the missing `onerror`/`window.onerror`-style global error reporting above) - only the constructor/fields are implemented. |
 | `MessageEvent` | ✅ | `src/channel/event.rs`, an `Event` subclass with a `data` field. |
 | `PromiseRejectionEvent` | ❌ | Not implemented (ties into the missing `onunhandledrejection`/`onrejectionhandled` above). |
 | `AbortController`/`AbortSignal` | ✅ | `src/abort_controller.rs`. |
@@ -113,9 +117,8 @@ requirement, the last two are still missing there.
 `src/worker/` implements a `Worker` constructor roughly matching the WHATWG HTML `Worker`
 interface: `new Worker(scriptURL)`, `postMessage()`, `onmessage`/`addEventListener`/
 `removeEventListener` (for `"message"`), `onerror` (fired - as a `MessageEvent` carrying a
-description string as `data`, since there's no dedicated `ErrorEvent` type yet - when the
-worker's module throws during its top-level evaluation), and `terminate()`. Known gaps against
-the full spec:
+description string as `data`, rather than a proper `ErrorEvent` - when the worker's module throws
+during its top-level evaluation), and `terminate()`. Known gaps against the full spec:
 
 - **`WorkerOptions`** (`type`, `credentials`, `name`) - not accepted; the constructor only takes
   a `scriptURL`. Every worker script is always loaded as an ES module (i.e. always behaves as
@@ -123,6 +126,8 @@ the full spec:
 - **`onmessageerror`** - not implemented; a structured-clone deserialization failure on either
   side currently propagates as a hard error on the underlying `MessagePort`'s background resource
   rather than a `"messageerror"` event.
+- **`onerror` fires a `MessageEvent`, not an `ErrorEvent`** - `ErrorEvent` itself now exists
+  (`src/events/error_event.rs`), but `worker.rs` hasn't been switched over to use it yet.
 - **`Worker instanceof EventTarget`** - `Worker` is not actually a subclass of `EventTarget`
   (unlike `MessagePort`, which it wraps); `addEventListener`/`removeEventListener` are provided as
   ad hoc methods that proxy to the underlying port instead.
