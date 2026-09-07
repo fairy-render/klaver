@@ -1,4 +1,7 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    future::Future,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use klaver_core::{
     Inheritable, Subclass, SuperClass, throw, throw_if,
@@ -93,23 +96,29 @@ where
         }
     }
 
-    async fn array_buffer(this: This<Class<'js, Self>>) -> rquickjs::Result<ArrayBuffer<'js>> {
-        Ok(this.borrow().blob().buffer.clone())
+    fn array_buffer(
+        this: This<Class<'js, Self>>,
+    ) -> impl Future<Output = rquickjs::Result<ArrayBuffer<'js>>> {
+        async move { Ok(this.borrow().blob().buffer.clone()) }
     }
 
-    async fn bytes(this: This<Class<'js, Self>>) -> rquickjs::Result<TypedArray<'js, u8>> {
-        TypedArray::from_arraybuffer(this.borrow().blob().buffer.clone())
+    fn bytes(
+        this: This<Class<'js, Self>>,
+    ) -> impl Future<Output = rquickjs::Result<TypedArray<'js, u8>>> {
+        async move { TypedArray::from_arraybuffer(this.borrow().blob().buffer.clone()) }
     }
 
-    async fn text(
+    fn text(
         this: This<Class<'js, Self>>,
         ctx: Ctx<'js>,
-    ) -> rquickjs::Result<std::string::String> {
-        let this = this.borrow();
-        let Some(bytes) = this.blob().buffer.as_bytes() else {
-            throw!(@type ctx, "Buffer is detached")
-        };
-        Ok(throw_if!(ctx, str::from_utf8(bytes).map(|m| m.to_string())))
+    ) -> impl Future<Output = rquickjs::Result<std::string::String>> {
+        async move {
+            let this = this.borrow();
+            let Some(bytes) = this.blob().buffer.as_bytes() else {
+                throw!(@type ctx, "Buffer is detached")
+            };
+            Ok(throw_if!(ctx, str::from_utf8(bytes).map(|m| m.to_string())))
+        }
     }
 
     fn stream(
