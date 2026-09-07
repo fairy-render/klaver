@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+#[cfg(feature = "oxc")]
+use klaver_modules::loaders::{OxcCompilerOptions, OxcTransformer};
 #[cfg(feature = "swc")]
 use klaver_modules::loaders::{SwcCompilerOptions, SwcDecocators, SwcTransformer};
 use klaver_modules::{
@@ -70,6 +72,17 @@ impl<T: Backend + Send + Sync + 'static> Builder<T> {
         }
 
         let mut file_loader = FileLoader::default();
+
+        #[cfg(feature = "oxc")]
+        {
+            let oxc_transformer = OxcTransformer::new_with(OxcCompilerOptions {
+                legacy_decorators: true,
+                async_context: false,
+                explicit_resource_management: true,
+            });
+
+            file_loader.add_transformer(oxc_transformer);
+        }
 
         #[cfg(feature = "swc")]
         {

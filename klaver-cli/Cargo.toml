@@ -11,6 +11,7 @@ path = "src/main.rs"
 [features]
 default = ["swc"]
 swc = ["klaver/swc"]
+oxc = ["klaver/oxc"]
 debug = ["tracing-subscriber"]
 
 [dependencies]

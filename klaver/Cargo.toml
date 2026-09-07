@@ -5,6 +5,7 @@ edition = "2024"
 
 [features]
 swc = ["klaver-modules/swc"]
+oxc = ["klaver-modules/oxc"]
 
 full = ["klaver-wintertc/full"]
 
