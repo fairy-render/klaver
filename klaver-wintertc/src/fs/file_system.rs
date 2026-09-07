@@ -1,13 +1,11 @@
-use std::path::Path;
 
 use klaver_core::Exportable;
-use klaver_core::{throw, throw_if};
+use klaver_core::throw;
 use rquickjs::{
     Class, Ctx, JsLifetime, String,
     class::{JsClass, Trace},
 };
-use vfs::boxed::{BoxVPath, LocalBoxVPath};
-use vfs::{VFS, VPathExt, boxed::BoxVFS};
+use vfs::boxed::LocalBoxVPath;
 
 use super::file_system_entry::FileSystemEntry;
 

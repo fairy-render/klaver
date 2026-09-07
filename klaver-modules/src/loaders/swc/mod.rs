@@ -5,7 +5,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use std::sync::Mutex;
 
-use klaver_core::{throw, throw_if};
+use klaver_core::throw_if;
 use rquickjs::{Ctx, Module};
 
 use crate::loaders::Transformer;

@@ -1,4 +1,3 @@
-use crate::ObjectExt;
 use crate::exception;
 use crate::throw;
 use rquickjs::{FromJs, IntoJs, JsLifetime, class::Trace};

@@ -1,7 +1,5 @@
-use std::path::Path;
 
 use clap::Parser;
-use klaver_core::throw_if;
 use klaver_modules::{Global, global_info};
 use klaver_vm::RuntimeError;
 use klaver_wintertc::{TokioBackend, WinterTcInstance, fs::FileSystemEntry};

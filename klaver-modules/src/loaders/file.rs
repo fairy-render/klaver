@@ -17,8 +17,8 @@ pub trait Transformer {
 
     fn can_transform(
         &self,
-        path: &Path,
-        attributes: Option<&rquickjs::loader::ImportAttributes<'_>>,
+        _path: &Path,
+        _attributes: Option<&rquickjs::loader::ImportAttributes<'_>>,
     ) -> bool {
         true
     }

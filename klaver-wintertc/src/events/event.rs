@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use klaver_core::{Inheritable, StringExt, SuperClass, value::StringRef};
 use rquickjs::{
-    CatchResultExt, Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value,
+    Class, Ctx, FromJs, IntoJs, JsLifetime, String, Value,
     class::{JsClass, Trace},
     object::Accessor,
     prelude::This,
@@ -85,7 +85,7 @@ impl<'js, T> Inheritable<'js, T> for Event<'js>
 where
     T: JsClass<'js> + NativeEvent<'js>,
 {
-    fn additional_override(ctx: &Ctx<'js>, proto: &rquickjs::Object<'js>) -> rquickjs::Result<()> {
+    fn additional_override(_ctx: &Ctx<'js>, proto: &rquickjs::Object<'js>) -> rquickjs::Result<()> {
         if proto.contains_key("type")? {
             return Ok(());
         }

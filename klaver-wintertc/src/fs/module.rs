@@ -3,7 +3,6 @@ use std::borrow::Cow;
 use klaver_core::value::StringRef;
 use klaver_core::{Exportable, Registry, throw_if};
 use klaver_modules::{Global, GlobalInfo};
-use relative_path::RelativePath;
 use rquickjs::{
     Ctx,
     prelude::{Async, Func},
