@@ -34,7 +34,7 @@ impl TextDecoder {
 
     #[qjs(get)]
     pub fn encoding(&self) -> String {
-        self.decoder.output_encoding().name().to_string()
+        self.decoder.name().to_ascii_lowercase()
     }
 
     pub fn decode<'js>(&self, ctx: Ctx<'js>, input: Buffer<'js>) -> Result<rquickjs::String<'js>> {
@@ -84,7 +84,7 @@ impl TextEncoder {
 
     #[qjs(get)]
     pub fn encoding(&self) -> String {
-        self.decoder.output_encoding().name().to_string()
+        self.decoder.output_encoding().name().to_ascii_lowercase()
     }
 
     pub fn encode<'js>(
