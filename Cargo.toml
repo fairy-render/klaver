@@ -16,7 +16,8 @@ members = [
   "klaver-hbs",
   "klaver-core",
  "klaver-wintertc",
- "klaver-modules"
+ "klaver-modules",
+ "klaver-test262"
 ]
 
 [workspace.dependencies]

@@ -104,6 +104,23 @@ Optional feature/domain modules that plug into the module system the same way (`
 - **klaver-dom** — DOM module built on external `domjohnson`/`locket` crates (currently disabled workspace
   member; missing `klaver-util` dependency).
 
+## test262 conformance suite
+
+`klaver-test262` runs the [test262](https://github.com/tc39/test262) ECMAScript conformance suite
+against a bare `klaver_vm::Vm` (no WinterTC globals). The suite itself is vendored as a git
+submodule at `test262/`, not checked into the repo — run `git submodule update --init test262`
+first. See `klaver-test262/README.md` for details; the short version:
+
+```sh
+cargo run -p klaver-test262                         # full suite, checked against the baseline
+cargo run -p klaver-test262 -- built-ins/Promise     # a subset (paths relative to test262/test)
+cargo run -p klaver-test262 -- --update-expectations # regenerate klaver-test262/expectations.txt
+```
+
+Results are compared against `klaver-test262/expectations.txt` (every currently-known
+failing/skipped test); the run only fails CI-style on *regressions* — tests not in that file that
+now fail — since a partial engine won't pass 100% of the suite.
+
 ### Adding a new global or module
 
 Look at `klaver-hbs` (module) or `klaver-wintertc/src/module.rs` (`WinterTC`, a global with sub-module

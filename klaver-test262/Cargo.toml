@@ -1,0 +1,25 @@
+[package]
+name = "klaver-test262"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "klaver-test262"
+path = "src/main.rs"
+
+[dependencies]
+klaver-vm = { path = "../klaver-vm", features = ["parallel", "tokio"] }
+klaver-modules = { path = "../klaver-modules" }
+klaver-core = { path = "../klaver-core" }
+rquickjs = { workspace = true }
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+futures.workspace = true
+
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+walkdir = "2"
+
+anyhow = "1"
