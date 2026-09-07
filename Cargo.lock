@@ -2797,6 +2797,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "klaver-test"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "klaver-core",
+ "klaver-modules",
+ "klaver-vm",
+ "rquickjs",
+ "tokio",
+]
+
+[[package]]
 name = "klaver-test262"
 version = "0.1.0"
 dependencies = [

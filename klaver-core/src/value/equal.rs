@@ -36,7 +36,10 @@ pub fn equal<'js>(ctx: &Ctx<'js>, left: Value<'js>, right: Value<'js>) -> rquick
     {
         Ok(l.str_ref()? == r.str_ref()?)
     } else {
-        if left.type_of() != right.type_of() {
+        if left.type_of() != right.type_of() || !left.is_object() {
+            // Already known unequal by the `left == right` check above, and neither an
+            // array/big int/string nor an object (e.g. differing numbers, bools, null,
+            // undefined) - so there's nothing structural left to compare.
             return Ok(false);
         }
 

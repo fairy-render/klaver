@@ -9,7 +9,7 @@ members = [
   "klaver",
   #"klaver-os",
   "klaver-cli",
-  # "klaver-test",
+  "klaver-test",
   "klaver-runtime",
   "klaver-image",
   # "klaver-dom",

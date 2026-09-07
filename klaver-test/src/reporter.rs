@@ -1,62 +1,56 @@
-use klaver_util::rquickjs::{self, Class, Ctx, FromJs, IntoJs, Value, class::Trace};
+use std::cell::{Cell, RefCell};
 
-use crate::runner::{Suite, TestDesc};
+use klaver_core::error::CaugthException;
 
-pub enum LifeCicle<'js> {
-    Registered,
-    Started,
-    Success,
-    Failed(Value<'js>),
+/// Collects test results and prints them to stdout as they come in, mocha/tap style.
+pub struct Reporter {
+    passed: Cell<usize>,
+    failed: Cell<usize>,
+    failures: RefCell<Vec<(std::string::String, CaugthException)>>,
 }
 
-pub trait NativeReporter<'js>: Trace<'js> {
-    fn prepare(
-        &mut self,
-        ctx: &Ctx<'js>,
-        suites: &[Class<'js, Suite<'js>>],
-    ) -> rquickjs::Result<()>;
-}
+impl Reporter {
+    pub fn new() -> Self {
+        Reporter {
+            passed: Cell::new(0),
+            failed: Cell::new(0),
+            failures: RefCell::new(Vec::new()),
+        }
+    }
 
-// #[rquickjs::class(crate = "rquickjs")]
-pub struct Reporter<'js> {
-    pub ts: Option<Box<dyn NativeReporter<'js> + 'js>>,
-}
+    pub fn enter_suite(&self, depth: usize, desc: &str) {
+        println!("{}{desc}", indent(depth));
+    }
 
-impl<'js> Trace<'js> for Reporter<'js> {
-    fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {}
-}
+    pub fn pass(&self, depth: usize, desc: &str) {
+        self.passed.set(self.passed.get() + 1);
+        println!("{}\u{2713} {desc}", indent(depth));
+    }
 
-// unsafe impl<'js> JsLifetime<'js> for Reporter<'js> {
-//     type Changed<'to> = Reporter<'to>;
-// }
+    pub fn fail(&self, depth: usize, path: std::string::String, err: CaugthException) {
+        self.failed.set(self.failed.get() + 1);
+        let desc = path.rsplit(" > ").next().unwrap_or(&path);
+        println!("{}\u{2717} {desc}", indent(depth));
+        self.failures.borrow_mut().push((path, err));
+    }
 
-impl<'js> FromJs<'js> for Reporter<'js> {
-    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
-        todo!()
+    pub fn failed(&self) -> usize {
+        self.failed.get()
+    }
+
+    pub fn summary(&self) -> std::string::String {
+        format!("{} passed, {} failed", self.passed.get(), self.failed.get())
+    }
+
+    pub fn failure_report(&self) -> std::string::String {
+        let mut report = format!("{} test(s) failed:\n", self.failed.get());
+        for (path, err) in self.failures.borrow().iter() {
+            report.push_str(&format!("  - {path}: {err}\n"));
+        }
+        report
     }
 }
 
-impl<'js> IntoJs<'js> for Reporter<'js> {
-    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
-        todo!()
-    }
-}
-
-impl<'js> Reporter<'js> {
-    pub fn prepare(
-        &self,
-        ctx: &Ctx<'js>,
-        suites: &[Class<'js, Suite<'js>>],
-    ) -> rquickjs::Result<()> {
-        Ok(())
-    }
-
-    pub fn test_started(
-        &self,
-        ctx: &Ctx<'js>,
-        suites: &Class<'js, Suite<'js>>,
-        test: &TestDesc<'js>,
-    ) -> rquickjs::Result<()> {
-        Ok(())
-    }
+fn indent(depth: usize) -> std::string::String {
+    "  ".repeat(depth)
 }

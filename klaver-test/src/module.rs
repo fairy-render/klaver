@@ -1,25 +1,32 @@
-use crate::runner::TestRunner;
+use rquickjs::{Class, Function, Object, class::JsClass, module::ModuleDef};
+
+use crate::{assert, runner::TestRunner};
 use klaver_modules::module_info;
-use klaver_util::rquickjs::{Class, class::JsClass, module::ModuleDef};
 
 pub struct TestModule;
 
 impl ModuleDef for TestModule {
-    fn declare<'js>(
-        decl: &klaver_util::rquickjs::module::Declarations<'js>,
-    ) -> klaver_util::rquickjs::Result<()> {
+    fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {
         decl.declare(TestRunner::NAME)?;
+        decl.declare("assert")?;
         Ok(())
     }
 
     fn evaluate<'js>(
-        ctx: &klaver_util::rquickjs::Ctx<'js>,
-        exports: &klaver_util::rquickjs::module::Exports<'js>,
-    ) -> klaver_util::rquickjs::Result<()> {
+        ctx: &rquickjs::Ctx<'js>,
+        exports: &rquickjs::module::Exports<'js>,
+    ) -> rquickjs::Result<()> {
         exports.export(
             TestRunner::NAME,
             Class::<TestRunner>::create_constructor(ctx)?,
         )?;
+
+        let assert_obj = Object::new(ctx.clone())?;
+        assert_obj.set("ok", Function::new(ctx.clone(), assert::ok)?)?;
+        assert_obj.set("equal", Function::new(ctx.clone(), assert::equal)?)?;
+        assert_obj.set("deepEqual", Function::new(ctx.clone(), assert::deep_equal)?)?;
+        exports.export("assert", assert_obj)?;
+
         Ok(())
     }
 }

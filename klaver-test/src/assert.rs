@@ -1,47 +1,40 @@
-use klaver_util::{
-    equal,
-    rquickjs::{self, Coerced, Ctx, String, Value, prelude::Opt},
-    throw,
-};
+use klaver_core::{throw, value::equal as deep_equal_check};
+use rquickjs::{Coerced, Ctx, Result, String, Value, prelude::Opt};
 
-pub struct Assert {}
-
-impl Assert {
-    pub fn assert<'js>(
-        &self,
-        ctx: Ctx<'js>,
-        expr: Coerced<bool>,
-        msg: Opt<String<'js>>,
-    ) -> rquickjs::Result<()> {
-        if !expr.0 {
-            throw!(ctx, "Assert error")
-        }
-        Ok(())
+fn message(msg: Opt<String<'_>>, default: &str) -> Result<std::string::String> {
+    match msg.0 {
+        Some(msg) => msg.to_string(),
+        None => Ok(default.into()),
     }
+}
 
-    pub fn equal<'js>(
-        &self,
-        ctx: Ctx<'js>,
-        actual: Value<'js>,
-        expected: Value<'js>,
-        msg: Opt<String<'js>>,
-    ) -> rquickjs::Result<()> {
-        if actual != expected {
-            throw!(ctx, "Assert error")
-        }
-        Ok(())
+pub fn ok<'js>(ctx: Ctx<'js>, expr: Coerced<bool>, msg: Opt<String<'js>>) -> Result<()> {
+    if !expr.0 {
+        throw!(ctx, message(msg, "assertion failed")?)
     }
+    Ok(())
+}
 
-    pub fn deep_equal<'js>(
-        &self,
-        ctx: Ctx<'js>,
-        actual: Value<'js>,
-        expected: Value<'js>,
-        msg: Opt<String<'js>>,
-    ) -> rquickjs::Result<()> {
-        if !equal(&ctx, actual, expected)? {
-            throw!(ctx, "Assert error")
-        }
-        Ok(())
+pub fn equal<'js>(
+    ctx: Ctx<'js>,
+    actual: Value<'js>,
+    expected: Value<'js>,
+    msg: Opt<String<'js>>,
+) -> Result<()> {
+    if actual != expected {
+        throw!(ctx, message(msg, "values are not equal")?)
     }
+    Ok(())
+}
+
+pub fn deep_equal<'js>(
+    ctx: Ctx<'js>,
+    actual: Value<'js>,
+    expected: Value<'js>,
+    msg: Opt<String<'js>>,
+) -> Result<()> {
+    if !deep_equal_check(&ctx, actual, expected)? {
+        throw!(ctx, message(msg, "values are not deeply equal")?)
+    }
+    Ok(())
 }

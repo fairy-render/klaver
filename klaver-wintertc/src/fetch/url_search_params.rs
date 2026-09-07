@@ -412,3 +412,173 @@ impl<'js> Exportable<'js> for URLSearchParams<'js> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rquickjs::{CatchResultExt, Context, Runtime};
+
+    /// Runs `body` as the contents of a plain function, with global `URLSearchParams` and `URL`
+    /// constructors available. `body` is expected to throw on failure (e.g. via a plain
+    /// `if (...) throw ...`).
+    fn run(body: &str) {
+        let runtime = Runtime::new().unwrap();
+        let context = Context::full(&runtime).unwrap();
+
+        context
+            .with(|ctx| {
+                ctx.globals().set(
+                    URLSearchParams::NAME,
+                    Class::<URLSearchParams>::create_constructor(&ctx)?,
+                )?;
+                URLSearchParams::add_iterable_prototype(&ctx)?;
+                ctx.globals()
+                    .set("URL", Class::<Url>::create_constructor(&ctx)?)?;
+
+                let test_fn: Function = ctx.eval(format!("(() => {{\n{body}\n}})"))?;
+
+                if let Err(err) = test_fn.call::<_, ()>(()).catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn from_query_string() {
+        run(r#"
+            const params = new URLSearchParams("?a=1&b=2");
+            if (params.size !== 2) throw new Error(`size was ${params.size}`);
+            if (params.get("a") !== "1") throw new Error(`a was ${params.get("a")}`);
+            if (params.get("b") !== "2") throw new Error(`b was ${params.get("b")}`);
+            if (!params.has("a")) throw new Error("expected has(a)");
+            if (params.has("c")) throw new Error("did not expect has(c)");
+            if (params.get("missing") !== undefined) throw new Error("expected undefined for missing key");
+        "#);
+    }
+
+    #[test]
+    fn from_record_object() {
+        run(r#"
+            const params = new URLSearchParams({ a: "1", b: "2" });
+            if (params.get("a") !== "1") throw new Error(`a was ${params.get("a")}`);
+            if (params.get("b") !== "2") throw new Error(`b was ${params.get("b")}`);
+        "#);
+    }
+
+    #[test]
+    fn from_iterable_of_pairs() {
+        run(r#"
+            const params = new URLSearchParams([["a", "1"], ["b", "2"]]);
+            if (params.get("a") !== "1") throw new Error(`a was ${params.get("a")}`);
+            if (params.get("b") !== "2") throw new Error(`b was ${params.get("b")}`);
+        "#);
+    }
+
+    #[test]
+    fn get_all_returns_every_matching_value() {
+        run(r#"
+            const params = new URLSearchParams("a=1&a=2&b=3");
+            const all = params.getAll("a");
+            if (all.length !== 2 || all[0] !== "1" || all[1] !== "2") {
+                throw new Error(`getAll(a) was ${all}`);
+            }
+            if (params.getAll("missing").length !== 0) throw new Error("expected empty array");
+        "#);
+    }
+
+    #[test]
+    fn set_collapses_duplicates_keeping_first_position() {
+        run(r#"
+            const params = new URLSearchParams("a=1&b=2&a=3");
+            params.set("a", "new");
+            if (params.toString() !== "a=new&b=2") throw new Error(`toString was ${params.toString()}`);
+        "#);
+    }
+
+    #[test]
+    fn set_appends_when_key_missing() {
+        run(r#"
+            const params = new URLSearchParams();
+            params.set("a", "1");
+            if (params.toString() !== "a=1") throw new Error(`toString was ${params.toString()}`);
+        "#);
+    }
+
+    #[test]
+    fn append_and_delete() {
+        run(r#"
+            const params = new URLSearchParams("a=1");
+            params.append("a", "2");
+            if (params.getAll("a").join(",") !== "1,2") throw new Error("append failed");
+
+            params.delete("a");
+            if (params.size !== 0) throw new Error(`size after delete was ${params.size}`);
+        "#);
+    }
+
+    #[test]
+    fn iteration_preserves_original_interleaved_order() {
+        run(r#"
+            const params = new URLSearchParams("a=1&b=2&a=3");
+
+            const keys = [...params.keys()];
+            if (keys.join(",") !== "a,b,a") throw new Error(`keys were ${keys}`);
+
+            const values = [...params.values()];
+            if (values.join(",") !== "1,2,3") throw new Error(`values were ${values}`);
+
+            const entries = [...params.entries()].map(([k, v]) => `${k}=${v}`);
+            if (entries.join(",") !== "a=1,b=2,a=3") throw new Error(`entries were ${entries}`);
+
+            // The default for...of iterates entries() too.
+            const spread = [...params].map(([k, v]) => `${k}=${v}`);
+            if (spread.join(",") !== "a=1,b=2,a=3") throw new Error(`spread was ${spread}`);
+        "#);
+    }
+
+    #[test]
+    fn for_each_calls_back_with_value_then_key() {
+        run(r#"
+            const params = new URLSearchParams("a=1&b=2");
+            const seen = [];
+            params.forEach((value, key) => seen.push(`${key}=${value}`));
+            if (seen.join(",") !== "a=1,b=2") throw new Error(`seen was ${seen}`);
+        "#);
+    }
+
+    #[test]
+    fn to_string_percent_encodes_and_joins_with_ampersand() {
+        run(r#"
+            const params = new URLSearchParams();
+            params.append("a b", "c&d");
+            if (params.toString() !== "a%20b=c%26d") throw new Error(`toString was ${params.toString()}`);
+        "#);
+    }
+
+    #[test]
+    fn mutating_url_search_params_updates_url_href() {
+        run(r#"
+            const url = new URL("https://example.com/?a=1");
+
+            url.searchParams.append("b", "2");
+            if (url.search !== "?a=1&b=2") throw new Error(`search was ${url.search}`);
+            if (url.href !== "https://example.com/?a=1&b=2") throw new Error(`href was ${url.href}`);
+
+            url.searchParams.delete("a");
+            if (url.href !== "https://example.com/?b=2") throw new Error(`href after delete was ${url.href}`);
+        "#);
+    }
+
+    #[test]
+    fn setting_url_search_resyncs_search_params() {
+        run(r#"
+            const url = new URL("https://example.com/?a=1");
+            url.search = "?b=2";
+            if (url.searchParams.get("a") !== undefined) throw new Error("stale param a survived");
+            if (url.searchParams.get("b") !== "2") throw new Error(`b was ${url.searchParams.get("b")}`);
+        "#);
+    }
+}

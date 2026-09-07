@@ -1,13 +1,11 @@
 use std::pin::Pin;
 
-use klaver_util::{
-    FunctionExt, StringExt,
-    rquickjs::{
-        self, Class, Ctx, Function, IntoJs, JsLifetime, Object, String, Value,
-        class::{JsClass, Trace, Tracer, Writable},
-        function::Constructor,
-        prelude::{Async, Func, Opt, This},
-    },
+use klaver_core::{throw, value::StringExt};
+use rquickjs::{
+    CatchResultExt, Class, Ctx, Function, IntoJs, JsLifetime, Object, Result, String, Value,
+    class::{JsClass, Trace, Tracer, Writable},
+    function::Constructor,
+    prelude::{Async, Func, This},
 };
 
 use crate::reporter::Reporter;
@@ -15,14 +13,13 @@ use crate::reporter::Reporter;
 pub struct TestRunner<'js> {
     suites: Vec<Class<'js, Suite<'js>>>,
     result: Vec<Class<'js, Suite<'js>>>,
-    report: Reporter<'js>,
+    reporter: Reporter,
 }
 
 impl<'js> Trace<'js> for TestRunner<'js> {
     fn trace<'a>(&self, tracer: Tracer<'a, 'js>) {
         self.suites.trace(tracer);
         self.result.trace(tracer);
-        self.report.trace(tracer);
     }
 }
 
@@ -31,7 +28,7 @@ unsafe impl<'js> JsLifetime<'js> for TestRunner<'js> {
 }
 
 impl<'js> TestRunner<'js> {
-    pub fn push(&mut self, ctx: &Ctx<'js>, name: String<'js>) -> rquickjs::Result<()> {
+    pub fn push(&mut self, ctx: &Ctx<'js>, name: String<'js>) -> Result<()> {
         let suite = Class::instance(
             ctx.clone(),
             Suite {
@@ -51,7 +48,7 @@ impl<'js> TestRunner<'js> {
 
     pub fn push_test(&self, test: TestDesc<'js>) {
         let Some(parent) = self.suites.last() else {
-            panic!("No active suite")
+            panic!("`it` called outside of a `describe` block")
         };
         parent.borrow_mut().tests.push(test)
     }
@@ -64,11 +61,18 @@ impl<'js> TestRunner<'js> {
         }
     }
 
-    pub async fn run(&self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
-        self.report.prepare(ctx, &self.result)?;
-
+    pub async fn run(&self, ctx: &Ctx<'js>) -> Result<()> {
         for suite in &self.result {
-            suite.borrow().run(ctx, &self.report).await?;
+            suite
+                .borrow()
+                .run(ctx, &self.reporter, 0, std::string::String::new())
+                .await?;
+        }
+
+        println!("\n{}", self.reporter.summary());
+
+        if self.reporter.failed() > 0 {
+            throw!(ctx, self.reporter.failure_report())
         }
 
         Ok(())
@@ -80,28 +84,17 @@ impl<'js> JsClass<'js> for TestRunner<'js> {
 
     type Mutable = Writable;
 
-    fn constructor(
-        ctx: &rquickjs::Ctx<'js>,
-    ) -> rquickjs::Result<Option<rquickjs::function::Constructor<'js>>> {
-        let ctor = Constructor::new_class::<TestRunner, _, _>(
-            ctx.clone(),
-            |reporter: Opt<Reporter<'js>>| {
-                //
-
-                let report = reporter.0.unwrap_or_else(|| Reporter { ts: None });
-
-                TestRunner {
-                    suites: Default::default(),
-                    result: Default::default(),
-                    report,
-                }
-            },
-        )?;
+    fn constructor(ctx: &Ctx<'js>) -> Result<Option<Constructor<'js>>> {
+        let ctor = Constructor::new_class::<TestRunner, _, _>(ctx.clone(), || TestRunner {
+            suites: Default::default(),
+            result: Default::default(),
+            reporter: Reporter::new(),
+        })?;
 
         Ok(Some(ctor))
     }
 
-    fn prototype(ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<Option<rquickjs::Object<'js>>> {
+    fn prototype(ctx: &Ctx<'js>) -> Result<Option<Object<'js>>> {
         let obj = Object::new(ctx.clone())?;
 
         let desc = Func::new(
@@ -113,26 +106,23 @@ impl<'js> JsClass<'js> for TestRunner<'js> {
                 let ret = func.call::<_, ()>(());
                 this.borrow_mut().pop();
 
-                let _ = ret?;
+                ret?;
 
-                rquickjs::Result::Ok(this)
+                Result::Ok(this)
             },
         );
 
         let it = Func::new(
-            |ctx: Ctx<'js>,
-             This(this): This<Class<'js, Self>>,
-             desc: String<'js>,
-             func: Function<'js>| {
-                this.borrow_mut().push_test(TestDesc { desc, func });
-                rquickjs::Result::Ok(this)
+            |This(this): This<Class<'js, Self>>, desc: String<'js>, func: Function<'js>| {
+                this.borrow().push_test(TestDesc { desc, func });
+                Result::Ok(this)
             },
         );
 
         let run = Func::new(Async(
             |ctx: Ctx<'js>, This(this): This<Class<'js, Self>>| async move {
                 this.borrow().run(&ctx).await?;
-                rquickjs::Result::Ok(())
+                Result::Ok(())
             },
         ));
 
@@ -145,7 +135,7 @@ impl<'js> JsClass<'js> for TestRunner<'js> {
 }
 
 impl<'js> IntoJs<'js> for TestRunner<'js> {
-    fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+    fn into_js(self, ctx: &Ctx<'js>) -> Result<Value<'js>> {
         Class::instance(ctx.clone(), self).into_js(ctx)
     }
 }
@@ -162,17 +152,45 @@ impl<'js> Suite<'js> {
     fn run<'a>(
         &'a self,
         ctx: &'a Ctx<'js>,
-        reporter: &'a Reporter<'js>,
-    ) -> Pin<Box<dyn Future<Output = rquickjs::Result<()>> + 'a>> {
+        reporter: &'a Reporter,
+        depth: usize,
+        path: std::string::String,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'a>> {
         Box::pin(async move {
-            println!("Suite {}", self.desc.str_ref()?);
+            let desc = self.desc.str_ref()?;
+            let path = if path.is_empty() {
+                desc.as_str().to_string()
+            } else {
+                format!("{path} > {}", desc.as_str())
+            };
+
+            reporter.enter_suite(depth, desc.as_str());
+
             for test in &self.tests {
-                println!("  {}", test.desc.str_ref()?);
-                test.func.call_async::<_, ()>(()).await?;
+                let test_desc = test.desc.str_ref()?;
+                let test_path = format!("{path} > {}", test_desc.as_str());
+
+                let outcome: Result<()> = match test.func.call::<_, Value<'js>>(()) {
+                    Ok(ret) => match ret.as_promise() {
+                        Some(promise) => promise.clone().into_future::<()>().await,
+                        None => Ok(()),
+                    },
+                    Err(err) => Err(err),
+                };
+
+                match outcome.catch(ctx) {
+                    Ok(()) => reporter.pass(depth + 1, test_desc.as_str()),
+                    Err(err) => reporter.fail(depth + 1, test_path, err.into()),
+                }
             }
+
             for child in &self.children {
-                child.borrow().run(ctx, reporter).await?;
+                child
+                    .borrow()
+                    .run(ctx, reporter, depth + 1, path.clone())
+                    .await?;
             }
+
             Ok(())
         })
     }

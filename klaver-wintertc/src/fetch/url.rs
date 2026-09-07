@@ -369,6 +369,7 @@ create_export!(Url<'js>);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rquickjs::{CatchResultExt, Context, Function, Runtime};
 
     #[test]
     fn host_port_splitting() {
@@ -379,5 +380,120 @@ mod tests {
         );
         assert_eq!(split_host_port("[::1]"), ("[::1]", None));
         assert_eq!(split_host_port("[::1]:8080"), ("[::1]", Some("8080")));
+    }
+
+    /// Runs `body` as the contents of a plain function, with a global `URL` constructor
+    /// available. `body` is expected to throw on failure (e.g. via a plain `if (...) throw ...`).
+    fn run(body: &str) {
+        let runtime = Runtime::new().unwrap();
+        let context = Context::full(&runtime).unwrap();
+
+        context
+            .with(|ctx| {
+                ctx.globals()
+                    .set("URL", Class::<Url>::create_constructor(&ctx)?)?;
+
+                let test_fn: Function = ctx.eval(format!("(() => {{\n{body}\n}})"))?;
+
+                if let Err(err) = test_fn.call::<_, ()>(()).catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn parses_components() {
+        run(r##"
+            const url = new URL("https://user:pass@example.com:8080/path?a=1&b=2#frag");
+            if (url.protocol !== "https:") throw new Error(`protocol was ${url.protocol}`);
+            if (url.username !== "user") throw new Error(`username was ${url.username}`);
+            if (url.password !== "pass") throw new Error(`password was ${url.password}`);
+            if (url.hostname !== "example.com") throw new Error(`hostname was ${url.hostname}`);
+            if (url.host !== "example.com:8080") throw new Error(`host was ${url.host}`);
+            if (url.port !== "8080") throw new Error(`port was ${url.port}`);
+            if (url.pathname !== "/path") throw new Error(`pathname was ${url.pathname}`);
+            if (url.search !== "?a=1&b=2") throw new Error(`search was ${url.search}`);
+            if (url.hash !== "#frag") throw new Error(`hash was ${url.hash}`);
+            if (url.origin !== "https://example.com:8080") throw new Error(`origin was ${url.origin}`);
+        "##);
+    }
+
+    #[test]
+    fn resolves_against_base() {
+        run(r#"
+            const url = new URL("/foo?x=1", "https://example.com/bar/baz");
+            if (url.href !== "https://example.com/foo?x=1") throw new Error(`href was ${url.href}`);
+        "#);
+    }
+
+    #[test]
+    fn to_string_and_to_json_return_href() {
+        run(r#"
+            const url = new URL("https://example.com/a");
+            if (String(url) !== url.href) throw new Error(`toString was ${String(url)}`);
+            if (JSON.stringify(url) !== JSON.stringify(url.href)) {
+                throw new Error(`toJSON was ${JSON.stringify(url)}`);
+            }
+        "#);
+    }
+
+    #[test]
+    fn constructing_from_url_copies_independently() {
+        run(r#"
+            const a = new URL("https://example.com/a");
+            const b = new URL(a);
+            b.pathname = "/b";
+            if (a.pathname !== "/a") throw new Error(`a.pathname was ${a.pathname}`);
+            if (b.pathname !== "/b") throw new Error(`b.pathname was ${b.pathname}`);
+        "#);
+    }
+
+    #[test]
+    fn can_parse_static() {
+        run(r#"
+            if (!URL.canParse("https://example.com")) throw new Error("expected valid url to parse");
+            if (URL.canParse("not a url")) throw new Error("expected invalid url to fail");
+            if (!URL.canParse("/foo", "https://example.com")) {
+                throw new Error("expected relative url with base to parse");
+            }
+        "#);
+    }
+
+    #[test]
+    fn setters_update_href() {
+        run(r#"
+            const url = new URL("http://example.com/");
+
+            url.protocol = "https:";
+            if (url.href !== "https://example.com/") throw new Error(`protocol set: ${url.href}`);
+
+            url.hostname = "other.com";
+            if (url.href !== "https://other.com/") throw new Error(`hostname set: ${url.href}`);
+
+            url.port = "8080";
+            if (url.href !== "https://other.com:8080/") throw new Error(`port set: ${url.href}`);
+
+            url.pathname = "/a/b";
+            if (url.href !== "https://other.com:8080/a/b") throw new Error(`pathname set: ${url.href}`);
+
+            url.search = "x=1";
+            if (url.href !== "https://other.com:8080/a/b?x=1") throw new Error(`search set: ${url.href}`);
+
+            url.hash = "frag";
+            if (url.href !== "https://other.com:8080/a/b?x=1#frag") throw new Error(`hash set: ${url.href}`);
+        "#);
+    }
+
+    #[test]
+    fn href_setter_resyncs_search_params() {
+        run(r#"
+            const url = new URL("https://example.com/?a=1");
+            url.href = "https://example.com/?b=2";
+            if (url.searchParams.get("a") !== undefined) throw new Error("stale param a survived");
+            if (url.searchParams.get("b") !== "2") throw new Error(`b was ${url.searchParams.get("b")}`);
+        "#);
     }
 }
