@@ -68,6 +68,23 @@ declare var EventTarget: {
 }
 
 
+// Performance
+
+type DOMHighResTimeStamp = number;
+
+interface Performance extends EventTarget {
+    readonly timeOrigin: DOMHighResTimeStamp;
+    now(): DOMHighResTimeStamp;
+    toJSON(): any;
+}
+
+declare var Performance: {
+    prototype: Performance;
+};
+
+declare var performance: Performance;
+
+
 // Console
 
 interface Console {

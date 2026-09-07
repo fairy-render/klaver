@@ -14,6 +14,7 @@ pub mod crypto;
 pub mod dom_exception;
 pub mod encoding;
 pub mod events;
+pub mod performance;
 #[cfg(feature = "fetch")]
 pub mod fetch;
 #[cfg(feature = "fs")]

@@ -21,6 +21,12 @@ All done:
   (defaulting to `null`) plus the legacy `initCustomEvent()` method.
 - ✅ **`ErrorEvent`** - `src/events/error_event.rs`, an `Event` subclass with
   `message`/`filename`/`lineno`/`colno`/`error` fields (per-field spec defaults `""`/`""`/`0`/`0`/`null`).
+- ✅ **`performance`** - `src/performance.rs`. QuickJS-ng's native `performance` global (`now()`/
+  `timeOrigin`) seeds `timeOrigin` from `CLOCK_MONOTONIC`, not wall-clock time, so it isn't
+  epoch-relative and `timeOrigin + now()` doesn't approximate `Date.now()` as HR-TIME requires.
+  Replaced with a `Performance` class that fixes that (`timeOrigin` from `SystemTime`, `now()`
+  from a monotonic `Instant` anchored at the same instant) and adds the `EventTarget` inheritance
+  and `toJSON()` the spec's WebIDL also calls for.
 
 ## Globals
 
@@ -38,7 +44,7 @@ All done:
 | `fetch` | ✅ | `src/fetch/fetch.rs`. |
 | `console` | ✅ | `src/console.rs`. |
 | `crypto` | 🟡 | See [Web Crypto](#web-crypto) below. |
-| `performance` | ❌ | No `performance` global or `Performance` interface anywhere in the workspace. |
+| `performance` | ✅ | `src/performance.rs` - see [Quick wins](#quick-wins) above. |
 | `WebAssembly.*` | ❌ | No WebAssembly support anywhere in the workspace (QuickJS has no built-in Wasm engine; this would mean embedding one, e.g. `wasmtime`/`wasmer`, and bridging its API - a substantial undertaking, not a small gap). |
 
 ## DOM & events
@@ -102,7 +108,8 @@ All done:
 
 ## High Resolution Time / WebAssembly
 
-Both entirely unimplemented - see the Globals table above (`performance`, `WebAssembly.*`).
+High Resolution Time (`performance`) is implemented - see the Globals table above. WebAssembly
+(`WebAssembly.*`) is entirely unimplemented - see the same table.
 
 ## Worker global scope
 

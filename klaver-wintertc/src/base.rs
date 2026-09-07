@@ -11,6 +11,7 @@ use crate::{
     dom_exception::DOMException,
     encoding::EncodingModule,
     events::EventsModule,
+    performance::Performance,
 };
 
 pub struct BaseModule;
@@ -40,7 +41,8 @@ impl<'js> klaver_core::Exportable<'js> for BaseModule {
             target,
             AbortController,
             AbortSignal,
-            DOMException
+            DOMException,
+            Performance
         );
 
         EventsModule::export(ctx, registry, target)?;
