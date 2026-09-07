@@ -298,27 +298,47 @@ where
         // would leave e.g. `MessageEvent.prototype` relying on `Event.prototype`'s accessors,
         // which are bound to `Class<'js, Event>` specifically and fail to unwrap `this` for any
         // other concrete subtype. Each subtype needs its own copies, parameterized on `Self`.
+        //
+        // Every accessor must be `.configurable()`, matching WebIDL's interface-prototype-object
+        // rules: this function can run again for the same `Self` against the *same* prototype
+        // object (rquickjs caches class prototypes per `Runtime`, shared by every `Context` built
+        // on it - see `klaver_vm::Vm::create_context`), and redefining a non-configurable accessor
+        // with a new getter identity throws.
         proto.prop(
             "type",
             Accessor::new_get(Self::ty).enumerable().configurable(),
         )?;
-        proto.prop("bubbles", Accessor::new_get(Self::bubbles).enumerable())?;
+        proto.prop(
+            "bubbles",
+            Accessor::new_get(Self::bubbles).enumerable().configurable(),
+        )?;
         proto.prop(
             "cancelable",
-            Accessor::new_get(Self::cancelable).enumerable(),
+            Accessor::new_get(Self::cancelable)
+                .enumerable()
+                .configurable(),
         )?;
-        proto.prop("composed", Accessor::new_get(Self::composed).enumerable())?;
+        proto.prop(
+            "composed",
+            Accessor::new_get(Self::composed).enumerable().configurable(),
+        )?;
         proto.prop(
             "defaultPrevented",
-            Accessor::new_get(Self::default_prevented).enumerable(),
+            Accessor::new_get(Self::default_prevented)
+                .enumerable()
+                .configurable(),
         )?;
         proto.prop(
             "isTrusted",
-            Accessor::new_get(Self::is_trusted).enumerable(),
+            Accessor::new_get(Self::is_trusted)
+                .enumerable()
+                .configurable(),
         )?;
         proto.prop(
             "timeStamp",
-            Accessor::new_get(Self::time_stamp).enumerable(),
+            Accessor::new_get(Self::time_stamp)
+                .enumerable()
+                .configurable(),
         )?;
         proto.set("preventDefault", Func::new(Self::prevent_default))?;
         proto.set("stopPropagation", Func::new(Self::stop_propagation))?;
@@ -328,9 +348,68 @@ where
         )?;
         proto.prop(
             "$$stopImmediatePropagation",
-            Accessor::new_get(Self::stop_immediate_propagation_flag),
+            Accessor::new_get(Self::stop_immediate_propagation_flag).configurable(),
         )?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Function};
+
+    /// Regression test: `Event`'s prototype is cached per `Runtime` (rquickjs shares class
+    /// prototype objects across every `Context` built on the same `Runtime`), but two separate
+    /// `Context`s each independently run their own global registration, which used to try to
+    /// redefine the (already-installed, non-configurable) `bubbles`/`cancelable`/etc. accessors a
+    /// second time and throw. This is what `klaver_vm::Vm::create_context()` does in practice.
+    #[test]
+    fn add_event_prototype_is_idempotent_across_contexts_on_the_same_runtime() {
+        futures::executor::block_on(async move {
+            let rt = AsyncRuntime::new().unwrap();
+
+            let ctx1 = AsyncContext::full(&rt).await.unwrap();
+            ctx1.async_with(async |ctx| {
+                ctx.globals()
+                    .set("Event", Class::<Event>::create_constructor(&ctx)?)?;
+                Event::add_event_prototype(&ctx)?;
+                rquickjs::Result::Ok(())
+            })
+            .await
+            .unwrap();
+
+            // Second `Context` on the *same* `Runtime` - this used to throw.
+            let ctx2 = AsyncContext::full(&rt).await.unwrap();
+            ctx2.async_with(async |ctx| {
+                ctx.globals()
+                    .set("Event", Class::<Event>::create_constructor(&ctx)?)?;
+                Event::add_event_prototype(&ctx)?;
+
+                let test_fn: Function = ctx.eval(
+                    r#"(() => {
+                        const event = new Event("boom", { bubbles: true, cancelable: true });
+                        if (event.type !== "boom") throw new Error(`type was ${event.type}`);
+                        if (event.bubbles !== true) throw new Error(`bubbles was ${event.bubbles}`);
+                        if (event.cancelable !== true) {
+                            throw new Error(`cancelable was ${event.cancelable}`);
+                        }
+                        event.preventDefault();
+                        if (event.defaultPrevented !== true) {
+                            throw new Error(`defaultPrevented was ${event.defaultPrevented}`);
+                        }
+                    })"#,
+                )?;
+
+                if let Err(err) = test_fn.call::<_, ()>(()).catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .await
+            .unwrap();
+        });
     }
 }

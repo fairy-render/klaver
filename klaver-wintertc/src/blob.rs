@@ -174,9 +174,16 @@ where
 
     fn add_blob_prototype_to(proto: &Object<'js>) -> rquickjs::Result<()> {
         // No "already installed" guard here: see the equivalent comment on
-        // `NativeEvent::add_event_prototype_to` - each subtype needs its own copies.
-        proto.prop("size", Accessor::new_get(Self::size).enumerable())?;
-        proto.prop("type", Accessor::new_get(Self::ty).enumerable())?;
+        // `NativeEvent::add_event_prototype_to` - each subtype needs its own copies. Both
+        // accessors must be `.configurable()` for the same reason documented there.
+        proto.prop(
+            "size",
+            Accessor::new_get(Self::size).enumerable().configurable(),
+        )?;
+        proto.prop(
+            "type",
+            Accessor::new_get(Self::ty).enumerable().configurable(),
+        )?;
         proto.set("arrayBuffer", Func::from(Async(Self::array_buffer)))?;
         proto.set("bytes", Func::from(Async(Self::bytes)))?;
         proto.set("text", Func::from(Async(Self::text)))?;
@@ -573,6 +580,58 @@ mod tests {
             const text = await b.text();
             if (text !== "foobar") throw new Error(`text was ${text}`);
         "#);
+    }
+
+    /// Regression test: `Blob`/`File`'s prototype is cached per `Runtime` (rquickjs shares class
+    /// prototype objects across every `Context` built on the same `Runtime`), but two separate
+    /// `Context`s each independently run their own global registration, which used to try to
+    /// redefine the (already-installed, non-configurable) `size`/`type` accessors a second time
+    /// and throw. This is what `klaver_vm::Vm::create_context()` does in practice.
+    #[test]
+    fn add_blob_prototype_is_idempotent_across_contexts_on_the_same_runtime() {
+        futures::executor::block_on(async move {
+            let rt = AsyncRuntime::new().unwrap();
+
+            let ctx1 = AsyncContext::full(&rt).await.unwrap();
+            ctx1.async_with(async |ctx| {
+                ctx.globals()
+                    .set("Blob", Class::<Blob>::create_constructor(&ctx)?)?;
+                Blob::add_blob_prototype(&ctx)?;
+                ctx.globals()
+                    .set("File", Class::<File>::create_constructor(&ctx)?)?;
+                File::inherit(&ctx)?;
+                rquickjs::Result::Ok(())
+            })
+            .await
+            .unwrap();
+
+            // Second `Context` on the *same* `Runtime` - this used to throw.
+            let ctx2 = AsyncContext::full(&rt).await.unwrap();
+            ctx2.async_with(async |ctx| {
+                ctx.globals()
+                    .set("Blob", Class::<Blob>::create_constructor(&ctx)?)?;
+                Blob::add_blob_prototype(&ctx)?;
+                ctx.globals()
+                    .set("File", Class::<File>::create_constructor(&ctx)?)?;
+                File::inherit(&ctx)?;
+
+                let test_fn: Function = ctx.eval(
+                    r#"(async () => {
+                        const blob = new Blob(["hi"], { type: "text/plain" });
+                        if (blob.size !== 2) throw new Error(`size was ${blob.size}`);
+                        if (blob.type !== "text/plain") throw new Error(`type was ${blob.type}`);
+                    })"#,
+                )?;
+
+                if let Err(err) = test_fn.call_async::<_, ()>(()).await.catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .await
+            .unwrap();
+        });
     }
 
     #[test]

@@ -60,3 +60,52 @@ impl<'js> Exportable<'js> for WinterTC {
         Ok(())
     }
 }
+
+#[cfg(all(test, feature = "module"))]
+mod tests {
+    use klaver_vm::Options;
+    use rquickjs::CatchResultExt;
+
+    /// Regression test for `Vm::create_context()`: it builds a second `rquickjs::Context` on the
+    /// *same* underlying `Runtime` as the `Vm`'s own context, which re-runs every registered
+    /// global's setup again - including `Event`/`EventTarget`/`MessageEvent`'s hand-written
+    /// prototype-accessor installation (`NativeEvent::add_event_prototype_to`). Those accessors
+    /// used to be defined non-configurable, so redefining them against the (Runtime-cached,
+    /// shared-across-contexts) prototype object on the second context threw a `TypeError`. This
+    /// exercises both the base `Event` and the `MessageEvent` subclass path.
+    #[tokio::test]
+    async fn create_context_reuses_shared_prototypes_without_throwing() {
+        let vm = Options::default()
+            .global::<crate::WinterTC>()
+            .build()
+            .await
+            .unwrap();
+
+        // Used to throw here before the fix.
+        let ctx2 = vm.create_context().await.unwrap();
+
+        ctx2.async_with(async |ctx| {
+            let promise: rquickjs::Promise = ctx
+                .eval(
+                    r#"(async () => {
+                        const target = new EventTarget();
+                        let seenType;
+                        target.addEventListener("ping", (e) => { seenType = e.type; });
+                        target.dispatchEvent(new Event("ping"));
+                        if (seenType !== "ping") throw new Error(`event type was ${seenType}`);
+
+                        const msg = new MessageEvent("message", { data: "hello" });
+                        if (msg.type !== "message") throw new Error(`message type was ${msg.type}`);
+                        if (msg.data !== "hello") throw new Error(`message data was ${msg.data}`);
+                    })()"#,
+                )
+                .catch(&ctx)?;
+
+            promise.into_future::<()>().await.catch(&ctx)?;
+
+            Ok(())
+        })
+        .await
+        .unwrap();
+    }
+}
