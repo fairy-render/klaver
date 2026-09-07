@@ -73,7 +73,9 @@ impl<'js> Request<'js> {
         http::Request<JsBody<'js>>,
         Option<Class<'js, AbortSignal<'js>>>,
     )> {
-        let mut builder = http::Request::builder().uri(self.url.str_ref()?.as_str());
+        let mut builder = http::Request::builder()
+            .method(self.method.0.clone())
+            .uri(self.url.str_ref()?.as_str());
 
         let headers = self.headers.borrow();
 
@@ -99,7 +101,9 @@ impl<'js> Request<'js> {
         http::Request<StaticBody>,
         Option<Class<'js, AbortSignal<'js>>>,
     )> {
-        let mut builder = http::Request::builder().uri(self.url.str_ref()?.as_str());
+        let mut builder = http::Request::builder()
+            .method(self.method.0.clone())
+            .uri(self.url.str_ref()?.as_str());
 
         let headers = self.headers.borrow();
 
@@ -159,7 +163,16 @@ impl<'js> Request<'js> {
         // <https://fetch.spec.whatwg.org/#dom-request>. A plain string `input` just becomes the
         // url, with everything else left for `init` (or its defaults) to supply.
         let (url, base_method, base_headers, base_signal, base_body) = match input {
-            RequestInfo::String(url) => (url, None, None, None, None),
+            RequestInfo::String(url) => {
+                // Per <https://fetch.spec.whatwg.org/#dom-request>: "Let parsedURL be the
+                // result of parsing input... If parsedURL is failure, then throw a TypeError."
+                // The request's url is the *parsed and re-serialized* URL, not the raw input
+                // string (so e.g. a missing default port or inconsistent casing is normalized
+                // away, matching what `new URL(input).href` would produce).
+                let parsed = throw_if!(ctx, url::Url::parse(&url.to_string()?));
+                let url = String::from_str(ctx.clone(), parsed.as_str())?;
+                (url, None, None, None, None)
+            }
             RequestInfo::Request(req) => {
                 let req = req.borrow();
 
@@ -356,6 +369,28 @@ mod tests {
             .await
             .unwrap();
         });
+    }
+
+    #[test]
+    fn invalid_url_throws() {
+        run(r#"
+            let threw = false;
+            try {
+                new Request("not a url");
+            } catch (err) {
+                threw = true;
+            }
+            if (!threw) throw new Error("expected an invalid url to throw");
+        "#);
+    }
+
+    #[test]
+    fn url_is_parsed_and_normalized() {
+        run(r#"
+            // Default port for https (443) is dropped, matching `new URL(...).href`.
+            const req = new Request("HTTPS://example.com:443/a");
+            if (req.url !== "https://example.com/a") throw new Error(`url was ${req.url}`);
+        "#);
     }
 
     #[test]

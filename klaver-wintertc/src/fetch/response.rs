@@ -50,7 +50,7 @@ unsafe impl<'js> JsLifetime<'js> for Response<'js> {
 }
 
 impl<'js> Response<'js> {
-    pub fn to_native(&self, ctx: &Ctx<'js>) -> rquickjs::Result<http::Response<JsBody<'js>>> {
+    pub fn to_native(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<http::Response<JsBody<'js>>> {
         let mut builder = http::Response::builder().status(self.status.clone());
 
         let headers = self.headers.borrow();
@@ -62,11 +62,18 @@ impl<'js> Response<'js> {
 
         let body = self.body.to_native_body(&ctx)?;
 
-        let req = throw_if!(ctx, builder.body(body));
+        let mut req = throw_if!(ctx, builder.body(body));
+        if let Some(ext) = self.ext.take() {
+            *req.extensions_mut() = ext;
+        }
+
         Ok(req)
     }
 
-    pub fn to_owned_native(&self, ctx: &Ctx<'js>) -> rquickjs::Result<http::Response<StaticBody>> {
+    pub fn to_owned_native(
+        &mut self,
+        ctx: &Ctx<'js>,
+    ) -> rquickjs::Result<http::Response<StaticBody>> {
         let mut builder = http::Response::builder().status(self.status.clone());
 
         let headers = self.headers.borrow();
@@ -78,7 +85,11 @@ impl<'js> Response<'js> {
 
         let body = self.body.to_native_static_body(&ctx)?;
 
-        let req = throw_if!(ctx, builder.body(body));
+        let mut req = throw_if!(ctx, builder.body(body));
+        if let Some(ext) = self.ext.take() {
+            *req.extensions_mut() = ext;
+        }
+
         Ok(req)
     }
 
@@ -418,5 +429,47 @@ mod tests {
             }
             if (!threw) throw new Error("expected clone() of a used body to throw");
         "#);
+    }
+
+    /// `ext` (`http::Extensions`) is opaque, non-JS-facing metadata attached to a native
+    /// request/response - not something a JS test can observe, so this is a plain Rust-level
+    /// round-trip rather than the `run()`/JS harness the other tests use. `ext` is a one-time
+    /// take (mirroring `Request`'s own `to_native`/`to_owned_native`), so each conversion needs
+    /// its own freshly-`from_native`'d `Response`. Uses the async runtime (like `run()`) because
+    /// even converting a body this small round-trips it through `ReadableStream`, which needs
+    /// `ctx.spawn` support a bare sync `Context` doesn't provide.
+    #[test]
+    fn extensions_are_forwarded_through_to_native_and_to_owned_native() {
+        #[derive(Clone)]
+        struct Marker(u32);
+
+        fn native_with_marker() -> http::Response<Body> {
+            http::Response::builder()
+                .status(200)
+                .extension(Marker(42))
+                .body(Body::empty())
+                .unwrap()
+        }
+
+        futures::executor::block_on(async move {
+            let rt = AsyncRuntime::new().unwrap();
+            let ctx = AsyncContext::full(&rt).await.unwrap();
+
+            ctx.async_with(async |ctx| {
+                klaver_core::register(&ctx)?;
+
+                let mut response = Response::from_native(&ctx, native_with_marker(), "")?;
+                let native_out = response.to_native(&ctx)?;
+                assert_eq!(native_out.extensions().get::<Marker>().map(|m| m.0), Some(42));
+
+                let mut response = Response::from_native(&ctx, native_with_marker(), "")?;
+                let native_out = response.to_owned_native(&ctx)?;
+                assert_eq!(native_out.extensions().get::<Marker>().map(|m| m.0), Some(42));
+
+                rquickjs::Result::Ok(())
+            })
+            .await
+            .unwrap();
+        });
     }
 }

@@ -27,6 +27,14 @@ impl<'js> FetchInit<'js> {
         Option<Class<'js, AbortSignal<'js>>>,
     )> {
         match self {
+            // Per <https://fetch.spec.whatwg.org/#dom-global-fetch>, `input`'s `init` overrides
+            // still apply even when `input` is itself a `Request` object - so unless `init` is
+            // empty, this must go through the same "construct a `Request` from a `Request`"
+            // override logic `new Request(input, init)` uses, not just reuse `input` verbatim.
+            Self::Request(req) if init.is_some() => {
+                let mut req = Request::new(ctx.clone(), RequestInfo::Request(req), Opt(init))?;
+                req.to_native(ctx)
+            }
             Self::Request(req) => req.borrow_mut().to_native(ctx),
             Self::String(url) => {
                 let mut req = Request::new(ctx.clone(), RequestInfo::String(url), Opt(init))?;
@@ -132,7 +140,7 @@ mod tests {
         prelude::{Async, Func},
     };
 
-    use super::super::{Body, Headers, client::LocalClient, set_local_client};
+    use super::super::{Body, Headers, body_static::to_bytes, client::LocalClient, set_local_client};
 
     /// Resolves every request with a canned 201 response, echoing nothing about the request
     /// itself - just enough to exercise `fetch()`'s success path.
@@ -149,6 +157,33 @@ mod tests {
                     .status(201)
                     .header("content-type", "text/plain")
                     .body(Body::from("hello"))
+                    .expect("valid response"))
+            })
+        }
+    }
+
+    /// Echoes the request's method and body text back as response headers, so a test can
+    /// observe what `fetch()` actually sent - used to verify `init` overrides are applied even
+    /// when `input` is itself a `Request` object.
+    struct EchoMethodClient;
+
+    impl LocalClient for EchoMethodClient {
+        fn send<'js, 'a>(
+            &'a self,
+            _ctx: &'a Ctx<'js>,
+            req: http::Request<JsBody<'js>>,
+        ) -> LocalBoxFuture<'a, rquickjs::Result<http::Response<Body>>> {
+            Box::pin(async move {
+                let method = req.method().to_string();
+                let body_bytes = to_bytes(req.into_body()).await.unwrap_or_default();
+                let body_text =
+                    std::string::String::from_utf8(body_bytes.to_vec()).unwrap_or_default();
+
+                Ok(http::Response::builder()
+                    .status(200)
+                    .header("x-echo-method", method)
+                    .header("x-echo-body", body_text)
+                    .body(Body::from("ok"))
                     .expect("valid response"))
             })
         }
@@ -236,6 +271,22 @@ mod tests {
     }
 
     #[test]
+    fn fetch_sends_the_specified_method_and_body() {
+        run(
+            EchoMethodClient,
+            r#"
+            const res = await fetch("http://example.com/", { method: "PUT", body: "hi" });
+            if (res.headers.get("x-echo-method") !== "PUT") {
+                throw new Error(`method was ${res.headers.get("x-echo-method")}`);
+            }
+            if (res.headers.get("x-echo-body") !== "hi") {
+                throw new Error(`body was ${res.headers.get("x-echo-body")}`);
+            }
+        "#,
+        );
+    }
+
+    #[test]
     fn fetch_returns_a_response_with_url_and_body() {
         run(
             EchoClient,
@@ -250,6 +301,29 @@ mod tests {
             const text = await res.text();
             if (text !== "hello") throw new Error(`text was ${text}`);
             if (res.bodyUsed !== true) throw new Error("expected bodyUsed to be true after reading");
+        "#,
+        );
+    }
+
+    #[test]
+    fn fetch_with_a_request_and_init_applies_the_overrides() {
+        run(
+            EchoMethodClient,
+            r#"
+            const original = new Request("http://example.com/", { method: "POST", body: "original" });
+            const res = await fetch(original, { method: "PUT", body: "overridden" });
+
+            if (res.headers.get("x-echo-method") !== "PUT") {
+                throw new Error(`method was ${res.headers.get("x-echo-method")}`);
+            }
+            if (res.headers.get("x-echo-body") !== "overridden") {
+                throw new Error(`body was ${res.headers.get("x-echo-body")}`);
+            }
+
+            // `original` (the `input` passed to `fetch()`) must remain untouched.
+            if (original.method !== "POST") throw new Error(`original method was ${original.method}`);
+            const originalText = await original.text();
+            if (originalText !== "original") throw new Error(`original text was ${originalText}`);
         "#,
         );
     }
