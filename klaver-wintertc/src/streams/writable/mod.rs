@@ -1,15 +1,13 @@
 mod controller;
-// mod state;
 mod stream;
 mod underlying_sink;
 mod writer;
 
 use rquickjs::class::JsClass;
 
-
 pub use self::{
     controller::WritableStreamDefaultController, stream::WritableStream,
-    writer::WritableStreamDefaultWriter,
+    underlying_sink::NativeSink, writer::WritableStreamDefaultWriter,
 };
 
 pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {

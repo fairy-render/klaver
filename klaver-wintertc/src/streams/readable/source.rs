@@ -23,6 +23,14 @@ pub trait NativeSource<'js>: Trace<'js> {
 
         ctrl: Class<'js, ReadableStreamDefaultController<'js>>,
     ) -> rquickjs::Result<()>;
+
+    /// Called when the stream is cancelled by a consumer. Defaults to a no-op, since most
+    /// native sources (an in-memory iterator, a single buffered value, ...) have nothing to
+    /// release.
+    #[allow(unused)]
+    async fn cancel(&mut self, ctx: Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
+        Ok(())
+    }
 }
 
 /// A Underlying source that wraps a async iterator
@@ -281,13 +289,11 @@ impl<'js> UnderlyingSource<'js> {
     pub async fn cancel(
         &mut self,
         ctx: Ctx<'js>,
-        ctrl: Option<rquickjs::Value<'js>>,
+        reason: Option<rquickjs::Value<'js>>,
     ) -> Result<(), CaughtError<'js>> {
         match self {
-            Self::Js(i) => i.cancel(ctx, ctrl).await,
-            _ => {
-                todo!("Native")
-            }
+            Self::Js(i) => i.cancel(ctx, reason).await,
+            Self::Native(n) => n.borrow_mut().cancel(ctx.clone(), reason).await.catch(&ctx),
         }
     }
 }

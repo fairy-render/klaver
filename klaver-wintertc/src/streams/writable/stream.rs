@@ -1,12 +1,13 @@
 use klaver_core::{sync::listener, throw};
 use klaver_runtime::{AsyncState, Resource, ResourceId};
 use rquickjs::{Class, Ctx, JsLifetime, Value, class::Trace, prelude::Opt};
+use std::rc::Rc;
 
 use crate::streams::{data::StreamData, queue_strategy::QueuingStrategy};
 
 use super::{
     controller::WritableStreamDefaultController,
-    underlying_sink::{JsUnderlyingSink, UnderlyingSink},
+    underlying_sink::{JsUnderlyingSink, NativeSink, UnderlyingSink},
     writer::WritableStreamDefaultWriter,
 };
 
@@ -18,6 +19,42 @@ pub struct WritableStream<'js> {
 
 unsafe impl<'js> JsLifetime<'js> for WritableStream<'js> {
     type Changed<'to> = WritableStream<'to>;
+}
+
+impl<'js> WritableStream<'js> {
+    /// Builds a `WritableStream` backed by a Rust-native sink (used by e.g. `TransformStream`)
+    /// rather than a JS `UnderlyingSink` object. Mirrors `ReadableStream::from_native`.
+    pub fn from_native<S: NativeSink<'js> + 'js>(
+        ctx: &Ctx<'js>,
+        sink: S,
+        strategy: Option<QueuingStrategy<'js>>,
+    ) -> rquickjs::Result<WritableStream<'js>> {
+        let strategy = match strategy {
+            Some(ret) => ret,
+            None => QueuingStrategy::create_default(ctx)?,
+        };
+
+        let state = StreamData::new(strategy);
+        let state = Class::instance(ctx.clone(), state)?;
+
+        let ctrl = Class::instance(
+            ctx.clone(),
+            WritableStreamDefaultController {
+                data: state.clone(),
+            },
+        )?;
+
+        AsyncState::push(
+            ctx,
+            WritableStreamResource {
+                sink: UnderlyingSink::Native(Rc::new(sink)),
+                ctrl,
+                data: state.clone(),
+            },
+        )?;
+
+        Ok(WritableStream { state })
+    }
 }
 
 #[rquickjs::methods]
@@ -35,35 +72,14 @@ impl<'js> WritableStream<'js> {
             },
         )?;
 
-        let state_clone = state.clone();
-        // let worker = Workers::from_ctx(&ctx)?;
-        // worker.push(ctx.clone(), |ctx, shutdown| async move {
-        //     write(
-        //         ctx.clone(),
-        //         UnderlyingSink::Quick(sink),
-        //         ctrl,
-        //         state_clone,
-        //         shutdown,
-        //     )
-        //     .await
-        //     .catch(&ctx)?;
-        //     Ok(())
-        // });
         AsyncState::push(
             &ctx,
             WritableStreamResource {
                 sink: UnderlyingSink::Quick(sink),
                 ctrl,
-                data: state_clone,
+                data: state.clone(),
             },
         )?;
-
-        // write(
-        //     ctx.clone(),
-        //     UnderlyingSink::Quick(sink),
-        //     ctrl,
-        //     state.clone(),
-        // )?;
 
         Ok(WritableStream { state })
     }

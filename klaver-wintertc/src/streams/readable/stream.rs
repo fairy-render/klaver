@@ -77,6 +77,13 @@ impl<'js> ReadableStream<'js> {
         Class::<Self>::from_value(value).is_ok()
     }
 
+    /// Access to the shared internal state, for code elsewhere in the crate (e.g.
+    /// `TransformStream`) that needs to push into/observe this stream directly, bypassing the
+    /// normal `NativeSource`/`JsUnderlyingSource` pull model.
+    pub(crate) fn data(&self) -> Class<'js, ReadableStreamData<'js>> {
+        self.state.clone()
+    }
+
     pub fn disturbed(&self) -> bool {
         self.state.borrow().disturbed
             || self.state.borrow().is_cancled()

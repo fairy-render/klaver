@@ -1,4 +1,7 @@
-use klaver_core::sync::{Observable, ObservableCell};
+use klaver_core::{
+    sync::{Observable, ObservableCell},
+    throw,
+};
 use rquickjs::{Ctx, JsLifetime, Value, class::Trace};
 
 use crate::streams::queue_strategy::QueuingStrategy;
@@ -70,7 +73,7 @@ impl<'js> ReadableStreamData<'js> {
 
     pub fn push(&mut self, ctx: &Ctx<'js>, chunk: Value<'js>) -> rquickjs::Result<()> {
         if !self.is_running() {
-            todo!()
+            throw!(@type ctx, "Stream is not in a running state")
         }
 
         self.queue.push(ctx, chunk)?;
@@ -83,37 +86,37 @@ impl<'js> ReadableStreamData<'js> {
         self.queue.pop()
     }
 
-    pub fn close(&mut self, _ctx: &Ctx<'js>) -> rquickjs::Result<()> {
-        if !self.is_locked() {
-            todo!()
+    pub fn close(&mut self, ctx: &Ctx<'js>) -> rquickjs::Result<()> {
+        // Whether a reader is attached is irrelevant here: the producer side (a source's
+        // `start`/`pull`, or a `TransformStreamDefaultController`) can close the stream at any
+        // time, reader or not.
+        if !self.is_running() {
+            throw!(@type ctx, "Stream is not in a running state")
         }
 
         self.state.set(StreamState::Closed);
-        // self.locked = false;
 
         Ok(())
     }
 
-    pub fn fail(&mut self, _ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
-        if !self.is_locked() {
-            todo!()
+    pub fn fail(&mut self, ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
+        if !self.is_running() {
+            throw!(@type ctx, "Stream is not in a running state")
         }
 
         self.state.set(StreamState::Failed);
         self.reason = reason;
-        // self.locked = false;
 
         Ok(())
     }
 
-    pub fn cancel(&mut self, _ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
-        if !self.is_locked() {
-            todo!()
+    pub fn cancel(&mut self, ctx: &Ctx<'js>, reason: Option<Value<'js>>) -> rquickjs::Result<()> {
+        if !self.is_running() {
+            throw!(@type ctx, "Stream is not in a running state")
         }
 
         self.state.set(StreamState::Aborted);
         self.reason = reason;
-        // self.locked = false;
 
         Ok(())
     }

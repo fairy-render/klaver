@@ -33,7 +33,7 @@ klaver_core::create_export!(CountQueuingStrategy);
 #[rquickjs::class]
 #[derive(Debug, Trace)]
 pub struct ByteLengthQueuingStrategy {
-    #[qjs(get, rename = "highWaterHighway")]
+    #[qjs(get, rename = "highWaterMark")]
     pub high_water_mark: u64,
 }
 

@@ -60,7 +60,7 @@ impl<'js> Queue<'js> {
     }
 
     pub fn pop(&mut self) -> Option<Value<'js>> {
-        let entry = self.items.pop_back()?;
+        let entry = self.items.pop_front()?;
         if entry.size > self.size {
             self.size = 0;
         } else {
@@ -70,5 +70,12 @@ impl<'js> Queue<'js> {
         self.notify.notify();
 
         Some(entry.value)
+    }
+
+    /// An approximation of the standard `desiredSize`: how much more (by strategy-defined size
+    /// units) could be enqueued before the queue is considered full. Negative once over the
+    /// high water mark (still valid - callers aren't required to stop enqueuing at 0).
+    pub fn desired_size(&self) -> f64 {
+        self.strategy.high_water_mark() as f64 - self.size as f64
     }
 }

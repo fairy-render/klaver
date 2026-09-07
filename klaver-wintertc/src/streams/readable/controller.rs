@@ -42,6 +42,15 @@ impl<'js> ReadableStreamDefaultController<'js> {
     pub fn error(&self, ctx: Ctx<'js>, value: Value<'js>) -> rquickjs::Result<()> {
         self.data.borrow_mut().fail(&ctx, Some(value))
     }
+
+    #[qjs(get, rename = "desiredSize")]
+    pub fn desired_size(&self) -> Option<f64> {
+        let data = self.data.borrow();
+        if data.is_failed() || data.is_cancled() {
+            return None;
+        }
+        Some(data.queue.desired_size())
+    }
 }
 
 klaver_core::create_export!(ReadableStreamDefaultController<'js>);

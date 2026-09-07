@@ -17,6 +17,11 @@ pub use self::{
     stream::ReadableStream,
 };
 
+// Not part of the public WinterTC surface - used by `TransformStream` to push directly into a
+// `ReadableStream`'s shared state, bypassing the normal `NativeSource`/`JsUnderlyingSource` pull
+// model.
+pub(crate) use self::state::ReadableStreamData;
+
 use rquickjs::class::JsClass;
 
 pub fn declare<'js>(decl: &rquickjs::module::Declarations<'js>) -> rquickjs::Result<()> {

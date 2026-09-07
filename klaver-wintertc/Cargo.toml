@@ -111,3 +111,7 @@ reqwest = { version = "0.13", optional = true }
 
 compio = { version = "0.19", features = ["time"], optional = true }
 cyper = { version = "0.9", features = ["stream"], optional = true }
+
+[dev-dependencies]
+klaver-vm = { path = "../klaver-vm" }
+tokio = { version = "1", features = ["rt", "macros"] }

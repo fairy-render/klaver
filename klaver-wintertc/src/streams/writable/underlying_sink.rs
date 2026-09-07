@@ -8,7 +8,7 @@ use super::controller::WritableStreamDefaultController;
 #[derive(Clone)]
 pub enum UnderlyingSink<'js> {
     Quick(JsUnderlyingSink<'js>),
-    Native(Rc<dyn NativeSink<'js>>),
+    Native(Rc<dyn NativeSink<'js> + 'js>),
 }
 
 impl<'js> Trace<'js> for UnderlyingSink<'js> {

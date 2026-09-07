@@ -81,7 +81,7 @@ impl<'js> Queue<'js> {
     }
 
     pub fn pop(&mut self) -> Option<Entry<'js>> {
-        let entry = self.chunks.pop_back()?;
+        let entry = self.chunks.pop_front()?;
         if entry.size > self.current_size {
             self.current_size = 0;
         } else {
