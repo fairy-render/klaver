@@ -5,14 +5,25 @@ declare type Method =
     | "PATCH"
     | "DELETE"
     | "HEAD"
-    | "OPTION";
+    | "OPTIONS"
+    | (string & {});
+
+declare type HeadersInit = [string, string][] | Record<string, string> | Headers;
 
 declare class Headers {
+    constructor(init?: HeadersInit);
+
     append(key: string, value: string): void;
     set(key: string, value: string): void;
-    get(key: string): string;
+    get(key: string): string | undefined;
     getAll(key: string): string[];
     has(key: string): boolean;
+    delete(key: string): void;
+    forEach(callback: (value: string, key: string) => void): void;
+    entries(): IterableIterator<[string, string]>;
+    keys(): IterableIterator<string>;
+    values(): IterableIterator<string>;
+    [Symbol.iterator](): IterableIterator<[string, string]>;
 }
 
 declare type Body =
@@ -50,44 +61,58 @@ declare class FormData {
 }
 
 declare interface RequestInit {
-    body?: Body;
+    body?: Body | null;
     method?: Method;
     headers?: HeadersInit;
     signal?: AbortSignal;
 }
 
 declare class Request {
-    constructor(url: string | URL, opts?: RequestInit);
+    constructor(input: string | URL | Request, opts?: RequestInit);
 
     readonly url: string;
     readonly method: Method;
     readonly headers: Headers;
+    readonly signal: AbortSignal | undefined;
+    readonly bodyUsed: boolean;
+    readonly body: ReadableStream | undefined;
 
     text(): Promise<string>;
     json<T = unknown>(): Promise<T>;
+    arrayBuffer(): Promise<ArrayBuffer>;
+    bytes(): Promise<Uint8Array>;
+    blob(): Promise<Blob>;
     formData(): Promise<FormData>;
-    readonly body: ReadableStream;
+    /** Throws if the body has already been read (or is locked). */
+    clone(): Request;
 }
-
-declare type HeadersInit = [string, string][] | Record<string, string> | Headers;
 
 declare interface ResponseInit {
     status?: number;
+    statusText?: string;
     headers?: HeadersInit;
 }
 
 declare class Response {
-    readonly url: string;
-    readonly status: number;
-    readonly headers: Headers;
+    constructor(body?: Body | null, options?: ResponseInit);
 
-    constructor(body?: Body, options?: ResponseInit);
+    readonly url: string;
+    readonly redirected: boolean;
+    readonly status: number;
+    readonly ok: boolean;
+    readonly statusText: string;
+    readonly headers: Headers;
+    readonly bodyUsed: boolean;
+    readonly body: ReadableStream | undefined;
 
     text(): Promise<string>;
     json<T = unknown>(): Promise<T>;
-    formData(): Promise<FormData>;
     arrayBuffer(): Promise<ArrayBuffer>;
-    stream(): AsyncIterable<ArrayBuffer>;
+    bytes(): Promise<Uint8Array>;
+    blob(): Promise<Blob>;
+    formData(): Promise<FormData>;
+    /** Throws if the body has already been read (or is locked). */
+    clone(): Response;
 }
 
 declare class URL {

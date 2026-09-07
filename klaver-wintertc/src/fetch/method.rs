@@ -41,19 +41,82 @@ impl<'js> FromJs<'js> for Method {
             return Err(Error::new_from_js("value", "string"));
         };
 
-        let method = match &*method.to_string()? {
-            "GET" => http::Method::GET,
-            "POST" => http::Method::POST,
-            "PUT" => http::Method::PUT,
-            "PATCH" => http::Method::PATCH,
+        let method_str = method.to_string()?;
+
+        // Per <https://fetch.spec.whatwg.org/#concept-method>, the method must match the HTTP
+        // `token` production; `http::Method::from_bytes` enforces exactly that grammar (and,
+        // unlike matching a fixed list, still accepts custom/extension methods like `PROPFIND`).
+        let parsed = http::Method::from_bytes(method_str.as_bytes())
+            .map_err(|_| Error::new_from_js("string", "HTTP method"))?;
+
+        let upper = parsed.as_str().to_ascii_uppercase();
+
+        // Forbidden methods, per <https://fetch.spec.whatwg.org/#forbidden-method> - these are
+        // never valid on a `Request`/in `fetch()`, regardless of case.
+        if matches!(upper.as_str(), "CONNECT" | "TRACE" | "TRACK") {
+            return Err(Error::new_from_js("string", "forbidden HTTP method"));
+        }
+
+        // "To normalize a method": byte-uppercase it if it case-insensitively matches one of
+        // these six well-known methods; any other (still-valid) token is kept exactly as given.
+        let normalized = match upper.as_str() {
             "DELETE" => http::Method::DELETE,
+            "GET" => http::Method::GET,
             "HEAD" => http::Method::HEAD,
             "OPTIONS" => http::Method::OPTIONS,
-            "TRACE" => http::Method::TRACE,
-            "CONNECT" => http::Method::CONNECT,
-            _ => return Err(Error::new_from_js("string", "method")),
+            "POST" => http::Method::POST,
+            "PUT" => http::Method::PUT,
+            _ => parsed,
         };
 
-        Ok(Method(method))
+        Ok(Method(normalized))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rquickjs::{Context, Runtime};
+
+    fn parse(method: &str) -> Result<std::string::String, ()> {
+        let runtime = Runtime::new().unwrap();
+        let context = Context::full(&runtime).unwrap();
+
+        context.with(|ctx| {
+            let value = method.into_js(&ctx).unwrap();
+            Method::from_js(&ctx, value)
+                .map(|m| m.as_str().to_string())
+                .map_err(|_| ())
+        })
+    }
+
+    #[test]
+    fn normalizes_well_known_methods_case_insensitively() {
+        assert_eq!(parse("get").unwrap(), "GET");
+        assert_eq!(parse("Get").unwrap(), "GET");
+        assert_eq!(parse("post").unwrap(), "POST");
+        assert_eq!(parse("Delete").unwrap(), "DELETE");
+    }
+
+    #[test]
+    fn preserves_case_of_other_valid_tokens() {
+        assert_eq!(parse("PROPFIND").unwrap(), "PROPFIND");
+        assert_eq!(parse("PATCH").unwrap(), "PATCH");
+        assert_eq!(parse("MySuperMethod").unwrap(), "MySuperMethod");
+    }
+
+    #[test]
+    fn rejects_forbidden_methods_regardless_of_case() {
+        assert!(parse("CONNECT").is_err());
+        assert!(parse("connect").is_err());
+        assert!(parse("TRACE").is_err());
+        assert!(parse("Track").is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_tokens() {
+        assert!(parse("GET /foo").is_err());
+        assert!(parse("").is_err());
+        assert!(parse("get\r\nX-Injected: 1").is_err());
     }
 }

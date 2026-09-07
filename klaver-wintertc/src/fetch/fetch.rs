@@ -4,7 +4,9 @@ use klaver_core::{StringExt, throw};
 use rquickjs::{Class, Coerced, Ctx, FromJs, String, prelude::Opt};
 
 use super::{
-    Url, body::JsBody, client::Client, request::Request, request_init::RequestInit,
+    Url, body::JsBody, client::Client,
+    request::{Request, RequestInfo},
+    request_init::RequestInit,
     response::Response,
 };
 
@@ -27,13 +29,12 @@ impl<'js> FetchInit<'js> {
         match self {
             Self::Request(req) => req.borrow_mut().to_native(ctx),
             Self::String(url) => {
-                //
-                let mut req = Request::new(ctx.clone(), Coerced(url), Opt(init))?;
+                let mut req = Request::new(ctx.clone(), RequestInfo::String(url), Opt(init))?;
                 req.to_native(ctx)
             }
             Self::Url(url) => {
-                let url = Coerced::from_js(ctx, url.into_value())?;
-                let mut req = Request::new(ctx.clone(), url, Opt(init))?;
+                let Coerced(url) = Coerced::from_js(ctx, url.into_value())?;
+                let mut req = Request::new(ctx.clone(), RequestInfo::String(url), Opt(init))?;
                 req.to_native(ctx)
             }
         }
@@ -62,6 +63,21 @@ pub async fn fetch<'js>(
     let client = Client::from_ctx(&ctx)?;
 
     let (req, signal) = url.to_native_request(&ctx, &client, init.0)?;
+    let request_url = req.uri().to_string();
+
+    if let Some(signal) = &signal {
+        // Per <https://fetch.spec.whatwg.org/#dom-global-fetch>: if the signal is already
+        // aborted before we even start, reject immediately (without touching the network) with
+        // the same reason `AbortSignal.reason` exposes.
+        if signal.borrow().aborted {
+            let reason = signal
+                .borrow()
+                .reason
+                .clone()
+                .expect("aborted signal always has a reason");
+            return Err(ctx.throw(reason));
+        }
+    }
 
     let future = client.send(&ctx, req);
 
@@ -77,18 +93,205 @@ pub async fn fetch<'js>(
             ret = future.fuse() => {
 
                 match ret {
-                    Ok(resp) => Response::from_native(&ctx, resp),
+                    Ok(resp) => Response::from_native(&ctx, resp, &request_url),
                     Err(err) => Err(err)
                 }
             }
             _ = rx.next().fuse() => {
-
-                throw!(ctx, "Aborted")
+                // Per <https://fetch.spec.whatwg.org/#dom-global-fetch>, an aborted fetch
+                // rejects with the signal's abort reason (an `AbortError` `DOMException` by
+                // default), not a generic error.
+                let reason = signal
+                    .borrow()
+                    .reason
+                    .clone()
+                    .expect("abort() always sets a reason before dispatching the event");
+                Err(ctx.throw(reason))
             }
         }
     } else {
         let resp = future.await?;
 
-        Response::from_native(&ctx, resp)
+        Response::from_native(&ctx, resp, &request_url)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        abort_controller::AbortController,
+        dom_exception::DOMException,
+        events::{Event, EventTarget, NativeEvent},
+    };
+    use futures::future::LocalBoxFuture;
+    use klaver_core::{Subclass, value::FunctionExt};
+    use rquickjs::{
+        AsyncContext, AsyncRuntime, CatchResultExt, Function,
+        class::JsClass,
+        prelude::{Async, Func},
+    };
+
+    use super::super::{Body, Headers, client::LocalClient, set_local_client};
+
+    /// Resolves every request with a canned 201 response, echoing nothing about the request
+    /// itself - just enough to exercise `fetch()`'s success path.
+    struct EchoClient;
+
+    impl LocalClient for EchoClient {
+        fn send<'js, 'a>(
+            &'a self,
+            _ctx: &'a Ctx<'js>,
+            _req: http::Request<JsBody<'js>>,
+        ) -> LocalBoxFuture<'a, rquickjs::Result<http::Response<Body>>> {
+            Box::pin(async move {
+                Ok(http::Response::builder()
+                    .status(201)
+                    .header("content-type", "text/plain")
+                    .body(Body::from("hello"))
+                    .expect("valid response"))
+            })
+        }
+    }
+
+    /// Never resolves - used to test that aborting a signal rejects the `fetch()` promise
+    /// without needing a real, completing request race.
+    struct PendingClient;
+
+    impl LocalClient for PendingClient {
+        fn send<'js, 'a>(
+            &'a self,
+            _ctx: &'a Ctx<'js>,
+            _req: http::Request<JsBody<'js>>,
+        ) -> LocalBoxFuture<'a, rquickjs::Result<http::Response<Body>>> {
+            Box::pin(std::future::pending())
+        }
+    }
+
+    /// Runs `body` as the contents of an `async` function, with `fetch`/`Request`/`Response`/
+    /// `Headers`/`AbortController` and their transitive dependencies registered as globals, and
+    /// `client` wired up as the `fetch()` backend. `body` is expected to throw on failure (e.g.
+    /// via a plain `if (...) throw ...`).
+    fn run(client: impl LocalClient + Send + 'static, body: &str) {
+        futures::executor::block_on(async move {
+            let rt = AsyncRuntime::new().unwrap();
+            let ctx = AsyncContext::full(&rt).await.unwrap();
+
+            ctx.async_with(async |ctx| {
+                // `Headers`/`Request`/`Response` (via `TypedMultiMap`) go through
+                // `BasePrimordials`, which needs the `$runtime` Core global that
+                // `klaver_core::register` sets up - normally done by the `Environ`/`Vm` builder,
+                // but this test drives a bare `Context`.
+                klaver_core::register(&ctx)?;
+
+                ctx.globals().set(
+                    "EventTarget",
+                    Class::<EventTarget>::create_constructor(&ctx)?,
+                )?;
+                EventTarget::add_event_target_prototype(&ctx)?;
+                // `AbortController::abort()` constructs `Event::new_native` directly (not via
+                // JS), but that instance still needs `Event`'s prototype accessors installed.
+                Event::add_event_prototype(&ctx)?;
+
+                AbortSignal::inherit(&ctx)?;
+                ctx.globals().set(
+                    "AbortSignal",
+                    Class::<AbortSignal>::create_constructor(&ctx)?,
+                )?;
+                ctx.globals().set(
+                    "AbortController",
+                    Class::<AbortController>::create_constructor(&ctx)?,
+                )?;
+
+                ctx.globals().set(
+                    DOMException::NAME,
+                    Class::<DOMException>::create_constructor(&ctx)?,
+                )?;
+                DOMException::init(&ctx)?;
+
+                ctx.globals()
+                    .set(Headers::NAME, Class::<Headers>::create_constructor(&ctx)?)?;
+                ctx.globals()
+                    .set(Request::NAME, Class::<Request>::create_constructor(&ctx)?)?;
+                ctx.globals().set(
+                    Response::NAME,
+                    Class::<Response>::create_constructor(&ctx)?,
+                )?;
+
+                ctx.globals().set("fetch", Func::from(Async(fetch)))?;
+
+                set_local_client(&ctx, client)?;
+
+                let test_fn: Function = ctx.eval(format!("(async () => {{\n{body}\n}})"))?;
+
+                if let Err(err) = test_fn.call_async::<_, ()>(()).await.catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .await
+            .unwrap();
+        });
+    }
+
+    #[test]
+    fn fetch_returns_a_response_with_url_and_body() {
+        run(
+            EchoClient,
+            r#"
+            const res = await fetch("http://example.com/foo");
+            if (res.status !== 201) throw new Error(`status was ${res.status}`);
+            if (!res.ok) throw new Error("expected ok to be true");
+            if (res.url !== "http://example.com/foo") throw new Error(`url was ${res.url}`);
+            if (res.redirected !== false) throw new Error("expected redirected to be false");
+            if (res.bodyUsed !== false) throw new Error("expected bodyUsed to be false before reading");
+
+            const text = await res.text();
+            if (text !== "hello") throw new Error(`text was ${text}`);
+            if (res.bodyUsed !== true) throw new Error("expected bodyUsed to be true after reading");
+        "#,
+        );
+    }
+
+    #[test]
+    fn aborting_before_response_rejects_with_the_signals_reason() {
+        run(
+            PendingClient,
+            r#"
+            const controller = new AbortController();
+            const promise = fetch("http://example.com/", { signal: controller.signal });
+            controller.abort();
+
+            let caught;
+            try {
+                await promise;
+            } catch (err) {
+                caught = err;
+            }
+            if (!caught) throw new Error("expected fetch to reject");
+            if (caught.name !== "AbortError") throw new Error(`expected AbortError, got ${caught.name}`);
+        "#,
+        );
+    }
+
+    #[test]
+    fn fetch_rejects_immediately_if_signal_already_aborted() {
+        run(
+            PendingClient,
+            r#"
+            const controller = new AbortController();
+            controller.abort();
+
+            let caught;
+            try {
+                await fetch("http://example.com/", { signal: controller.signal });
+            } catch (err) {
+                caught = err;
+            }
+            if (!caught) throw new Error("expected fetch to reject");
+            if (caught.name !== "AbortError") throw new Error(`expected AbortError, got ${caught.name}`);
+        "#,
+        );
     }
 }

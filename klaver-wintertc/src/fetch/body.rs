@@ -17,7 +17,14 @@ use super::body_static::{Body, to_bytes};
 use super::form_data::FormData;
 
 pub enum BodyState<'js> {
+    /// No body was ever provided (`Request`/`Response` constructed without one). Distinct from
+    /// [`Used`](BodyState::Used) so that `bodyUsed` and re-reading behave correctly: a body-less
+    /// instance is never "used", and `.text()`/`.arrayBuffer()`/etc. on it resolve with empty
+    /// output rather than throwing (per <https://fetch.spec.whatwg.org/#concept-body-consume-body>,
+    /// consuming a null body just yields an empty byte sequence).
     Empty,
+    /// A real body existed and has been fully consumed by one of the `Body` mixin methods.
+    Used,
     HttpBody(Option<Body>),
     Bytes(ArrayBuffer<'js>),
     ReadableStream(Class<'js, ReadableStream<'js>>),
@@ -46,13 +53,60 @@ impl<'js> BodyMixin<'js> {
         }
     }
 
-    pub fn body_read(&self) -> bool {
+    /// Per <https://fetch.spec.whatwg.org/#dom-body-bodyused>: `true` only once a body that
+    /// actually exists has started being read - a body-less request/response (`Empty`) is
+    /// never "used".
+    pub fn body_used(&self) -> bool {
         match &*self.state.borrow() {
-            BodyState::Empty => true,
+            BodyState::Empty => false,
+            BodyState::Used => true,
             BodyState::HttpBody(state) => state.is_none(),
             BodyState::Bytes(_) => false,
             BodyState::ReadableStream(stream) => stream.borrow().disturbed(),
         }
+    }
+
+    /// Implements `Request`/`Response`'s `clone()`: per spec this throws if the body has already
+    /// been used (or is a locked stream), and otherwise the two resulting bodies must be
+    /// independently readable. For an in-memory body that's just a cheap handle clone; for a
+    /// live stream/incoming body, it's converted to a `ReadableStream` (if it isn't already one)
+    /// and `tee()`'d into two branches - one replaces this instance's own state (since teeing
+    /// disturbs the original single-reader stream), the other becomes the clone's state.
+    pub fn try_clone(&self, ctx: &Ctx<'js>) -> rquickjs::Result<BodyMixin<'js>> {
+        if self.body_used() {
+            throw!(@type ctx, "Cannot clone a body that has already been used")
+        }
+
+        let needs_tee = matches!(
+            &*self.state.borrow(),
+            BodyState::HttpBody(_) | BodyState::ReadableStream(_)
+        );
+
+        if !needs_tee {
+            let cloned = match &*self.state.borrow() {
+                BodyState::Empty => BodyState::Empty,
+                BodyState::Used => BodyState::Used,
+                BodyState::Bytes(buf) => BodyState::Bytes(buf.clone()),
+                BodyState::HttpBody(_) | BodyState::ReadableStream(_) => unreachable!(),
+            };
+            return Ok(BodyMixin {
+                state: RefCell::new(cloned),
+            });
+        }
+
+        let stream = self
+            .body(ctx)?
+            .expect("HttpBody/ReadableStream state always has a stream");
+
+        let mut branches = stream.borrow().tee(ctx.clone())?.into_iter();
+        let this_branch = branches.next().expect("tee() returns two branches");
+        let clone_branch = branches.next().expect("tee() returns two branches");
+
+        self.state.replace(BodyState::ReadableStream(this_branch));
+
+        Ok(BodyMixin {
+            state: RefCell::new(BodyState::ReadableStream(clone_branch)),
+        })
     }
 
     pub fn body(
@@ -62,10 +116,10 @@ impl<'js> BodyMixin<'js> {
         let mut state = self.state.borrow_mut();
 
         match &mut *state {
-            BodyState::Empty => Ok(None),
+            BodyState::Empty | BodyState::Used => Ok(None),
             BodyState::HttpBody(body) => {
                 let Some(body) = body.take() else {
-                    throw!(ctx, "Body is None")
+                    unreachable!("state transitions to `Used` right after taking the body")
                 };
 
                 let stream = ReadableStream::from_stream(
@@ -107,19 +161,20 @@ impl<'js> BodyMixin<'js> {
         let mut state = self.state.borrow_mut();
 
         let bytes = match &mut *state {
-            BodyState::Empty => {
-                throw!(ctx, "Body is None")
+            BodyState::Empty => Vec::new(),
+            BodyState::Used => {
+                throw!(@type ctx, "Body has already been consumed")
             }
             BodyState::HttpBody(body) => {
                 let Some(body) = body.take() else {
-                    throw!(ctx, "Body is None")
+                    unreachable!("state transitions to `Used` right after taking the body")
                 };
 
                 let bytes = throw_if!(ctx, to_bytes(body).await);
 
                 drop(state);
 
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
 
                 bytes.to_vec()
             }
@@ -131,14 +186,14 @@ impl<'js> BodyMixin<'js> {
                 let data = data.to_vec();
 
                 drop(state);
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
 
                 data
             }
             BodyState::ReadableStream(stream) => {
                 let bytes = stream.borrow().to_bytes(ctx).await?;
                 drop(state);
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
                 bytes
             }
         };
@@ -158,32 +213,36 @@ impl<'js> BodyMixin<'js> {
 
         match &mut *state {
             BodyState::Empty => {
-                throw!(ctx, "Body is None")
+                drop(state);
+                ArrayBuffer::new(ctx.clone(), Vec::<u8>::new())
+            }
+            BodyState::Used => {
+                throw!(@type ctx, "Body has already been consumed")
             }
             BodyState::HttpBody(body) => {
                 let Some(body) = body.take() else {
-                    throw!(ctx, "Body is None")
+                    unreachable!("state transitions to `Used` right after taking the body")
                 };
 
                 let bytes = throw_if!(ctx, to_bytes(body).await);
 
                 drop(state);
 
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
 
                 ArrayBuffer::new(ctx.clone(), bytes.to_vec())
             }
             BodyState::Bytes(bytes) => {
                 let bytes = bytes.clone();
                 drop(state);
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
 
                 Ok(bytes)
             }
             BodyState::ReadableStream(stream) => {
                 let bytes = stream.borrow().to_bytes(ctx).await?;
                 drop(state);
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
 
                 ArrayBuffer::new(ctx.clone(), bytes)
             }
@@ -295,15 +354,15 @@ impl<'js> BodyMixin<'js> {
         let mut state = self.state.borrow_mut();
 
         match &mut *state {
-            BodyState::Empty => Ok(StaticBody::Done),
+            BodyState::Empty | BodyState::Used => Ok(StaticBody::Done),
             BodyState::HttpBody(body) => {
                 let Some(body) = body.take() else {
-                    throw!(ctx, "Body is None")
+                    unreachable!("state transitions to `Used` right after taking the body")
                 };
 
                 drop(state);
 
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
 
                 Ok(StaticBody::Body { body })
             }
@@ -315,7 +374,7 @@ impl<'js> BodyMixin<'js> {
                 let bytes = bytes::Bytes::copy_from_slice(data);
 
                 drop(state);
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
 
                 Ok(StaticBody::Bytes { bytes: Some(bytes) })
             }
@@ -327,7 +386,7 @@ impl<'js> BodyMixin<'js> {
                 };
 
                 drop(state);
-                self.state.replace(BodyState::Empty);
+                self.state.replace(BodyState::Used);
 
                 let (body, producer) = body.into_remote();
 

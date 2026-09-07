@@ -1,5 +1,5 @@
 use http::StatusCode;
-use klaver_core::throw_if;
+use klaver_core::{throw, throw_if};
 use rquickjs::{Class, Ctx, FromJs, String};
 
 use super::{Headers, headers::HeadersInit};
@@ -22,9 +22,18 @@ impl<'js> ResponseInit<'js> {
 
         let status = throw_if!(ctx, StatusCode::from_u16(self.status.unwrap_or(200)));
 
+        // Per <https://fetch.spec.whatwg.org/#dom-response>: "If init["status"] is not in the
+        // range 200 to 599, inclusive, then throw a RangeError." (`StatusCode::from_u16` only
+        // enforces the wider 100-999 HTTP-level range above.)
+        if !(200..=599).contains(&status.as_u16()) {
+            throw!(@range ctx, "Response status must be in the range 200 to 599, inclusive")
+        }
+
         let status_text = match self.status_text {
             Some(text) => text,
-            None => String::from_str(ctx, "")?,
+            // Per spec this defaults to the status's associated "default status text" (the
+            // canonical reason phrase), not an empty string.
+            None => String::from_str(ctx.clone(), status.canonical_reason().unwrap_or(""))?,
         };
 
         Ok((headers, status, status_text))
