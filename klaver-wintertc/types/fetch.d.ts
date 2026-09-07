@@ -67,13 +67,23 @@ declare class Response {
 declare class URL {
     constructor(url: string | URL, base?: string | URL);
 
+    static canParse(url: string | URL, base?: string | URL): boolean;
+
     href: string;
-    port: string;
-    hash: string;
-    password: string;
+    readonly origin: string;
     protocol: string;
-    search: string;
+    username: string;
+    password: string;
+    host: string;
+    hostname: string;
+    port: string;
     pathname: string;
+    search: string;
+    readonly searchParams: URLSearchParams;
+    hash: string;
+
+    toString(): string;
+    toJSON(): string;
 }
 
 declare function fetch(
@@ -81,13 +91,27 @@ declare function fetch(
     opts?: RequestInit,
 ): Promise<Response>;
 
+declare type URLSearchParamsInit =
+    | string
+    | [string, string][]
+    | Record<string, string>
+    | Iterable<[string, string]>;
+
 declare class URLSearchParams {
-    constructor(init: string | [string, string][]);
+    constructor(init?: URLSearchParamsInit);
+
+    readonly size: number;
+
     get(key: string): string | undefined;
     has(key: string): boolean;
     getAll(key: string): string[];
     set(key: string, value: string): void;
     append(key: string, value: string): void;
     delete(key: string): void;
+    forEach(callback: (value: string, key: string) => void): void;
     entries(): IterableIterator<[string, string]>;
+    keys(): IterableIterator<string>;
+    values(): IterableIterator<string>;
+    toString(): string;
+    [Symbol.iterator](): IterableIterator<[string, string]>;
 }

@@ -1,4 +1,6 @@
-use rquickjs::{FromJs, Function, IntoJs, Object, Value, atom::PredefinedAtom, class::Trace};
+use rquickjs::{
+    FromJs, Function, IntoJs, Object, Value, atom::PredefinedAtom, class::Trace, function::Args,
+};
 
 use crate::value::{
     extensions::FunctionExt,
@@ -37,6 +39,19 @@ impl<'js> NativeIteratorInterface<'js> for JsIterator<'js> {
 impl<'js> FromJs<'js> for JsIterator<'js> {
     fn from_js(ctx: &rquickjs::Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let obj: Object = value.get()?;
+
+        // `GetIterator`: if the value is an *iterable* (has `[Symbol.iterator]`), call it to
+        // obtain the actual iterator object - e.g. a plain Array has `Symbol.iterator` but no
+        // `.next` of its own. Otherwise, assume `value` already is an iterator (has `.next`
+        // directly), for callers that pass one through as-is.
+        let obj = match obj.get::<_, Option<Function>>(PredefinedAtom::SymbolIterator)? {
+            Some(iter_fn) => {
+                let mut args = Args::new(ctx.clone(), 0);
+                args.this(obj.clone())?;
+                iter_fn.call_arg::<Object>(args)?
+            }
+            None => obj,
+        };
 
         let mut next: Function = obj.get(PredefinedAtom::Next)?;
         let mut returns: Option<Function> = obj.get(PredefinedAtom::Return)?;

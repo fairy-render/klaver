@@ -28,7 +28,7 @@ impl<'js> BodyInit<'js> {
                 Ok(buffer.into())
             }
             BodyInit::UrlSearchParam(params) => {
-                let body = params.borrow().to_string(ctx.clone())?;
+                let body = params.borrow().to_string()?;
                 let buffer = ArrayBuffer::new(ctx.clone(), body)?;
                 if !headers.borrow().has(ctx.clone(), content_type.clone())? {
                     headers.borrow_mut().append(
