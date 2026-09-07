@@ -238,11 +238,11 @@ mod tests {
                     Class::<AbortController>::create_constructor(&ctx)?,
                 )?;
 
-                ctx.globals().set(
-                    DOMException::NAME,
-                    Class::<DOMException>::create_constructor(&ctx)?,
-                )?;
-                DOMException::init(&ctx)?;
+                let dom_exception_ctor = Class::<DOMException>::create_constructor(&ctx)?
+                    .expect("DOMException constructor");
+                DOMException::init(&ctx, &dom_exception_ctor)?;
+                ctx.globals()
+                    .set(DOMException::NAME, dom_exception_ctor)?;
 
                 ctx.globals()
                     .set(Headers::NAME, Class::<Headers>::create_constructor(&ctx)?)?;
