@@ -16,10 +16,22 @@ pub enum EventCallback<'js> {
 }
 
 impl<'js> EventCallback<'js> {
-    pub fn call(&self, ctx: &Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
+    /// Invokes the callback. `target` is the `EventTarget` the listener was registered on
+    /// (`event.currentTarget`); per spec, the plain-function form of a listener is called with
+    /// `this` set to it. The `handleEvent` object form instead always uses the listener object
+    /// itself as `this`, regardless of `target`.
+    pub fn call(
+        &self,
+        ctx: &Ctx<'js>,
+        target: Value<'js>,
+        event: DynEvent<'js>,
+    ) -> rquickjs::Result<()> {
         match self {
             Self::Function(f) => {
-                f.call::<_, Value>((event,))?;
+                let mut args = Args::new(ctx.clone(), 1);
+                args.this(target)?;
+                args.push_arg(event)?;
+                f.call_arg::<Value>(args)?;
             }
             Self::Object(o) => {
                 let handle_event: Function = o.get("handleEvent")?;
@@ -74,9 +86,14 @@ pub enum Listener<'js> {
 }
 
 impl<'js> Listener<'js> {
-    pub fn call(&self, ctx: Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
+    pub fn call(
+        &self,
+        ctx: Ctx<'js>,
+        target: Value<'js>,
+        event: DynEvent<'js>,
+    ) -> rquickjs::Result<()> {
         match self {
-            Self::Js(js) => js.call(&ctx, event),
+            Self::Js(js) => js.call(&ctx, target, event),
             Self::Native(native) => native.on_event(ctx, event),
         }
     }

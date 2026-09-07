@@ -135,6 +135,19 @@ mod tests {
     }
 
     #[test]
+    fn plain_function_listener_receives_target_as_this() {
+        // Arrow functions ignore call-time `this` binding, so the listener must be a plain
+        // function expression to actually observe it.
+        run(r#"
+            const t = new EventTarget();
+            let seenThis;
+            t.addEventListener("x", function (e) { seenThis = this; });
+            t.dispatchEvent(new Event("x"));
+            if (seenThis !== t) throw new Error("listener's `this` was not the target");
+        "#);
+    }
+
+    #[test]
     fn dispatch_event_returns_true_when_not_cancelled() {
         run(r#"
             const t = new EventTarget();

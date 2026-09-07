@@ -292,11 +292,12 @@ where
     }
 
     fn add_event_prototype_to(proto: &rquickjs::Object<'js>) -> rquickjs::Result<()> {
-        if proto.contains_key("type")? {
-            // Already installed by a `NativeEvent` impl further down the prototype chain.
-            return Ok(());
-        }
-
+        // No "already installed" guard here: `proto.contains_key("type")` would find `type`
+        // *inherited* from `Event.prototype` (property lookup walks the chain, like the JS `in`
+        // operator) even before this subclass's own copy is added - wrongly skipping it. That
+        // would leave e.g. `MessageEvent.prototype` relying on `Event.prototype`'s accessors,
+        // which are bound to `Class<'js, Event>` specifically and fail to unwrap `this` for any
+        // other concrete subtype. Each subtype needs its own copies, parameterized on `Self`.
         proto.prop(
             "type",
             Accessor::new_get(Self::ty).enumerable().configurable(),

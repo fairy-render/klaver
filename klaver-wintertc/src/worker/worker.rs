@@ -118,8 +118,8 @@ impl<'js> WebWorker<'js> {
     }
 
     #[qjs(get, rename = "onmessage")]
-    pub fn get_onmessage(&self) -> rquickjs::Result<Value<'js>> {
-        self.port.borrow_mut().get_onmessage()
+    pub fn get_onmessage(&self, ctx: Ctx<'js>) -> rquickjs::Result<Option<Function<'js>>> {
+        self.port.borrow().get_onmessage(ctx)
     }
     pub fn terminate(&mut self) -> rquickjs::Result<()> {
         let Some(handle) = self.handle.take() else {

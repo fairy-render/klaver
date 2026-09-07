@@ -19,6 +19,12 @@ pub struct EventItem<'js> {
     /// but different `capture` are distinct listeners). This runtime has no target tree, so
     /// `capture` otherwise has no effect on dispatch order/phase.
     pub capture: bool,
+    /// Marks this entry as the one backing an `onX` event handler IDL attribute (e.g.
+    /// `AbortSignal.prototype.onabort`, `MessagePort.prototype.onmessage`), so
+    /// [`Emitter::set_handler`]/[`Emitter::get_handler_function`] can find/replace/remove it
+    /// unambiguously when the property is set, without risking a collision with an unrelated
+    /// `addEventListener`-registered listener that happens to use the same function reference.
+    pub handler: bool,
 }
 
 pub type EventList<'js> = HashMap<EventKey<'js>, Vec<EventItem<'js>>>;
@@ -75,20 +81,52 @@ where
                 callback: Listener::Native(std::rc::Rc::new(listener)),
                 once: false,
                 capture: false,
+                handler: false,
             });
     }
 
-    /// Hook for a subclass to react to every dispatched event (e.g. `AbortSignal`'s `onabort`,
-    /// `MessagePort`'s `onmessage`), invoked before the generic listener list. Not part of the
-    /// public `EventTarget` API - `dispatchEvent`'s return value only reflects `preventDefault()`
-    /// calls made through the normal listener list below.
-    #[allow(unused)]
-    fn dispatch(&self, ctx: &Ctx<'js>, event: DynEvent<'js>) -> rquickjs::Result<()> {
-        Ok(())
+    /// Sets (or, with `callback: None`, clears) the listener backing an `onX` event handler IDL
+    /// attribute for `event_name` (e.g. `onabort`, `onmessage`). Per spec, this is really just a
+    /// regular listener in the same list `addEventListener` uses - setting the property again
+    /// replaces the previous listener (rather than adding a second one), which is why this
+    /// can't just be a plain `addEventListener` call.
+    ///
+    /// Simplification: unlike the spec algorithm, re-setting the property moves its listener to
+    /// the end of this type's list (dispatch order relative to `addEventListener`-registered
+    /// listeners for the same type isn't preserved across a re-set) rather than updating it in
+    /// place. Not worth the extra bookkeeping for how rarely `onX` is reassigned more than once.
+    fn set_handler(&mut self, event_name: EventKey<'js>, callback: Option<EventCallback<'js>>) {
+        let listeners = self.get_listeners_mut().entry(event_name).or_default();
+        listeners.retain(|item| !item.handler);
+        if let Some(callback) = callback {
+            listeners.push(EventItem {
+                callback: Listener::Js(callback),
+                once: false,
+                capture: false,
+                handler: true,
+            });
+        }
     }
 
-    /// Dispatches `event` to this target: runs the [`Self::dispatch`] hook, then synchronously
-    /// invokes every listener registered for the event's type (in registration order,
+    /// Reads back the function currently assigned to the `onX` event handler IDL attribute for
+    /// `event_name`, as set by [`Self::set_handler`].
+    fn get_handler_function(&self, event_name: &EventKey<'js>) -> Option<rquickjs::Function<'js>> {
+        self.get_listeners()
+            .get(event_name)?
+            .iter()
+            .find_map(|item| {
+                if !item.handler {
+                    return None;
+                }
+                match &item.callback {
+                    Listener::Js(EventCallback::Function(f)) => Some(f.clone()),
+                    _ => None,
+                }
+            })
+    }
+
+    /// Dispatches `event` to this target: synchronously invokes every listener registered for
+    /// the event's type (in registration order,
     /// stopping early if a listener calls `stopImmediatePropagation()`), and returns whether the
     /// event was *not* cancelled (i.e. `false` iff it's cancelable and some listener called
     /// `preventDefault()`), matching `EventTarget.prototype.dispatchEvent`'s return value.
@@ -107,8 +145,7 @@ where
         T: IntoDynEvent<'js>,
     {
         let event = event.into_dynevent(ctx)?;
-
-        this.borrow().dispatch(ctx, event.clone())?;
+        let target = this.clone().into_value();
 
         let ty = event.ty(ctx)?;
 
@@ -128,7 +165,10 @@ where
         };
 
         for item in &to_call {
-            if let Err(err) = item.callback.call(ctx.clone(), event.clone()) {
+            if let Err(err) = item
+                .callback
+                .call(ctx.clone(), target.clone(), event.clone())
+            {
                 // Per spec, an exception thrown by a listener is reported, not propagated to
                 // the `dispatchEvent()` caller, and doesn't stop the remaining listeners.
                 eprintln!("Uncaught {}", CaughtError::from_error(ctx, err));
@@ -188,6 +228,7 @@ where
                 callback: Listener::Js(listener.clone()),
                 once: options.once,
                 capture: options.capture,
+                handler: false,
             });
         }
 

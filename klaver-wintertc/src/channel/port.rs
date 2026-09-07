@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     channel::{MessageEvent, event::MessageEventOptions},
-    events::{Emitter, EventList, EventTarget},
+    events::{Emitter, EventCallback, EventKey, EventList, EventTarget},
 };
 use flume::{Receiver, Sender};
 use futures::channel::oneshot;
@@ -49,7 +49,6 @@ impl NativeObject for Channel {
 pub struct MessagePort<'js> {
     listener: EventList<'js>,
     channel: Option<Channel>,
-    onmessage: Option<Function<'js>>,
     kill: Option<oneshot::Sender<()>>,
 }
 
@@ -57,7 +56,6 @@ impl<'js> MessagePort<'js> {
     pub fn create(remote: Sender<Message>, rx: Receiver<Message>) -> MessagePort<'js> {
         MessagePort {
             listener: Default::default(),
-            onmessage: None,
             channel: Some(Channel {
                 remote,
                 rx: rx.into(),
@@ -70,7 +68,6 @@ impl<'js> MessagePort<'js> {
         MessagePort {
             listener: Default::default(),
             channel: Some(channel),
-            onmessage: None,
             kill: None,
         }
     }
@@ -79,7 +76,6 @@ impl<'js> MessagePort<'js> {
 impl<'js> Trace<'js> for MessagePort<'js> {
     fn trace<'a>(&self, tracer: rquickjs::class::Tracer<'a, 'js>) {
         self.listener.trace(tracer);
-        self.onmessage.trace(tracer);
     }
 }
 
@@ -149,19 +145,19 @@ impl<'js> MessagePort<'js> {
     #[qjs(set, rename = "onmessage")]
     pub fn set_onmessage(
         &mut self,
-        _ctx: Ctx<'js>,
+        ctx: Ctx<'js>,
         func: Option<Function<'js>>,
     ) -> rquickjs::Result<()> {
-        self.onmessage = func;
-
-        if self.onmessage.is_some() {}
-
+        self.set_handler(
+            EventKey::from_str(ctx, "message")?,
+            func.map(EventCallback::Function),
+        );
         Ok(())
     }
 
     #[qjs(get, rename = "onmessage")]
-    pub fn get_onmessage(&mut self) -> rquickjs::Result<Value<'js>> {
-        todo!()
+    pub fn get_onmessage(&self, ctx: Ctx<'js>) -> rquickjs::Result<Option<Function<'js>>> {
+        Ok(self.get_handler_function(&EventKey::from_str(ctx, "message")?))
     }
 
     pub fn start(This(this): This<Class<'js, Self>>, ctx: Ctx<'js>) -> rquickjs::Result<()> {
@@ -192,21 +188,6 @@ impl<'js> Emitter<'js> for MessagePort<'js> {
 
     fn get_listeners_mut(&mut self) -> &mut EventList<'js> {
         &mut self.listener
-    }
-
-    fn dispatch(
-        &self,
-        ctx: &Ctx<'js>,
-        event: crate::events::DynEvent<'js>,
-    ) -> rquickjs::Result<()> {
-        if event.ty(ctx)?.as_str() == "message" {
-            let Some(cb) = &self.onmessage else {
-                return Ok(());
-            };
-
-            cb.defer((event,))?;
-        }
-        Ok(())
     }
 }
 
@@ -333,5 +314,129 @@ impl<'js> Resource<'js> for MessagePortResource<'js> {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::events::{Event, NativeEvent};
+    use rquickjs::{CatchResultExt, Context, Runtime};
+
+    /// Builds a detached `MessagePort` (a real one, just not connected to a live peer - fine
+    /// since these tests only exercise `onmessage`/`addEventListener`/`dispatchEvent`, not
+    /// actual message delivery) and makes it available as the `port` global, alongside
+    /// `EventTarget`, `Event` and `MessageEvent`. `body` is expected to throw on failure.
+    fn run(body: &str) {
+        let runtime = Runtime::new().unwrap();
+        let context = Context::full(&runtime).unwrap();
+
+        context
+            .with(|ctx| {
+                ctx.globals().set(
+                    "EventTarget",
+                    Class::<EventTarget>::create_constructor(&ctx)?,
+                )?;
+                EventTarget::add_event_target_prototype(&ctx)?;
+
+                ctx.globals()
+                    .set("Event", Class::<Event>::create_constructor(&ctx)?)?;
+                Event::add_event_prototype(&ctx)?;
+
+                ctx.globals().set(
+                    "MessageEvent",
+                    Class::<MessageEvent>::create_constructor(&ctx)?,
+                )?;
+                MessageEvent::inherit(&ctx)?;
+
+                MessagePort::inherit(&ctx)?;
+
+                let (tx, rx) = flume::unbounded();
+                let port = Class::instance(ctx.clone(), MessagePort::create(tx, rx))?;
+                ctx.globals().set("port", port)?;
+
+                let test_fn: rquickjs::Function = ctx.eval(format!("(() => {{\n{body}\n}})"))?;
+
+                if let Err(err) = test_fn.call::<_, ()>(()).catch(&ctx) {
+                    panic!("{err}");
+                }
+
+                rquickjs::Result::Ok(())
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn message_event_inherits_base_event_behavior() {
+        run(r#"
+            const e = new MessageEvent("message", { data: 1 });
+            if (!(e instanceof Event)) throw new Error("MessageEvent instance is not instanceof Event");
+            if (e.type !== "message") throw new Error(`type was ${e.type}`);
+            if (e.defaultPrevented) throw new Error("defaultPrevented was true");
+
+            // Must not throw: dispatching it exercises `MessageEvent.prototype`'s own copies of
+            // the base `Event` accessors (`type`, `defaultPrevented`, ...), not
+            // `Event.prototype`'s (which would fail to unwrap `this` for a `MessageEvent`).
+            port.dispatchEvent(e);
+        "#);
+    }
+
+    #[test]
+    fn onmessage_fires_synchronously_with_correct_this() {
+        run(r#"
+            let seenData;
+            let seenThis;
+            port.onmessage = function (e) {
+                seenData = e.data;
+                seenThis = this;
+            };
+            port.dispatchEvent(new MessageEvent("message", { data: 42 }));
+            if (seenData !== 42) throw new Error(`data was ${seenData}`);
+            if (seenThis !== port) throw new Error("onmessage's `this` was not the port");
+        "#);
+    }
+
+    #[test]
+    fn onmessage_and_add_event_listener_both_fire() {
+        run(r#"
+            const order = [];
+            port.onmessage = () => order.push("onmessage");
+            port.addEventListener("message", () => order.push("listener"));
+            port.dispatchEvent(new MessageEvent("message"));
+            if (order.join(",") !== "onmessage,listener") throw new Error(`order was ${order}`);
+        "#);
+    }
+
+    #[test]
+    fn reassigning_onmessage_replaces_the_previous_handler() {
+        run(r#"
+            let first = 0;
+            let second = 0;
+            port.onmessage = () => { first += 1; };
+            port.onmessage = () => { second += 1; };
+            port.dispatchEvent(new MessageEvent("message"));
+            if (first !== 0) throw new Error(`first ran ${first} times`);
+            if (second !== 1) throw new Error(`second ran ${second} times`);
+        "#);
+    }
+
+    #[test]
+    fn onmessage_getter_reflects_currently_assigned_function_and_clears() {
+        run(r#"
+            if (port.onmessage !== undefined) throw new Error("expected undefined before assignment");
+
+            const fn = () => {};
+            port.onmessage = fn;
+            if (port.onmessage !== fn) throw new Error("getter did not return the assigned function");
+
+            port.onmessage = null;
+            if (port.onmessage !== undefined) throw new Error("getter did not return undefined after clearing");
+
+            let called = false;
+            port.dispatchEvent(new MessageEvent("message"));
+            // No listener left at all - just checking dispatch doesn't throw with nothing
+            // registered.
+            if (called) throw new Error("unreachable");
+        "#);
     }
 }
