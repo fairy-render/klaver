@@ -174,6 +174,7 @@ mod test {
 
         context
             .with(|ctx| {
+                crate::register(&ctx)?;
                 //
                 let _date = ctx.eval::<Date, _>("new Date")?;
 
