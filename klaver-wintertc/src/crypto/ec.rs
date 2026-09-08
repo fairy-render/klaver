@@ -1,19 +1,19 @@
 //! Low-level ECDSA sign/verify, ECDH shared-secret derivation, and PKCS#8/SPKI/raw/JWK-component
-//! access for P-256/P-384, with no JS/rquickjs types in sight - callers (`crypto::key`,
+//! access for P-256/P-384/P-521, with no JS/rquickjs types in sight - callers (`crypto::key`,
 //! `crypto::module`) own translating [`EcError`] into the right named `DOMException`. Mirrors
 //! `rsa.rs`'s split (and, like it, hashes the message itself via `digest::Algo` and only ever
 //! passes already-hashed bytes into the underlying crate - `PrehashSigner`/`PrehashVerifier`, not
 //! the convenience `Signer`/`Verifier` path - since WebCrypto's ECDSA hash is a per-call parameter,
 //! not fixed to the curve's "native" digest the way `signature::Signer::sign()` would assume).
 //!
-//! Unlike `rsa.rs`, there's no `rand_core`-version landmine here: `p256`/`p384` 0.14 (via
+//! Unlike `rsa.rs`, there's no `rand_core`-version landmine here: `p256`/`p384`/`p521` 0.14 (via
 //! `elliptic-curve` 0.14) depend on `rand_core = "0.10"`, the same major version as this
 //! workspace's own `rand = "0.10"` - `rand::rng()` is used directly for keygen.
 //!
-//! `p256`/`p384` both depend on the exact same `pkcs8`/`spki` (0.11/0.8) versions as each other
-//! (confirmed via `Cargo.lock` - only one copy of each resolves), so a single `use p256::pkcs8::…`
-//! import's traits apply equally to `p384`'s types; no per-curve aliasing needed (contrast
-//! `rsa.rs`, which must never mix its pkcs8 0.10 with this 0.11).
+//! `p256`/`p384`/`p521` all depend on the exact same `pkcs8`/`spki` (0.11/0.8) versions as each
+//! other (confirmed via `Cargo.lock` - only one copy of each resolves), so a single
+//! `use p256::pkcs8::…` import's traits apply equally to `p384`'s/`p521`'s types; no per-curve
+//! aliasing needed (contrast `rsa.rs`, which must never mix its pkcs8 0.10 with this 0.11).
 
 use p256::ecdsa::signature::hazmat::{PrehashSigner, PrehashVerifier};
 use p256::pkcs8::spki::{DecodePublicKey, EncodePublicKey};
@@ -27,6 +27,8 @@ pub enum EcKeyPair {
     P256Public(p256::PublicKey),
     P384Private(p384::SecretKey),
     P384Public(p384::PublicKey),
+    P521Private(p521::SecretKey),
+    P521Public(p521::PublicKey),
 }
 
 impl EcKeyPair {
@@ -34,11 +36,15 @@ impl EcKeyPair {
         match self {
             Self::P256Private(_) | Self::P256Public(_) => EcCurve::P256,
             Self::P384Private(_) | Self::P384Public(_) => EcCurve::P384,
+            Self::P521Private(_) | Self::P521Public(_) => EcCurve::P521,
         }
     }
 
     pub fn is_private(&self) -> bool {
-        matches!(self, Self::P256Private(_) | Self::P384Private(_))
+        matches!(
+            self,
+            Self::P256Private(_) | Self::P384Private(_) | Self::P521Private(_)
+        )
     }
 }
 
@@ -64,6 +70,11 @@ pub fn generate_keypair(curve: EcCurve) -> (EcKeyPair, EcKeyPair) {
             let public = secret.public_key();
             (EcKeyPair::P384Private(secret), EcKeyPair::P384Public(public))
         }
+        EcCurve::P521 => {
+            let secret = p521::SecretKey::random(&mut rng);
+            let public = secret.public_key();
+            (EcKeyPair::P521Private(secret), EcKeyPair::P521Public(public))
+        }
     }
 }
 
@@ -85,7 +96,16 @@ pub fn ecdsa_sign(key: &EcKeyPair, prehash: &[u8]) -> Result<Vec<u8>, EcError> {
                 .map_err(|_| EcError::OperationFailed)?;
             Ok(sig.to_vec())
         }
-        EcKeyPair::P256Public(_) | EcKeyPair::P384Public(_) => Err(EcError::InvalidKey),
+        EcKeyPair::P521Private(sk) => {
+            let signing_key: p521::ecdsa::SigningKey = sk.clone().into();
+            let sig: p521::ecdsa::Signature = signing_key
+                .sign_prehash(prehash)
+                .map_err(|_| EcError::OperationFailed)?;
+            Ok(sig.to_vec())
+        }
+        EcKeyPair::P256Public(_) | EcKeyPair::P384Public(_) | EcKeyPair::P521Public(_) => {
+            Err(EcError::InvalidKey)
+        }
     }
 }
 
@@ -107,7 +127,14 @@ pub fn ecdsa_verify(key: &EcKeyPair, prehash: &[u8], signature: &[u8]) -> bool {
             let verifying_key: p384::ecdsa::VerifyingKey = pk.clone().into();
             verifying_key.verify_prehash(prehash, &sig).is_ok()
         }
-        EcKeyPair::P256Private(_) | EcKeyPair::P384Private(_) => false,
+        EcKeyPair::P521Public(pk) => {
+            let Ok(sig) = p521::ecdsa::Signature::from_slice(signature) else {
+                return false;
+            };
+            let verifying_key: p521::ecdsa::VerifyingKey = pk.clone().into();
+            verifying_key.verify_prehash(prehash, &sig).is_ok()
+        }
+        EcKeyPair::P256Private(_) | EcKeyPair::P384Private(_) | EcKeyPair::P521Private(_) => false,
     }
 }
 
@@ -123,6 +150,9 @@ pub fn ecdh_derive_bits(private: &EcKeyPair, public: &EcKeyPair) -> Result<Vec<u
         (EcKeyPair::P384Private(sk), EcKeyPair::P384Public(pk)) => {
             Ok(sk.diffie_hellman(pk).raw_secret_bytes().to_vec())
         }
+        (EcKeyPair::P521Private(sk), EcKeyPair::P521Public(pk)) => {
+            Ok(sk.diffie_hellman(pk).raw_secret_bytes().to_vec())
+        }
         _ => Err(EcError::InvalidKey),
     }
 }
@@ -132,6 +162,7 @@ pub fn public_key_to_raw(key: &EcKeyPair) -> Result<Vec<u8>, EcError> {
     match key {
         EcKeyPair::P256Public(pk) => Ok(pk.to_sec1_bytes().to_vec()),
         EcKeyPair::P384Public(pk) => Ok(pk.to_sec1_bytes().to_vec()),
+        EcKeyPair::P521Public(pk) => Ok(pk.to_sec1_bytes().to_vec()),
         _ => Err(EcError::InvalidKey),
     }
 }
@@ -143,6 +174,9 @@ pub fn public_key_from_raw(curve: EcCurve, bytes: &[u8]) -> Result<EcKeyPair, Ec
         )),
         EcCurve::P384 => Ok(EcKeyPair::P384Public(
             p384::PublicKey::from_sec1_bytes(bytes).map_err(|_| EcError::InvalidKey)?,
+        )),
+        EcCurve::P521 => Ok(EcKeyPair::P521Public(
+            p521::PublicKey::from_sec1_bytes(bytes).map_err(|_| EcError::InvalidKey)?,
         )),
     }
 }
@@ -159,6 +193,11 @@ pub fn to_pkcs8_der(key: &EcKeyPair) -> Result<Vec<u8>, EcError> {
             .map_err(|_| EcError::InvalidKey)?
             .as_bytes()
             .to_vec()),
+        EcKeyPair::P521Private(sk) => Ok(sk
+            .to_pkcs8_der()
+            .map_err(|_| EcError::InvalidKey)?
+            .as_bytes()
+            .to_vec()),
         _ => Err(EcError::InvalidKey),
     }
 }
@@ -170,6 +209,9 @@ pub fn from_pkcs8_der(curve: EcCurve, bytes: &[u8]) -> Result<EcKeyPair, EcError
         )),
         EcCurve::P384 => Ok(EcKeyPair::P384Private(
             p384::SecretKey::from_pkcs8_der(bytes).map_err(|_| EcError::InvalidKey)?,
+        )),
+        EcCurve::P521 => Ok(EcKeyPair::P521Private(
+            p521::SecretKey::from_pkcs8_der(bytes).map_err(|_| EcError::InvalidKey)?,
         )),
     }
 }
@@ -186,6 +228,11 @@ pub fn to_spki_der(key: &EcKeyPair) -> Result<Vec<u8>, EcError> {
             .map_err(|_| EcError::InvalidKey)?
             .as_bytes()
             .to_vec()),
+        EcKeyPair::P521Public(pk) => Ok(pk
+            .to_public_key_der()
+            .map_err(|_| EcError::InvalidKey)?
+            .as_bytes()
+            .to_vec()),
         _ => Err(EcError::InvalidKey),
     }
 }
@@ -197,6 +244,9 @@ pub fn from_spki_der(curve: EcCurve, bytes: &[u8]) -> Result<EcKeyPair, EcError>
         )),
         EcCurve::P384 => Ok(EcKeyPair::P384Public(
             p384::PublicKey::from_public_key_der(bytes).map_err(|_| EcError::InvalidKey)?,
+        )),
+        EcCurve::P521 => Ok(EcKeyPair::P521Public(
+            p521::PublicKey::from_public_key_der(bytes).map_err(|_| EcError::InvalidKey)?,
         )),
     }
 }
@@ -257,6 +307,24 @@ pub fn components(key: &EcKeyPair) -> EcComponents {
                 d: Some(sk.to_bytes().as_slice().to_vec()),
             }
         }
+        EcKeyPair::P521Public(pk) => {
+            let (x, y) = split_sec1_point(&pk.to_sec1_bytes());
+            EcComponents {
+                curve: EcCurve::P521,
+                x,
+                y,
+                d: None,
+            }
+        }
+        EcKeyPair::P521Private(sk) => {
+            let (x, y) = split_sec1_point(&sk.public_key().to_sec1_bytes());
+            EcComponents {
+                curve: EcCurve::P521,
+                x,
+                y,
+                d: Some(sk.to_bytes().as_slice().to_vec()),
+            }
+        }
     }
 }
 
@@ -278,6 +346,9 @@ pub fn private_key_from_components(curve: EcCurve, d: &[u8]) -> Result<EcKeyPair
         )),
         EcCurve::P384 => Ok(EcKeyPair::P384Private(
             p384::SecretKey::from_slice(d).map_err(|_| EcError::InvalidKey)?,
+        )),
+        EcCurve::P521 => Ok(EcKeyPair::P521Private(
+            p521::SecretKey::from_slice(d).map_err(|_| EcError::InvalidKey)?,
         )),
     }
 }

@@ -60,6 +60,7 @@ impl AesVariant {
 pub enum RsaVariant {
     Pkcs1v15,
     Oaep,
+    Pss,
 }
 
 #[cfg(feature = "crypto-asymmetric")]
@@ -69,6 +70,8 @@ impl RsaVariant {
             Some(Self::Pkcs1v15)
         } else if name.eq_ignore_ascii_case("RSA-OAEP") {
             Some(Self::Oaep)
+        } else if name.eq_ignore_ascii_case("RSA-PSS") {
+            Some(Self::Pss)
         } else {
             None
         }
@@ -78,6 +81,7 @@ impl RsaVariant {
         match self {
             Self::Pkcs1v15 => "RSASSA-PKCS1-v1_5",
             Self::Oaep => "RSA-OAEP",
+            Self::Pss => "RSA-PSS",
         }
     }
 }
@@ -110,12 +114,13 @@ impl EcVariant {
     }
 }
 
-/// A `namedCurve` this crate supports - per the Milestone 2 scope, just P-256/P-384 (no P-521).
+/// A `namedCurve` this crate supports: P-256/P-384/P-521.
 #[cfg(feature = "crypto-asymmetric")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcCurve {
     P256,
     P384,
+    P521,
 }
 
 #[cfg(feature = "crypto-asymmetric")]
@@ -124,6 +129,7 @@ impl EcCurve {
         match name {
             "P-256" => Some(Self::P256),
             "P-384" => Some(Self::P384),
+            "P-521" => Some(Self::P521),
             _ => None,
         }
     }
@@ -132,6 +138,7 @@ impl EcCurve {
         match self {
             Self::P256 => "P-256",
             Self::P384 => "P-384",
+            Self::P521 => "P-521",
         }
     }
 
@@ -139,6 +146,27 @@ impl EcCurve {
     /// as a separate method since the two happen to only coincide by spec accident.
     pub fn jwk_crv(self) -> &'static str {
         self.name()
+    }
+}
+
+/// Which key-derivation function a "derive-only" [`CryptoKey`] (imported straight from raw
+/// bytes/a password, never generated/exported) targets. Both HKDF and PBKDF2 take their hash as a
+/// per-`deriveBits()`/`deriveKey()`-call parameter rather than fixing it on the key (unlike HMAC),
+/// so - unlike [`KeyAlgorithm::Hmac`] - this carries no `hash` field.
+#[cfg(feature = "crypto-asymmetric")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeriveKind {
+    Hkdf,
+    Pbkdf2,
+}
+
+#[cfg(feature = "crypto-asymmetric")]
+impl DeriveKind {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Hkdf => "HKDF",
+            Self::Pbkdf2 => "PBKDF2",
+        }
     }
 }
 
@@ -241,6 +269,10 @@ pub enum KeyAlgorithm {
         variant: EcVariant,
         named_curve: EcCurve,
     },
+    /// HKDF/PBKDF2 "derive-only" keys - just `{name}` per spec, no further fields (see
+    /// [`DeriveKind`]'s doc comment for why there's no `hash`).
+    #[cfg(feature = "crypto-asymmetric")]
+    DeriveOnly(DeriveKind),
 }
 
 impl KeyAlgorithm {
@@ -283,6 +315,10 @@ impl KeyAlgorithm {
                 obj.set("name", variant.name())?;
                 obj.set("namedCurve", named_curve.name())?;
             }
+            #[cfg(feature = "crypto-asymmetric")]
+            KeyAlgorithm::DeriveOnly(kind) => {
+                obj.set("name", kind.name())?;
+            }
         }
         Ok(obj)
     }
@@ -323,11 +359,20 @@ impl KeyAlgorithm {
                     (RsaVariant::Oaep, Algo::Sha256) => "RSA-OAEP-256",
                     (RsaVariant::Oaep, Algo::Sha384) => "RSA-OAEP-384",
                     (RsaVariant::Oaep, Algo::Sha512) => "RSA-OAEP-512",
+                    (RsaVariant::Pss, Algo::Sha1) => "PS1",
+                    (RsaVariant::Pss, Algo::Sha256) => "PS256",
+                    (RsaVariant::Pss, Algo::Sha384) => "PS384",
+                    (RsaVariant::Pss, Algo::Sha512) => "PS512",
                 }
                 .to_string(),
             ),
             #[cfg(feature = "crypto-asymmetric")]
             KeyAlgorithm::Ec { .. } => None,
+            // Not reachable in practice - HKDF/PBKDF2 keys are never extractable (see
+            // `import_derive_only_key`), so `export_key`'s JWK branch never runs for them, but the
+            // mapping is still total over `KeyAlgorithm`.
+            #[cfg(feature = "crypto-asymmetric")]
+            KeyAlgorithm::DeriveOnly(_) => None,
         }
     }
 }
@@ -340,15 +385,22 @@ enum KeyMaterial {
     Rsa(rsa_backend::RsaKeyPair),
     #[cfg(feature = "crypto-asymmetric")]
     Ec(ec::EcKeyPair),
+    /// Raw bytes (or a password, for PBKDF2) behind an HKDF/PBKDF2 "derive-only" key - see
+    /// [`DeriveKind`].
+    #[cfg(feature = "crypto-asymmetric")]
+    Derive(Vec<u8>),
 }
 
 impl KeyMaterial {
-    /// Only ever called for symmetric (AES/HMAC) material - callers already know the kind from
-    /// the `KeyAlgorithm`/`ImportAlgorithm` they dispatched on, same invariant `require_aes_variant`/
-    /// `require_hmac` establish in `module.rs` before reaching for key bytes.
+    /// Only ever called for symmetric (AES/HMAC/derive-only) material - callers already know the
+    /// kind from the `KeyAlgorithm`/`ImportAlgorithm` they dispatched on, same invariant
+    /// `require_aes_variant`/`require_hmac` establish in `module.rs` before reaching for key
+    /// bytes.
     fn bytes(&self) -> &[u8] {
         match self {
             Self::Aes(b) | Self::Hmac(b) => b,
+            #[cfg(feature = "crypto-asymmetric")]
+            Self::Derive(b) => b,
             #[cfg(feature = "crypto-asymmetric")]
             Self::Rsa(_) | Self::Ec(_) => {
                 unreachable!("bytes() is only called for symmetric key material")
@@ -494,9 +546,11 @@ pub(crate) fn rsa_error<'js>(ctx: &Ctx<'js>, err: rsa_backend::RsaError) -> rqui
         rsa_backend::RsaError::OperationFailed => {
             DOMException::throw_named(ctx, "OperationError", "RSA operation failed")
         }
-        rsa_backend::RsaError::UnsupportedHash => {
-            DOMException::throw_named(ctx, "NotSupportedError", "unsupported hash for RSA-OAEP")
-        }
+        rsa_backend::RsaError::UnsupportedHash => DOMException::throw_named(
+            ctx,
+            "NotSupportedError",
+            "unsupported hash for RSA-OAEP/RSA-PSS",
+        ),
     }
 }
 
@@ -620,7 +674,7 @@ pub async fn generate_key<'js>(
                 hash,
             };
             let (priv_allowed, pub_allowed): (&[KeyUsage], &[KeyUsage]) = match variant {
-                RsaVariant::Pkcs1v15 => (&[KeyUsage::Sign], &[KeyUsage::Verify]),
+                RsaVariant::Pkcs1v15 | RsaVariant::Pss => (&[KeyUsage::Sign], &[KeyUsage::Verify]),
                 RsaVariant::Oaep => (
                     &[KeyUsage::Decrypt, KeyUsage::UnwrapKey],
                     &[KeyUsage::Encrypt, KeyUsage::WrapKey],
@@ -859,6 +913,43 @@ fn import_ec_key<'js>(
     )
 }
 
+/// Imports an HKDF/PBKDF2 base key - always from raw bytes (a password, for PBKDF2), and per
+/// spec always non-extractable (`SyntaxError` otherwise, since there'd be no way to ever get the
+/// bytes back out - `exportKey`/`wrapKey` on one of these always fail the `extractable` check
+/// before even reaching `export_key`'s per-material match).
+#[cfg(feature = "crypto-asymmetric")]
+fn import_derive_only_key<'js>(
+    ctx: &Ctx<'js>,
+    format: KeyFormat,
+    key_data: Value<'js>,
+    kind: DeriveKind,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> rquickjs::Result<Class<'js, CryptoKey>> {
+    if format != KeyFormat::Raw {
+        return not_supported_format(ctx, format);
+    }
+    if extractable {
+        throw_dom!(
+            ctx,
+            "SyntaxError",
+            format!("{} keys must not be extractable", kind.name())
+        );
+    }
+    let buffer = Buffer::from_js(ctx, key_data)?;
+    let bytes = buffer_bytes(ctx, buffer)?;
+    Class::instance(
+        ctx.clone(),
+        CryptoKey::create(
+            KeyType::Secret,
+            extractable,
+            usages,
+            KeyAlgorithm::DeriveOnly(kind),
+            KeyMaterial::Derive(bytes),
+        ),
+    )
+}
+
 pub async fn import_key<'js>(
     ctx: Ctx<'js>,
     format: KeyFormat,
@@ -916,6 +1007,19 @@ pub async fn import_key<'js>(
             key_data,
             variant,
             named_curve,
+            extractable,
+            usages,
+        ),
+        #[cfg(feature = "crypto-asymmetric")]
+        ImportAlgorithm::Hkdf => {
+            import_derive_only_key(&ctx, format, key_data, DeriveKind::Hkdf, extractable, usages)
+        }
+        #[cfg(feature = "crypto-asymmetric")]
+        ImportAlgorithm::Pbkdf2 => import_derive_only_key(
+            &ctx,
+            format,
+            key_data,
+            DeriveKind::Pbkdf2,
             extractable,
             usages,
         ),
@@ -1025,5 +1129,9 @@ pub async fn export_key<'js>(
         KeyMaterial::Rsa(pair) => export_rsa_key(&ctx, format, pair, &key_ref),
         #[cfg(feature = "crypto-asymmetric")]
         KeyMaterial::Ec(pair) => export_ec_key(&ctx, format, pair, &key_ref),
+        // Unreachable - HKDF/PBKDF2 keys are always imported with `extractable: false` (see
+        // `import_derive_only_key`), so the `extractable` check above already threw.
+        #[cfg(feature = "crypto-asymmetric")]
+        KeyMaterial::Derive(_) => unreachable!("derive-only keys are never extractable"),
     }
 }

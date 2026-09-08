@@ -1,6 +1,7 @@
-//! Low-level RSA sign/verify (PKCS#1 v1.5), encrypt/decrypt (OAEP), and PKCS#8/SPKI/JWK-component
-//! access, with no JS/rquickjs types in sight - callers (`crypto::key`, `crypto::module`) own
-//! translating [`RsaError`] into the right named `DOMException`. Mirrors `aes.rs`'s split.
+//! Low-level RSA sign/verify (PKCS#1 v1.5, PSS), encrypt/decrypt (OAEP), and
+//! PKCS#8/SPKI/JWK-component access, with no JS/rquickjs types in sight - callers (`crypto::key`,
+//! `crypto::module`) own translating [`RsaError`] into the right named `DOMException`. Mirrors
+//! `aes.rs`'s split.
 //!
 //! Deliberately never goes through `rsa`'s own generic `Digest`-parametrized sign/verify path
 //! (`pkcs1v15::SigningKey<D>`): this crate's own `sha1`/`sha2` (used by `digest.rs`) are a
@@ -12,9 +13,10 @@
 //! by hand in [`digest_info_prefix`]. This works uniformly for all four hashes, including SHA-1
 //! (which `rsa` doesn't re-export a compatible digest type for anyway).
 //!
-//! OAEP has no such manual-construction escape hatch (its digest usage runs deeper than a fixed
-//! prefix), so it goes through `rsa`'s own re-exported `sha2` types instead (this crate's `sha2`
-//! Cargo feature) - limited to SHA-256/384/512, since `rsa` has no compatible SHA-1 re-export.
+//! OAEP and PSS have no such manual-construction escape hatch (their digest usage runs deeper
+//! than a fixed prefix), so both go through `rsa`'s own re-exported `sha2` types instead (this
+//! crate's `sha2` Cargo feature) - limited to SHA-256/384/512, since `rsa` has no compatible
+//! SHA-1 re-export.
 //!
 //! RSA keygen/encrypt/sign also need an RNG satisfying `rsa`'s `CryptoRngCore` bound, which is
 //! `rand_core` 0.6 - a different major version than this workspace's `rand = "0.10"` (rand_core
@@ -24,7 +26,7 @@
 use rsa::rand_core::OsRng;
 use rsa::sha2::{Sha256, Sha384, Sha512};
 use rsa::traits::{PrivateKeyParts, PublicKeyParts};
-use rsa::{BigUint, Oaep, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
+use rsa::{BigUint, Oaep, Pkcs1v15Sign, Pss, RsaPrivateKey, RsaPublicKey};
 
 use super::digest::Algo;
 
@@ -145,17 +147,21 @@ pub fn pkcs1v15_verify(key: &RsaPublicKey, hash: Algo, hashed: &[u8], signature:
     key.verify(pkcs1v15_padding(hash), hashed, signature).is_ok()
 }
 
-enum OaepDigest {
+/// The hashes usable with `rsa`'s own reexported SHA-2 types - shared by OAEP and PSS, both of
+/// which need a `Digest`-bounded type parameter from the same `digest` major version `rsa`
+/// depends on internally (see this module's doc comment). Neither has a SHA-1 variant, since
+/// `rsa` has no compatible SHA-1 reexport.
+enum Sha2Digest {
     Sha256,
     Sha384,
     Sha512,
 }
 
-fn oaep_digest(hash: Algo) -> Result<OaepDigest, RsaError> {
+fn sha2_digest(hash: Algo) -> Result<Sha2Digest, RsaError> {
     match hash {
-        Algo::Sha256 => Ok(OaepDigest::Sha256),
-        Algo::Sha384 => Ok(OaepDigest::Sha384),
-        Algo::Sha512 => Ok(OaepDigest::Sha512),
+        Algo::Sha256 => Ok(Sha2Digest::Sha256),
+        Algo::Sha384 => Ok(Sha2Digest::Sha384),
+        Algo::Sha512 => Ok(Sha2Digest::Sha512),
         Algo::Sha1 => Err(RsaError::UnsupportedHash),
     }
 }
@@ -166,14 +172,46 @@ fn oaep_padding(hash: Algo, label: Option<&[u8]>) -> Result<Oaep, RsaError> {
     // practice (it's an application-chosen context tag, not attacker/ciphertext-derived), so a
     // lossy UTF-8 decode here is an acceptable, spec-compatible-in-practice trade-off.
     let label = label.map(|bytes| std::string::String::from_utf8_lossy(bytes).into_owned());
-    Ok(match (oaep_digest(hash)?, label) {
-        (OaepDigest::Sha256, Some(label)) => Oaep::new_with_label::<Sha256, _>(label),
-        (OaepDigest::Sha256, None) => Oaep::new::<Sha256>(),
-        (OaepDigest::Sha384, Some(label)) => Oaep::new_with_label::<Sha384, _>(label),
-        (OaepDigest::Sha384, None) => Oaep::new::<Sha384>(),
-        (OaepDigest::Sha512, Some(label)) => Oaep::new_with_label::<Sha512, _>(label),
-        (OaepDigest::Sha512, None) => Oaep::new::<Sha512>(),
+    Ok(match (sha2_digest(hash)?, label) {
+        (Sha2Digest::Sha256, Some(label)) => Oaep::new_with_label::<Sha256, _>(label),
+        (Sha2Digest::Sha256, None) => Oaep::new::<Sha256>(),
+        (Sha2Digest::Sha384, Some(label)) => Oaep::new_with_label::<Sha384, _>(label),
+        (Sha2Digest::Sha384, None) => Oaep::new::<Sha384>(),
+        (Sha2Digest::Sha512, Some(label)) => Oaep::new_with_label::<Sha512, _>(label),
+        (Sha2Digest::Sha512, None) => Oaep::new::<Sha512>(),
     })
+}
+
+fn pss_padding(hash: Algo, salt_len: usize) -> Result<Pss, RsaError> {
+    Ok(match sha2_digest(hash)? {
+        Sha2Digest::Sha256 => Pss::new_with_salt::<Sha256>(salt_len),
+        Sha2Digest::Sha384 => Pss::new_with_salt::<Sha384>(salt_len),
+        Sha2Digest::Sha512 => Pss::new_with_salt::<Sha512>(salt_len),
+    })
+}
+
+/// `hashed` must already be the result of hashing the message with `hash` (same "hash first,
+/// pad/sign second" contract as [`pkcs1v15_sign`]). `salt_len` is `RsaPssParams.saltLength`
+/// (bytes), a per-`sign()`-call parameter per WebCrypto - unlike PKCS#1 v1.5, PSS is randomized
+/// (a fresh random salt of this length is drawn from [`OsRng`] on every call), so signing the same
+/// message twice yields different (still valid) signatures.
+pub fn pss_sign(
+    key: &RsaPrivateKey,
+    hash: Algo,
+    salt_len: usize,
+    hashed: &[u8],
+) -> Result<Vec<u8>, RsaError> {
+    Ok(key.sign_with_rng(&mut OsRng, pss_padding(hash, salt_len)?, hashed)?)
+}
+
+/// Never throws on a bad `salt_len`/mismatched padding - folds that into the same
+/// `Result::is_ok()` boolean as a genuine tampering rejection, matching this crate's other
+/// `verify()` conventions (see `pkcs1v15_verify`, `hmac::verify`).
+pub fn pss_verify(key: &RsaPublicKey, hash: Algo, salt_len: usize, hashed: &[u8], signature: &[u8]) -> bool {
+    match pss_padding(hash, salt_len) {
+        Ok(padding) => key.verify(padding, hashed, signature).is_ok(),
+        Err(_) => false,
+    }
 }
 
 pub fn oaep_encrypt(

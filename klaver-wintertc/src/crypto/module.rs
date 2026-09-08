@@ -23,8 +23,8 @@ use rquickjs::{ArrayBuffer, Class};
 #[cfg(feature = "crypto-asymmetric")]
 use super::{
     algorithm::{DeriveBitsAlgorithm, ImportAlgorithm},
-    ec, rsa as rsa_backend,
-    key::{EcCurve, EcVariant, KeyFormat, KeyType, RsaVariant},
+    ec, kdf, rsa as rsa_backend,
+    key::{DeriveKind, EcCurve, EcVariant, KeyFormat, KeyType, RsaVariant},
 };
 #[cfg(feature = "crypto-asymmetric")]
 use rquickjs::prelude::Flat;
@@ -302,6 +302,17 @@ async fn sign<'js>(
                 .map_err(|e| super::key::rsa_error(&ctx, e))?
         }
         #[cfg(feature = "crypto-asymmetric")]
+        SignAlgorithm::RsaPss { salt_length } => {
+            require_key_type(&ctx, &key_ref, KeyType::Private)?;
+            let hash = require_rsa_variant(&ctx, &key_ref, RsaVariant::Pss)?;
+            let rsa_backend::RsaKeyPair::Private(priv_key) = key_ref.rsa_key_pair().expect("checked above") else {
+                throw_dom!(ctx, "InvalidAccessError", "key is not an RSA private key");
+            };
+            let hashed = super::digest::hash_bytes(hash, &data);
+            rsa_backend::pss_sign(priv_key, hash, salt_length, &hashed)
+                .map_err(|e| super::key::rsa_error(&ctx, e))?
+        }
+        #[cfg(feature = "crypto-asymmetric")]
         SignAlgorithm::Ecdsa { hash } => {
             require_key_type(&ctx, &key_ref, KeyType::Private)?;
             require_ec_variant(&ctx, &key_ref, EcVariant::Ecdsa)?;
@@ -342,6 +353,16 @@ async fn verify<'js>(
             rsa_backend::pkcs1v15_verify(pub_key, hash, &hashed, &signature)
         }
         #[cfg(feature = "crypto-asymmetric")]
+        SignAlgorithm::RsaPss { salt_length } => {
+            require_key_type(&ctx, &key_ref, KeyType::Public)?;
+            let hash = require_rsa_variant(&ctx, &key_ref, RsaVariant::Pss)?;
+            let rsa_backend::RsaKeyPair::Public(pub_key) = key_ref.rsa_key_pair().expect("checked above") else {
+                throw_dom!(ctx, "InvalidAccessError", "key is not an RSA public key");
+            };
+            let hashed = super::digest::hash_bytes(hash, &data);
+            rsa_backend::pss_verify(pub_key, hash, salt_length, &hashed, &signature)
+        }
+        #[cfg(feature = "crypto-asymmetric")]
         SignAlgorithm::Ecdsa { hash } => {
             require_key_type(&ctx, &key_ref, KeyType::Public)?;
             require_ec_variant(&ctx, &key_ref, EcVariant::Ecdsa)?;
@@ -352,8 +373,7 @@ async fn verify<'js>(
     })
 }
 
-/// Raw ECDH shared secret, truncated/validated against `length` (bits) if given - the only
-/// derivation algorithm this milestone supports (see `MISSING_APIS.md` for HKDF/PBKDF2's status).
+/// Raw ECDH shared secret, or HKDF/PBKDF2 output, truncated/validated against `length` (bits).
 #[cfg(feature = "crypto-asymmetric")]
 async fn derive_bits<'js>(
     ctx: Ctx<'js>,
@@ -367,8 +387,45 @@ async fn derive_bits<'js>(
     ArrayBuffer::new(ctx, bytes)
 }
 
-/// The actual ECDH derivation, shared by `deriveBits()` and `deriveKey()` - per spec, each checks
-/// a different usage on `base_key` (`"deriveBits"` vs. `"deriveKey"`) before reaching this, so the
+/// A [`CryptoKey`] whose `algorithm` isn't `DeriveOnly(expected)` - checked before reading key
+/// bytes for HKDF/PBKDF2, mirroring `require_hmac`/`require_aes_variant`'s role for the cipher
+/// algorithms.
+#[cfg(feature = "crypto-asymmetric")]
+fn require_derive_key<'js, 'k>(
+    ctx: &Ctx<'js>,
+    key: &'k CryptoKey,
+    expected: DeriveKind,
+) -> rquickjs::Result<&'k [u8]> {
+    match key.algorithm_variant() {
+        KeyAlgorithm::DeriveOnly(kind) if kind == expected => Ok(key.key_bytes()),
+        _ => throw_dom!(
+            ctx,
+            "InvalidAccessError",
+            format!("key is not a {} key", expected.name())
+        ),
+    }
+}
+
+/// HKDF/PBKDF2 both require an explicit, non-zero, byte-aligned `length` (bits) - unlike ECDH,
+/// which defaults to "the full shared secret" when `length` is omitted.
+#[cfg(feature = "crypto-asymmetric")]
+fn require_derive_length<'js>(
+    ctx: &Ctx<'js>,
+    length: Option<Option<u32>>,
+    algorithm_name: &str,
+) -> rquickjs::Result<usize> {
+    match length {
+        Some(Some(bits)) if bits != 0 && bits % 8 == 0 => Ok((bits / 8) as usize),
+        _ => throw_dom!(
+            ctx,
+            "OperationError",
+            format!("{algorithm_name} requires a non-zero length that is a multiple of 8")
+        ),
+    }
+}
+
+/// The actual derivation, shared by `deriveBits()` and `deriveKey()` - per spec, each checks a
+/// different usage on `base_key` (`"deriveBits"` vs. `"deriveKey"`) before reaching this, so the
 /// usage check lives in the two callers rather than here.
 #[cfg(feature = "crypto-asymmetric")]
 fn derive_bits_bytes<'js>(
@@ -377,40 +434,75 @@ fn derive_bits_bytes<'js>(
     key_ref: &CryptoKey,
     length: Option<Option<u32>>,
 ) -> rquickjs::Result<Vec<u8>> {
-    require_key_type(ctx, key_ref, KeyType::Private)?;
-    require_ec_variant(ctx, key_ref, EcVariant::Ecdh)?;
-    let private = key_ref.ec_key_pair().expect("checked above");
+    match algorithm {
+        DeriveBitsAlgorithm::Ecdh { public } => {
+            require_key_type(ctx, key_ref, KeyType::Private)?;
+            require_ec_variant(ctx, key_ref, EcVariant::Ecdh)?;
+            let private = key_ref.ec_key_pair().expect("checked above");
 
-    let public_ref = algorithm.public.borrow();
-    require_ec_variant(ctx, &public_ref, EcVariant::Ecdh)?;
-    let public = public_ref.ec_key_pair().expect("checked above");
+            let public_ref = public.borrow();
+            require_ec_variant(ctx, &public_ref, EcVariant::Ecdh)?;
+            let public = public_ref.ec_key_pair().expect("checked above");
 
-    let mut bytes = ec::ecdh_derive_bits(private, public).map_err(|e| super::key::ec_error(ctx, e))?;
+            let mut bytes =
+                ec::ecdh_derive_bits(private, public).map_err(|e| super::key::ec_error(ctx, e))?;
 
-    if let Some(Some(length_bits)) = length {
-        if length_bits as usize > bytes.len() * 8 {
-            throw_dom!(
-                ctx,
-                "OperationError",
-                "requested length is longer than the derived shared secret"
-            );
-        }
-        let length_bytes = length_bits.div_ceil(8) as usize;
-        bytes.truncate(length_bytes);
-        if length_bits % 8 != 0 {
-            // Zero out the padding bits in the last, partially-used byte.
-            if let Some(last) = bytes.last_mut() {
-                let used_bits = length_bits % 8;
-                *last &= 0xFFu8 << (8 - used_bits);
+            if let Some(Some(length_bits)) = length {
+                if length_bits as usize > bytes.len() * 8 {
+                    throw_dom!(
+                        ctx,
+                        "OperationError",
+                        "requested length is longer than the derived shared secret"
+                    );
+                }
+                let length_bytes = length_bits.div_ceil(8) as usize;
+                bytes.truncate(length_bytes);
+                if length_bits % 8 != 0 {
+                    // Zero out the padding bits in the last, partially-used byte.
+                    if let Some(last) = bytes.last_mut() {
+                        let used_bits = length_bits % 8;
+                        *last &= 0xFFu8 << (8 - used_bits);
+                    }
+                }
             }
+
+            Ok(bytes)
+        }
+        DeriveBitsAlgorithm::Hkdf { hash, salt, info } => {
+            let length_bytes = require_derive_length(ctx, length, "HKDF")?;
+            let ikm = require_derive_key(ctx, key_ref, DeriveKind::Hkdf)?;
+            kdf::hkdf_derive_bits(*hash, salt, ikm, info, length_bytes).map_err(|_| {
+                DOMException::throw_named(ctx, "OperationError", "requested length is too long")
+            })
+        }
+        DeriveBitsAlgorithm::Pbkdf2 {
+            hash,
+            salt,
+            iterations,
+        } => {
+            let length_bytes = require_derive_length(ctx, length, "PBKDF2")?;
+            if *iterations == 0 {
+                throw_dom!(
+                    ctx,
+                    "OperationError",
+                    "PBKDF2 iterations must be greater than zero"
+                );
+            }
+            let password = require_derive_key(ctx, key_ref, DeriveKind::Pbkdf2)?;
+            Ok(kdf::pbkdf2_derive_bits(
+                *hash,
+                password,
+                salt,
+                *iterations,
+                length_bytes,
+            ))
         }
     }
-
-    Ok(bytes)
 }
 
-/// `deriveBits` followed by wrapping the resulting bytes as a symmetric `CryptoKey` - no HKDF or
-/// other key-derivation function is applied, matching this milestone's "straight ECDH" scope.
+/// `deriveBits` followed by wrapping the resulting bytes as a symmetric `CryptoKey` - the KDF
+/// itself (if any) is whichever `algorithm` names (plain ECDH has none; HKDF/PBKDF2 *are* the
+/// KDF), never a second one layered on top of the derived bits.
 #[cfg(feature = "crypto-asymmetric")]
 async fn derive_key<'js>(
     ctx: Ctx<'js>,
@@ -961,7 +1053,7 @@ mod asymmetric_tests {
     #[test]
     fn ecdsa_p256_and_p384_sign_and_verify_round_trip() {
         run(r#"
-            for (const namedCurve of ["P-256", "P-384"]) {
+            for (const namedCurve of ["P-256", "P-384", "P-521"]) {
                 const { publicKey, privateKey } = await crypto.subtle.generateKey(
                     { name: "ECDSA", namedCurve }, true, ["sign", "verify"]);
                 const data = new Uint8Array([9, 8, 7, 6, 5]);
@@ -1164,6 +1256,161 @@ mod asymmetric_tests {
             if (!rawOriginal.every((b, i) => b === rawUnwrapped[i])) {
                 throw new Error("unwrapped key bytes did not match the original");
             }
+        "#);
+    }
+
+    #[test]
+    fn rsassa_pss_sign_and_verify_round_trips_and_rejects_tampering() {
+        run(r#"
+            const { publicKey, privateKey } = await crypto.subtle.generateKey(
+                { name: "RSA-PSS", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+                true, ["sign", "verify"]);
+            const data = new Uint8Array([1, 2, 3, 4, 5]);
+
+            const signature = await crypto.subtle.sign({ name: "RSA-PSS", saltLength: 32 }, privateKey, data);
+            const ok = await crypto.subtle.verify({ name: "RSA-PSS", saltLength: 32 }, publicKey, signature, data);
+            if (!ok) throw new Error("verify() rejected a genuine signature");
+
+            const tampered = new Uint8Array(signature);
+            tampered[0] ^= 1;
+            const shouldFail = await crypto.subtle.verify(
+                { name: "RSA-PSS", saltLength: 32 }, publicKey, tampered, data);
+            if (shouldFail) throw new Error("verify() accepted a tampered signature");
+        "#);
+    }
+
+    #[test]
+    fn rsassa_pss_signatures_are_randomized() {
+        run(r#"
+            const { publicKey, privateKey } = await crypto.subtle.generateKey(
+                { name: "RSA-PSS", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+                true, ["sign", "verify"]);
+            const data = new Uint8Array([1, 2, 3]);
+
+            const sig1 = new Uint8Array(
+                await crypto.subtle.sign({ name: "RSA-PSS", saltLength: 32 }, privateKey, data));
+            const sig2 = new Uint8Array(
+                await crypto.subtle.sign({ name: "RSA-PSS", saltLength: 32 }, privateKey, data));
+            if (sig1.every((b, i) => b === sig2[i])) {
+                throw new Error("two PSS signatures over the same message were identical");
+            }
+            if (!(await crypto.subtle.verify({ name: "RSA-PSS", saltLength: 32 }, publicKey, sig2, data))) {
+                throw new Error("second signature did not verify");
+            }
+        "#);
+    }
+
+    #[test]
+    fn ecdh_p521_derive_bits_produces_a_matching_shared_secret_on_both_sides() {
+        run(r#"
+            const alice = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-521" }, true, ["deriveBits"]);
+            const bob = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-521" }, true, ["deriveBits"]);
+
+            const aliceSecret = new Uint8Array(await crypto.subtle.deriveBits(
+                { name: "ECDH", public: bob.publicKey }, alice.privateKey, 528));
+            const bobSecret = new Uint8Array(await crypto.subtle.deriveBits(
+                { name: "ECDH", public: alice.publicKey }, bob.privateKey, 528));
+
+            if (aliceSecret.length !== 66) throw new Error(`expected 66 bytes, got ${aliceSecret.length}`);
+            if (!aliceSecret.every((b, i) => b === bobSecret[i])) {
+                throw new Error("shared secrets did not match");
+            }
+        "#);
+    }
+
+    #[test]
+    fn hkdf_derive_bits_matches_rfc5869_test_case_1() {
+        run(r#"
+            const ikm = new Uint8Array(22).fill(0x0b);
+            const salt = new Uint8Array([0,1,2,3,4,5,6,7,8,9,10,11,12]);
+            const info = new Uint8Array([0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,0xf9]);
+            const expected = new Uint8Array([
+                0x3c,0xb2,0x5f,0x25,0xfa,0xac,0xd5,0x7a,0x90,0x43,0x4f,0x64,0xd0,0x36,
+                0x2f,0x2a,0x2d,0x2d,0x0a,0x90,0xcf,0x1a,0x5a,0x4c,0x5d,0xb0,0x2d,0x56,
+                0xec,0xc4,0xc5,0xbf,0x34,0x00,0x72,0x08,0xd5,0xb8,0x87,0x18,0x58,0x65,
+            ]);
+
+            const baseKey = await crypto.subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
+            const okm = new Uint8Array(await crypto.subtle.deriveBits(
+                { name: "HKDF", hash: "SHA-256", salt, info }, baseKey, 42 * 8));
+            if (!okm.every((b, i) => b === expected[i])) {
+                throw new Error("HKDF output did not match the RFC 5869 test vector");
+            }
+        "#);
+    }
+
+    #[test]
+    fn hkdf_base_key_cannot_be_extractable() {
+        run(r#"
+            let threw = false;
+            try {
+                await crypto.subtle.importKey("raw", new Uint8Array(16), "HKDF", true, ["deriveBits"]);
+            } catch (err) {
+                threw = true;
+                if (err.name !== "SyntaxError") throw new Error(`wrong error name: ${err.name}`);
+            }
+            if (!threw) throw new Error("importKey() did not reject an extractable HKDF key");
+        "#);
+    }
+
+    #[test]
+    fn hkdf_derive_key_produces_a_usable_aes_gcm_key() {
+        run(r#"
+            const baseKey = await crypto.subtle.importKey(
+                "raw", new Uint8Array(32).fill(7), "HKDF", false, ["deriveKey"]);
+            const salt = new Uint8Array(16);
+            crypto.getRandomValues(salt);
+
+            const aesKey = await crypto.subtle.deriveKey(
+                { name: "HKDF", hash: "SHA-256", salt, info: new Uint8Array(0) },
+                baseKey, { name: "AES-GCM", length: 128 }, false, ["encrypt", "decrypt"]);
+
+            const iv = new Uint8Array(12);
+            crypto.getRandomValues(iv);
+            const data = new Uint8Array([1, 2, 3, 4]);
+            const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, data);
+            const plaintext = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, ciphertext));
+            if (!plaintext.every((b, i) => b === data[i])) {
+                throw new Error("HKDF-derived key did not round-trip AES-GCM");
+            }
+        "#);
+    }
+
+    #[test]
+    fn pbkdf2_derive_bits_matches_rfc6070_test_case_1() {
+        run(r#"
+            // "password" / "salt" as raw ASCII bytes (no TextEncoder in this bare test harness).
+            const password = new Uint8Array([0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64]);
+            const salt = new Uint8Array([0x73, 0x61, 0x6c, 0x74]);
+            const expected = new Uint8Array([
+                0x0c, 0x60, 0xc8, 0x0f, 0x96, 0x1f, 0x0e, 0x71, 0xf3, 0xa9,
+                0xb5, 0x24, 0xaf, 0x60, 0x12, 0x06, 0x2f, 0xe0, 0x37, 0xa6,
+            ]);
+
+            const baseKey = await crypto.subtle.importKey("raw", password, "PBKDF2", false, ["deriveBits"]);
+            const bits = new Uint8Array(await crypto.subtle.deriveBits(
+                { name: "PBKDF2", hash: "SHA-1", salt, iterations: 1 }, baseKey, 20 * 8));
+            if (!bits.every((b, i) => b === expected[i])) {
+                throw new Error("PBKDF2 output did not match the RFC 6070 test vector");
+            }
+        "#);
+    }
+
+    #[test]
+    fn pbkdf2_derive_bits_rejects_a_length_that_is_not_a_multiple_of_eight() {
+        run(r#"
+            const baseKey = await crypto.subtle.importKey(
+                "raw", new Uint8Array(8), "PBKDF2", false, ["deriveBits"]);
+
+            let threw = false;
+            try {
+                await crypto.subtle.deriveBits(
+                    { name: "PBKDF2", hash: "SHA-256", salt: new Uint8Array(8), iterations: 1000 }, baseKey, 4);
+            } catch (err) {
+                threw = true;
+                if (err.name !== "OperationError") throw new Error(`wrong error name: ${err.name}`);
+            }
+            if (!threw) throw new Error("deriveBits() did not reject a non-byte-aligned length");
         "#);
     }
 }

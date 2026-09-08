@@ -12,6 +12,8 @@ mod ec;
 mod hmac;
 #[cfg(feature = "crypto-cipher")]
 pub mod jwk;
+#[cfg(feature = "crypto-asymmetric")]
+mod kdf;
 #[cfg(feature = "crypto-cipher")]
 pub mod key;
 #[cfg(feature = "crypto-asymmetric")]

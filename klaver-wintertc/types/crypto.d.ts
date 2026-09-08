@@ -42,7 +42,7 @@ interface RsaHashedKeyAlgorithm extends KeyAlgorithm {
 }
 
 interface EcKeyAlgorithm extends KeyAlgorithm {
-  namedCurve: "P-256" | "P-384";
+  namedCurve: "P-256" | "P-384" | "P-521";
 }
 
 interface CryptoKey {
@@ -52,7 +52,8 @@ interface CryptoKey {
   | AesKeyAlgorithm
   | HmacKeyAlgorithm
   | RsaHashedKeyAlgorithm
-  | EcKeyAlgorithm;
+  | EcKeyAlgorithm
+  | KeyAlgorithm;
   readonly usages: KeyUsage[];
 }
 
@@ -123,7 +124,7 @@ interface AesCtrParams {
 }
 
 interface RsaHashedKeyGenParams {
-  name: "RSASSA-PKCS1-v1_5" | "RSA-OAEP";
+  name: "RSASSA-PKCS1-v1_5" | "RSA-OAEP" | "RSA-PSS";
   modulusLength: number;
   /** Big-endian bytes, e.g. `new Uint8Array([1, 0, 1])` for 65537. */
   publicExponent: Uint8Array;
@@ -131,7 +132,7 @@ interface RsaHashedKeyGenParams {
 }
 
 interface RsaHashedImportParams {
-  name: "RSASSA-PKCS1-v1_5" | "RSA-OAEP";
+  name: "RSASSA-PKCS1-v1_5" | "RSA-OAEP" | "RSA-PSS";
   hash: AlgorithmIdentifier;
 }
 
@@ -140,14 +141,20 @@ interface RsaOaepParams {
   label?: BufferSource;
 }
 
+interface RsaPssParams {
+  name: "RSA-PSS";
+  /** Bytes. */
+  saltLength: number;
+}
+
 interface EcKeyGenParams {
   name: "ECDSA" | "ECDH";
-  namedCurve: "P-256" | "P-384";
+  namedCurve: "P-256" | "P-384" | "P-521";
 }
 
 interface EcKeyImportParams {
   name: "ECDSA" | "ECDH";
-  namedCurve: "P-256" | "P-384";
+  namedCurve: "P-256" | "P-384" | "P-521";
 }
 
 interface EcdsaParams {
@@ -158,6 +165,28 @@ interface EcdsaParams {
 interface EcdhKeyDeriveParams {
   name: "ECDH";
   public: CryptoKey;
+}
+
+interface HkdfParams {
+  name: "HKDF";
+  hash: AlgorithmIdentifier;
+  salt: BufferSource;
+  info: BufferSource;
+}
+
+interface HkdfImportParams {
+  name: "HKDF";
+}
+
+interface Pbkdf2Params {
+  name: "PBKDF2";
+  hash: AlgorithmIdentifier;
+  salt: BufferSource;
+  iterations: number;
+}
+
+interface Pbkdf2ImportParams {
+  name: "PBKDF2";
 }
 
 declare interface SubtleCrypto {
@@ -178,12 +207,12 @@ declare interface SubtleCrypto {
   ): Promise<ArrayBuffer>;
 
   sign(
-    algorithm: AlgorithmIdentifier | EcdsaParams,
+    algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
     key: CryptoKey,
     data: BufferSource,
   ): Promise<ArrayBuffer>;
   verify(
-    algorithm: AlgorithmIdentifier | EcdsaParams,
+    algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
     key: CryptoKey,
     signature: BufferSource,
     data: BufferSource,
@@ -208,19 +237,21 @@ declare interface SubtleCrypto {
     | "AES-CTR"
     | HmacImportParams
     | RsaHashedImportParams
-    | EcKeyImportParams,
+    | EcKeyImportParams
+    | HkdfImportParams
+    | Pbkdf2ImportParams,
     extractable: boolean,
     keyUsages: KeyUsage[],
   ): Promise<CryptoKey>;
   exportKey(format: KeyFormat, key: CryptoKey): Promise<ArrayBuffer | JsonWebKey>;
 
   deriveBits(
-    algorithm: EcdhKeyDeriveParams,
+    algorithm: EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
     baseKey: CryptoKey,
     length?: number | null,
   ): Promise<ArrayBuffer>;
   deriveKey(
-    algorithm: EcdhKeyDeriveParams,
+    algorithm: EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
     baseKey: CryptoKey,
     derivedKeyAlgorithm: AesKeyGenParams | HmacKeyGenParams,
     extractable: boolean,

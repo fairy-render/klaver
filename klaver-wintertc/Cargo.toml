@@ -30,7 +30,7 @@ fetch = [
 timers = []
 crypto = ["rand", "uuid", "sha1", "sha2"]
 crypto-cipher = ["crypto", "aes", "aes-gcm", "cbc", "hmac"]
-crypto-asymmetric = ["crypto-cipher", "rsa", "p256", "p384"]
+crypto-asymmetric = ["crypto-cipher", "rsa", "p256", "p384", "p521", "hkdf", "pbkdf2"]
 intl = [
     "icu",
     "icu_provider",
@@ -113,6 +113,16 @@ rsa = { version = "0.9", features = ["sha2", "getrandom"], optional = true }
 ## `ecdsa`/`pkcs8` are already on by default; `ecdh` (for `SecretKey::diffie_hellman`) is not.
 p256 = { version = "0.14", features = ["ecdh"], optional = true }
 p384 = { version = "0.14", features = ["ecdh"], optional = true }
+p521 = { version = "0.14", features = ["ecdh"], optional = true }
+## `hkdf`/`pbkdf2` are pure key-derivation functions (no asymmetric key material involved), but
+## `deriveBits`/`deriveKey` and the `DeriveBitsAlgorithm` parsing they share with ECDH are only
+## wired up behind `crypto-asymmetric` (see `module.rs`), so both live here rather than under the
+## plain `crypto-cipher` gate. Both depend on the exact same `hmac = "0.13"`/`sha2 = "0.11"` line
+## already used elsewhere in this crate (unlike `rsa`'s isolated dependency tree above), so no
+## extra re-export indirection is needed - `hkdf::Hkdf<Sha256>`/`pbkdf2::pbkdf2_hmac::<Sha256>` are
+## called directly with this crate's own `sha1`/`sha2` types.
+hkdf = { version = "0.13", optional = true }
+pbkdf2 = { version = "0.13", optional = true }
 
 ## Intl
 icu = { version = "1.5.0", default-features = false, features = [

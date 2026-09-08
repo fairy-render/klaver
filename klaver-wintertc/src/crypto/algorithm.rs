@@ -254,6 +254,13 @@ pub enum ImportAlgorithm {
         variant: EcVariant,
         named_curve: EcCurve,
     },
+    /// `{name: "HKDF"}` - no hash/length here, since `HkdfParams.hash` is a per-`deriveBits()`/
+    /// `deriveKey()`-call parameter, not fixed to the key (unlike HMAC).
+    #[cfg(feature = "crypto-asymmetric")]
+    Hkdf,
+    /// `{name: "PBKDF2"}` - same story as `Hkdf` (`Pbkdf2Params.hash`/`iterations` are per-call).
+    #[cfg(feature = "crypto-asymmetric")]
+    Pbkdf2,
 }
 
 impl<'js> FromJs<'js> for ImportAlgorithm {
@@ -264,6 +271,16 @@ impl<'js> FromJs<'js> for ImportAlgorithm {
             let params = require_params(ctx, &raw, "HmacImportParams")?;
             let hash: HashAlgorithm = params.get("hash")?;
             return Ok(ImportAlgorithm::Hmac { hash: hash.0 });
+        }
+
+        #[cfg(feature = "crypto-asymmetric")]
+        if raw.name.eq_ignore_ascii_case("HKDF") {
+            return Ok(ImportAlgorithm::Hkdf);
+        }
+
+        #[cfg(feature = "crypto-asymmetric")]
+        if raw.name.eq_ignore_ascii_case("PBKDF2") {
+            return Ok(ImportAlgorithm::Pbkdf2);
         }
 
         #[cfg(feature = "crypto-asymmetric")]
@@ -294,12 +311,15 @@ impl<'js> FromJs<'js> for ImportAlgorithm {
 }
 
 /// `sign()`/`verify()`'s algorithm argument. HMAC and RSASSA-PKCS1-v1_5 carry no
-/// operation-specific parameters (their hash lives on the key), but ECDSA's hash is supplied
-/// per-call via `EcdsaParams` - the one place RSA and EC diverge here.
+/// operation-specific parameters (their hash lives on the key), but ECDSA's hash and RSA-PSS's
+/// salt length are supplied per-call via `EcdsaParams`/`RsaPssParams` - the one place RSA and EC
+/// diverge here.
 pub enum SignAlgorithm {
     Hmac,
     #[cfg(feature = "crypto-asymmetric")]
     RsaSsaPkcs1,
+    #[cfg(feature = "crypto-asymmetric")]
+    RsaPss { salt_length: usize },
     #[cfg(feature = "crypto-asymmetric")]
     Ecdsa { hash: Algo },
 }
@@ -315,6 +335,14 @@ impl<'js> FromJs<'js> for SignAlgorithm {
             return Ok(SignAlgorithm::RsaSsaPkcs1);
         }
         #[cfg(feature = "crypto-asymmetric")]
+        if raw.name.eq_ignore_ascii_case("RSA-PSS") {
+            let params = require_params(ctx, &raw, "RsaPssParams")?;
+            let salt_length: u32 = params.get("saltLength")?;
+            return Ok(SignAlgorithm::RsaPss {
+                salt_length: salt_length as usize,
+            });
+        }
+        #[cfg(feature = "crypto-asymmetric")]
         if raw.name.eq_ignore_ascii_case("ECDSA") {
             let params = require_params(ctx, &raw, "EcdsaParams")?;
             let hash: HashAlgorithm = params.get("hash")?;
@@ -324,12 +352,23 @@ impl<'js> FromJs<'js> for SignAlgorithm {
     }
 }
 
-/// `deriveBits()`/`deriveKey()`'s algorithm argument - `EcdhKeyDeriveParams` (ECDH is the only
-/// derivation algorithm this milestone supports; HKDF/PBKDF2 remain unimplemented, see
-/// `MISSING_APIS.md`).
+/// `deriveBits()`/`deriveKey()`'s algorithm argument - `EcdhKeyDeriveParams`, `HkdfParams`, or
+/// `Pbkdf2Params`.
 #[cfg(feature = "crypto-asymmetric")]
-pub struct DeriveBitsAlgorithm<'js> {
-    pub public: rquickjs::Class<'js, super::key::CryptoKey>,
+pub enum DeriveBitsAlgorithm<'js> {
+    Ecdh {
+        public: rquickjs::Class<'js, super::key::CryptoKey>,
+    },
+    Hkdf {
+        hash: Algo,
+        salt: Vec<u8>,
+        info: Vec<u8>,
+    },
+    Pbkdf2 {
+        hash: Algo,
+        salt: Vec<u8>,
+        iterations: u32,
+    },
 }
 
 #[cfg(feature = "crypto-asymmetric")]
@@ -337,10 +376,30 @@ impl<'js> FromJs<'js> for DeriveBitsAlgorithm<'js> {
     fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let obj = Object::from_js(ctx, value)?;
         let name: std::string::String = obj.get("name")?;
-        if !name.eq_ignore_ascii_case("ECDH") {
-            return unrecognized_algorithm(ctx, &name);
+        if name.eq_ignore_ascii_case("ECDH") {
+            let public: rquickjs::Class<'js, super::key::CryptoKey> = obj.get("public")?;
+            return Ok(DeriveBitsAlgorithm::Ecdh { public });
         }
-        let public: rquickjs::Class<'js, super::key::CryptoKey> = obj.get("public")?;
-        Ok(DeriveBitsAlgorithm { public })
+        if name.eq_ignore_ascii_case("HKDF") {
+            let hash: HashAlgorithm = obj.get("hash")?;
+            let salt: Buffer = obj.get("salt")?;
+            let info: Buffer = obj.get("info")?;
+            return Ok(DeriveBitsAlgorithm::Hkdf {
+                hash: hash.0,
+                salt: buffer_bytes(ctx, salt)?,
+                info: buffer_bytes(ctx, info)?,
+            });
+        }
+        if name.eq_ignore_ascii_case("PBKDF2") {
+            let hash: HashAlgorithm = obj.get("hash")?;
+            let salt: Buffer = obj.get("salt")?;
+            let iterations: u32 = obj.get("iterations")?;
+            return Ok(DeriveBitsAlgorithm::Pbkdf2 {
+                hash: hash.0,
+                salt: buffer_bytes(ctx, salt)?,
+                iterations,
+            });
+        }
+        unrecognized_algorithm(ctx, &name)
     }
 }
