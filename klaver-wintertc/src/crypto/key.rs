@@ -546,11 +546,6 @@ pub(crate) fn rsa_error<'js>(ctx: &Ctx<'js>, err: rsa_backend::RsaError) -> rqui
         rsa_backend::RsaError::OperationFailed => {
             DOMException::throw_named(ctx, "OperationError", "RSA operation failed")
         }
-        rsa_backend::RsaError::UnsupportedHash => DOMException::throw_named(
-            ctx,
-            "NotSupportedError",
-            "unsupported hash for RSA-OAEP/RSA-PSS",
-        ),
     }
 }
 

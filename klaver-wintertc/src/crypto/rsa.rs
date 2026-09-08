@@ -14,9 +14,11 @@
 //! (which `rsa` doesn't re-export a compatible digest type for anyway).
 //!
 //! OAEP and PSS have no such manual-construction escape hatch (their digest usage runs deeper
-//! than a fixed prefix), so both go through `rsa`'s own re-exported `sha2` types instead (this
-//! crate's `sha2` Cargo feature) - limited to SHA-256/384/512, since `rsa` has no compatible
-//! SHA-1 re-export.
+//! than a fixed prefix), so both go through digest types on the same digest-0.10 line `rsa`
+//! depends on internally: `rsa`'s own re-exported `sha2` (this crate's `sha2` Cargo feature) for
+//! SHA-256/384/512, and a second, separately-pinned `sha1 = "0.10"` (the `rsa-sha1` Cargo
+//! dependency, renamed to avoid colliding with this crate's own `sha1 = "0.11"` used by
+//! `digest.rs`) for SHA-1, since `rsa` depends on a `sha1` internally but never re-exports it.
 //!
 //! RSA keygen/encrypt/sign also need an RNG satisfying `rsa`'s `CryptoRngCore` bound, which is
 //! `rand_core` 0.6 - a different major version than this workspace's `rand = "0.10"` (rand_core
@@ -27,6 +29,7 @@ use rsa::rand_core::OsRng;
 use rsa::sha2::{Sha256, Sha384, Sha512};
 use rsa::traits::{PrivateKeyParts, PublicKeyParts};
 use rsa::{BigUint, Oaep, Pkcs1v15Sign, Pss, RsaPrivateKey, RsaPublicKey};
+use rsa_sha1::Sha1;
 
 use super::digest::Algo;
 
@@ -61,8 +64,6 @@ pub enum RsaError {
     /// rejection - spec-wise this and [`Self::InvalidKey`] both become an `OperationError`/
     /// `DataError` depending on which operation raised it; see `module.rs`'s mapping).
     OperationFailed,
-    /// The requested hash isn't usable with this operation (OAEP only supports SHA-256/384/512).
-    UnsupportedHash,
 }
 
 impl From<rsa::Error> for RsaError {
@@ -147,47 +148,31 @@ pub fn pkcs1v15_verify(key: &RsaPublicKey, hash: Algo, hashed: &[u8], signature:
     key.verify(pkcs1v15_padding(hash), hashed, signature).is_ok()
 }
 
-/// The hashes usable with `rsa`'s own reexported SHA-2 types - shared by OAEP and PSS, both of
-/// which need a `Digest`-bounded type parameter from the same `digest` major version `rsa`
-/// depends on internally (see this module's doc comment). Neither has a SHA-1 variant, since
-/// `rsa` has no compatible SHA-1 reexport.
-enum Sha2Digest {
-    Sha256,
-    Sha384,
-    Sha512,
-}
-
-fn sha2_digest(hash: Algo) -> Result<Sha2Digest, RsaError> {
-    match hash {
-        Algo::Sha256 => Ok(Sha2Digest::Sha256),
-        Algo::Sha384 => Ok(Sha2Digest::Sha384),
-        Algo::Sha512 => Ok(Sha2Digest::Sha512),
-        Algo::Sha1 => Err(RsaError::UnsupportedHash),
-    }
-}
-
-fn oaep_padding(hash: Algo, label: Option<&[u8]>) -> Result<Oaep, RsaError> {
+fn oaep_padding(hash: Algo, label: Option<&[u8]>) -> Oaep {
     // `label` is spec'd as a `BufferSource` (arbitrary bytes), but `Oaep::new_with_label` takes
     // `impl AsRef<str>` - WebCrypto's own `RsaOaepParams.label` is virtually always ASCII/empty in
     // practice (it's an application-chosen context tag, not attacker/ciphertext-derived), so a
     // lossy UTF-8 decode here is an acceptable, spec-compatible-in-practice trade-off.
     let label = label.map(|bytes| std::string::String::from_utf8_lossy(bytes).into_owned());
-    Ok(match (sha2_digest(hash)?, label) {
-        (Sha2Digest::Sha256, Some(label)) => Oaep::new_with_label::<Sha256, _>(label),
-        (Sha2Digest::Sha256, None) => Oaep::new::<Sha256>(),
-        (Sha2Digest::Sha384, Some(label)) => Oaep::new_with_label::<Sha384, _>(label),
-        (Sha2Digest::Sha384, None) => Oaep::new::<Sha384>(),
-        (Sha2Digest::Sha512, Some(label)) => Oaep::new_with_label::<Sha512, _>(label),
-        (Sha2Digest::Sha512, None) => Oaep::new::<Sha512>(),
-    })
+    match (hash, label) {
+        (Algo::Sha1, Some(label)) => Oaep::new_with_label::<Sha1, _>(label),
+        (Algo::Sha1, None) => Oaep::new::<Sha1>(),
+        (Algo::Sha256, Some(label)) => Oaep::new_with_label::<Sha256, _>(label),
+        (Algo::Sha256, None) => Oaep::new::<Sha256>(),
+        (Algo::Sha384, Some(label)) => Oaep::new_with_label::<Sha384, _>(label),
+        (Algo::Sha384, None) => Oaep::new::<Sha384>(),
+        (Algo::Sha512, Some(label)) => Oaep::new_with_label::<Sha512, _>(label),
+        (Algo::Sha512, None) => Oaep::new::<Sha512>(),
+    }
 }
 
-fn pss_padding(hash: Algo, salt_len: usize) -> Result<Pss, RsaError> {
-    Ok(match sha2_digest(hash)? {
-        Sha2Digest::Sha256 => Pss::new_with_salt::<Sha256>(salt_len),
-        Sha2Digest::Sha384 => Pss::new_with_salt::<Sha384>(salt_len),
-        Sha2Digest::Sha512 => Pss::new_with_salt::<Sha512>(salt_len),
-    })
+fn pss_padding(hash: Algo, salt_len: usize) -> Pss {
+    match hash {
+        Algo::Sha1 => Pss::new_with_salt::<Sha1>(salt_len),
+        Algo::Sha256 => Pss::new_with_salt::<Sha256>(salt_len),
+        Algo::Sha384 => Pss::new_with_salt::<Sha384>(salt_len),
+        Algo::Sha512 => Pss::new_with_salt::<Sha512>(salt_len),
+    }
 }
 
 /// `hashed` must already be the result of hashing the message with `hash` (same "hash first,
@@ -201,17 +186,14 @@ pub fn pss_sign(
     salt_len: usize,
     hashed: &[u8],
 ) -> Result<Vec<u8>, RsaError> {
-    Ok(key.sign_with_rng(&mut OsRng, pss_padding(hash, salt_len)?, hashed)?)
+    Ok(key.sign_with_rng(&mut OsRng, pss_padding(hash, salt_len), hashed)?)
 }
 
 /// Never throws on a bad `salt_len`/mismatched padding - folds that into the same
 /// `Result::is_ok()` boolean as a genuine tampering rejection, matching this crate's other
 /// `verify()` conventions (see `pkcs1v15_verify`, `hmac::verify`).
 pub fn pss_verify(key: &RsaPublicKey, hash: Algo, salt_len: usize, hashed: &[u8], signature: &[u8]) -> bool {
-    match pss_padding(hash, salt_len) {
-        Ok(padding) => key.verify(padding, hashed, signature).is_ok(),
-        Err(_) => false,
-    }
+    key.verify(pss_padding(hash, salt_len), hashed, signature).is_ok()
 }
 
 pub fn oaep_encrypt(
@@ -220,7 +202,7 @@ pub fn oaep_encrypt(
     label: Option<&[u8]>,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, RsaError> {
-    let padding = oaep_padding(hash, label)?;
+    let padding = oaep_padding(hash, label);
     Ok(key.encrypt(&mut OsRng, padding, plaintext)?)
 }
 
@@ -230,7 +212,7 @@ pub fn oaep_decrypt(
     label: Option<&[u8]>,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, RsaError> {
-    let padding = oaep_padding(hash, label)?;
+    let padding = oaep_padding(hash, label);
     Ok(key.decrypt(padding, ciphertext)?)
 }
 

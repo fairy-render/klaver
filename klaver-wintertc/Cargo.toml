@@ -30,7 +30,7 @@ fetch = [
 timers = []
 crypto = ["rand", "uuid", "sha1", "sha2"]
 crypto-cipher = ["crypto", "aes", "aes-gcm", "cbc", "hmac"]
-crypto-asymmetric = ["crypto-cipher", "rsa", "p256", "p384", "p521", "hkdf", "pbkdf2"]
+crypto-asymmetric = ["crypto-cipher", "rsa", "rsa-sha1", "p256", "p384", "p521", "hkdf", "pbkdf2"]
 intl = [
     "icu",
     "icu_provider",
@@ -110,6 +110,12 @@ hmac = { version = "0.13", optional = true }
 ## (rand_core 0.10) used everywhere else in this crate (including by `p256`/`p384` below), so RSA
 ## operations always go through `rsa::rand_core::OsRng`, never `rand::rng()`.
 rsa = { version = "0.9", features = ["sha2", "getrandom"], optional = true }
+## `rsa` re-exports its own `sha2` (matching its internal digest 0.10 line) but never re-exports a
+## `sha1`, even though it depends on one internally - so OAEP/PSS SHA-1 support needs a second,
+## separately-named `sha1` pinned to that same digest 0.10 line (independent of this crate's own
+## `sha1 = "0.11"` above, a different major version of the `digest` trait and not usable as
+## `Oaep`/`Pss`'s `D: Digest` type parameter - see `rsa.rs`'s doc comment).
+rsa-sha1 = { package = "sha1", version = "0.10", optional = true }
 ## `ecdsa`/`pkcs8` are already on by default; `ecdh` (for `SecretKey::diffie_hellman`) is not.
 p256 = { version = "0.14", features = ["ecdh"], optional = true }
 p384 = { version = "0.14", features = ["ecdh"], optional = true }

@@ -547,8 +547,9 @@ async fn derive_key<'js>(
 }
 
 /// Wraps `key`'s exported bytes with `wrapping_key`/`wrap_algorithm` (any of `encrypt()`'s
-/// algorithms). Only the byte-shaped formats (`"raw"`/`"pkcs8"`/`"spki"`) are supported - `"jwk"`
-/// would need a JSON-serialize-then-encrypt round trip this milestone doesn't implement.
+/// algorithms). The byte-shaped formats (`"raw"`/`"pkcs8"`/`"spki"`) encrypt the exported bytes
+/// directly; `"jwk"` encrypts the UTF-8 bytes of `JSON.stringify()`ing the exported JWK object,
+/// per the spec's "wrap" algorithm (`exportKeyAndSerializeJWK` step).
 #[cfg(feature = "crypto-asymmetric")]
 async fn wrap_key<'js>(
     ctx: Ctx<'js>,
@@ -557,17 +558,17 @@ async fn wrap_key<'js>(
     wrapping_key: Class<'js, CryptoKey>,
     wrap_algorithm: CipherAlgorithm,
 ) -> rquickjs::Result<ArrayBuffer<'js>> {
-    if matches!(format, KeyFormat::Jwk) {
-        throw_dom!(
-            ctx,
-            "NotSupportedError",
-            "wrapKey/unwrapKey with format \"jwk\" is not supported"
-        );
-    }
     let wrapping_key_ref = wrapping_key.borrow();
     require_usage(&ctx, &wrapping_key_ref, KeyUsage::WrapKey)?;
     let exported = super::key::export_key(ctx.clone(), format, key).await?;
-    let data = algorithm::buffer_bytes(&ctx, Buffer::from_js(&ctx, exported)?)?;
+    let data = if matches!(format, KeyFormat::Jwk) {
+        let json = ctx
+            .json_stringify(exported)?
+            .expect("a JWK export is always JSON-serializable");
+        json.to_string()?.into_bytes()
+    } else {
+        algorithm::buffer_bytes(&ctx, Buffer::from_js(&ctx, exported)?)?
+    };
     let ciphertext = encrypt_bytes(&ctx, wrap_algorithm, &wrapping_key_ref, &data)?;
     ArrayBuffer::new(ctx, ciphertext)
 }
@@ -583,23 +584,24 @@ async fn unwrap_key<'js>(
     unwrapped_key_algorithm: ImportAlgorithm,
     Flat((extractable, usages)): Flat<(bool, Vec<KeyUsage>)>,
 ) -> rquickjs::Result<Class<'js, CryptoKey>> {
-    if matches!(format, KeyFormat::Jwk) {
-        throw_dom!(
-            ctx,
-            "NotSupportedError",
-            "wrapKey/unwrapKey with format \"jwk\" is not supported"
-        );
-    }
     let wrapped_bytes = algorithm::buffer_bytes(&ctx, wrapped_key)?;
     let plaintext = {
         let unwrapping_key_ref = unwrapping_key.borrow();
         require_usage(&ctx, &unwrapping_key_ref, KeyUsage::UnwrapKey)?;
         decrypt_bytes(&ctx, unwrap_algorithm, &unwrapping_key_ref, &wrapped_bytes)?
     };
+    let key_data = if matches!(format, KeyFormat::Jwk) {
+        let Ok(json) = std::string::String::from_utf8(plaintext) else {
+            throw_dom!(ctx, "DataError", "wrapped JWK is not valid UTF-8");
+        };
+        ctx.json_parse(json)?
+    } else {
+        ArrayBuffer::new(ctx.clone(), plaintext)?.into_value()
+    };
     super::key::import_key(
         ctx.clone(),
         format,
-        ArrayBuffer::new(ctx, plaintext)?.into_value(),
+        key_data,
         unwrapped_key_algorithm,
         extractable,
         usages,
@@ -1051,6 +1053,22 @@ mod asymmetric_tests {
     }
 
     #[test]
+    fn rsa_oaep_sha1_round_trips() {
+        run(r#"
+            const { publicKey, privateKey } = await crypto.subtle.generateKey(
+                { name: "RSA-OAEP", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-1" },
+                true, ["encrypt", "decrypt"]);
+            const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+
+            const ciphertext = await crypto.subtle.encrypt("RSA-OAEP", publicKey, data);
+            const plaintext = new Uint8Array(await crypto.subtle.decrypt("RSA-OAEP", privateKey, ciphertext));
+            if (plaintext.length !== data.length || !plaintext.every((b, i) => b === data[i])) {
+                throw new Error("round trip did not recover the original plaintext");
+            }
+        "#);
+    }
+
+    #[test]
     fn ecdsa_p256_and_p384_sign_and_verify_round_trip() {
         run(r#"
             for (const namedCurve of ["P-256", "P-384", "P-521"]) {
@@ -1239,6 +1257,28 @@ mod asymmetric_tests {
     }
 
     #[test]
+    fn wrap_key_and_unwrap_key_round_trip_with_jwk_format() {
+        run(r#"
+            const toWrap = await crypto.subtle.generateKey(
+                { name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"]);
+            const wrappingKey = await crypto.subtle.generateKey(
+                { name: "AES-GCM", length: 256 }, true, ["wrapKey", "unwrapKey"]);
+            const iv = new Uint8Array(12);
+            crypto.getRandomValues(iv);
+
+            const wrapped = await crypto.subtle.wrapKey("jwk", toWrap, wrappingKey, { name: "AES-GCM", iv });
+            const unwrapped = await crypto.subtle.unwrapKey(
+                "jwk", wrapped, wrappingKey, { name: "AES-GCM", iv }, "AES-GCM", true, ["encrypt", "decrypt"]);
+
+            const rawOriginal = new Uint8Array(await crypto.subtle.exportKey("raw", toWrap));
+            const rawUnwrapped = new Uint8Array(await crypto.subtle.exportKey("raw", unwrapped));
+            if (!rawOriginal.every((b, i) => b === rawUnwrapped[i])) {
+                throw new Error("unwrapped key bytes did not match the original");
+            }
+        "#);
+    }
+
+    #[test]
     fn wrap_key_and_unwrap_key_round_trip_with_an_rsa_oaep_wrapping_key() {
         run(r#"
             const toWrap = await crypto.subtle.generateKey(
@@ -1275,6 +1315,26 @@ mod asymmetric_tests {
             tampered[0] ^= 1;
             const shouldFail = await crypto.subtle.verify(
                 { name: "RSA-PSS", saltLength: 32 }, publicKey, tampered, data);
+            if (shouldFail) throw new Error("verify() accepted a tampered signature");
+        "#);
+    }
+
+    #[test]
+    fn rsassa_pss_sha1_sign_and_verify_round_trips() {
+        run(r#"
+            const { publicKey, privateKey } = await crypto.subtle.generateKey(
+                { name: "RSA-PSS", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-1" },
+                true, ["sign", "verify"]);
+            const data = new Uint8Array([1, 2, 3, 4, 5]);
+
+            const signature = await crypto.subtle.sign({ name: "RSA-PSS", saltLength: 20 }, privateKey, data);
+            const ok = await crypto.subtle.verify({ name: "RSA-PSS", saltLength: 20 }, publicKey, signature, data);
+            if (!ok) throw new Error("verify() rejected a genuine signature");
+
+            const tampered = new Uint8Array(signature);
+            tampered[0] ^= 1;
+            const shouldFail = await crypto.subtle.verify(
+                { name: "RSA-PSS", saltLength: 20 }, publicKey, tampered, data);
             if (shouldFail) throw new Error("verify() accepted a tampered signature");
         "#);
     }
