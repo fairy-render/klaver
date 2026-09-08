@@ -7,6 +7,8 @@ use rquickjs::{Ctx, FromJs, Object, String as JsString, Value};
 
 use super::digest::Algo;
 use super::key::AesVariant;
+#[cfg(feature = "crypto-asymmetric")]
+use super::key::{EcCurve, EcVariant, RsaVariant};
 
 /// Extracts `{name, params}` from either a bare string (`params: None`) or an object with a
 /// `name` field (`params: Some(the object itself)`, so callers can read further fields off it).
@@ -54,6 +56,19 @@ fn unrecognized_algorithm<'js, T>(ctx: &Ctx<'js>, name: &str) -> rquickjs::Resul
     )
 }
 
+#[cfg(feature = "crypto-asymmetric")]
+fn parse_named_curve<'js>(ctx: &Ctx<'js>, params: &Object<'js>) -> rquickjs::Result<EcCurve> {
+    let named_curve: std::string::String = params.get("namedCurve")?;
+    match EcCurve::from_name(&named_curve) {
+        Some(curve) => Ok(curve),
+        None => throw_dom!(
+            ctx,
+            "NotSupportedError",
+            format!("unrecognized named curve \"{named_curve}\"")
+        ),
+    }
+}
+
 /// A hash `AlgorithmIdentifier` (e.g. HMAC's `hash` field): either a bare digest name or
 /// `{name: "SHA-256"}`.
 pub struct HashAlgorithm(pub Algo);
@@ -91,21 +106,30 @@ pub enum CipherAlgorithm {
         counter: Vec<u8>,
         length_bits: u8,
     },
-}
-
-impl CipherAlgorithm {
-    pub fn variant(&self) -> AesVariant {
-        match self {
-            Self::AesGcm { .. } => AesVariant::Gcm,
-            Self::AesCbc { .. } => AesVariant::Cbc,
-            Self::AesCtr { .. } => AesVariant::Ctr,
-        }
-    }
+    /// The OAEP hash itself comes from the key (like `SignAlgorithm::RsaSsaPkcs1`), not from
+    /// `RsaOaepParams` - only the optional `label` is a per-call parameter.
+    #[cfg(feature = "crypto-asymmetric")]
+    RsaOaep { label: Option<Vec<u8>> },
 }
 
 impl<'js> FromJs<'js> for CipherAlgorithm {
     fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let raw = RawAlgorithm::from_js(ctx, value)?;
+
+        #[cfg(feature = "crypto-asymmetric")]
+        if raw.name.eq_ignore_ascii_case("RSA-OAEP") {
+            // Unlike AES, `RsaOaepParams.label` is optional and there's no other mandatory
+            // field, so a bare `"RSA-OAEP"` string (no params object at all) is valid.
+            let label = match &raw.params {
+                Some(params) => {
+                    let label: Option<Buffer> = params.get("label")?;
+                    label.map(|b| buffer_bytes(ctx, b)).transpose()?
+                }
+                None => None,
+            };
+            return Ok(CipherAlgorithm::RsaOaep { label });
+        }
+
         let Some(variant) = AesVariant::from_name(&raw.name) else {
             return unrecognized_algorithm(ctx, &raw.name);
         };
@@ -144,8 +168,26 @@ impl<'js> FromJs<'js> for CipherAlgorithm {
 /// `HmacKeyGenParams` (always needs `hash`; `length` is optional, defaulting to the hash's
 /// block size).
 pub enum KeyGenAlgorithm {
-    Aes { variant: AesVariant, length: u16 },
-    Hmac { hash: Algo, length: Option<u32> },
+    Aes {
+        variant: AesVariant,
+        length: u16,
+    },
+    Hmac {
+        hash: Algo,
+        length: Option<u32>,
+    },
+    #[cfg(feature = "crypto-asymmetric")]
+    RsaHashed {
+        variant: RsaVariant,
+        modulus_length: u32,
+        public_exponent: Vec<u8>,
+        hash: Algo,
+    },
+    #[cfg(feature = "crypto-asymmetric")]
+    Ec {
+        variant: EcVariant,
+        named_curve: EcCurve,
+    },
 }
 
 impl<'js> FromJs<'js> for KeyGenAlgorithm {
@@ -162,6 +204,30 @@ impl<'js> FromJs<'js> for KeyGenAlgorithm {
             });
         }
 
+        #[cfg(feature = "crypto-asymmetric")]
+        if let Some(variant) = RsaVariant::from_name(&raw.name) {
+            let params = require_params(ctx, &raw, "RsaHashedKeyGenParams")?;
+            let modulus_length: u32 = params.get("modulusLength")?;
+            let public_exponent: Buffer = params.get("publicExponent")?;
+            let hash: HashAlgorithm = params.get("hash")?;
+            return Ok(KeyGenAlgorithm::RsaHashed {
+                variant,
+                modulus_length,
+                public_exponent: buffer_bytes(ctx, public_exponent)?,
+                hash: hash.0,
+            });
+        }
+
+        #[cfg(feature = "crypto-asymmetric")]
+        if let Some(variant) = EcVariant::from_name(&raw.name) {
+            let params = require_params(ctx, &raw, "EcKeyGenParams")?;
+            let named_curve = parse_named_curve(ctx, &params)?;
+            return Ok(KeyGenAlgorithm::Ec {
+                variant,
+                named_curve,
+            });
+        }
+
         let Some(variant) = AesVariant::from_name(&raw.name) else {
             return unrecognized_algorithm(ctx, &raw.name);
         };
@@ -175,7 +241,19 @@ impl<'js> FromJs<'js> for KeyGenAlgorithm {
 /// from the key data itself), but HMAC always needs `{hash}`.
 pub enum ImportAlgorithm {
     Aes(AesVariant),
-    Hmac { hash: Algo },
+    Hmac {
+        hash: Algo,
+    },
+    #[cfg(feature = "crypto-asymmetric")]
+    RsaHashed {
+        variant: RsaVariant,
+        hash: Algo,
+    },
+    #[cfg(feature = "crypto-asymmetric")]
+    Ec {
+        variant: EcVariant,
+        named_curve: EcCurve,
+    },
 }
 
 impl<'js> FromJs<'js> for ImportAlgorithm {
@@ -188,6 +266,26 @@ impl<'js> FromJs<'js> for ImportAlgorithm {
             return Ok(ImportAlgorithm::Hmac { hash: hash.0 });
         }
 
+        #[cfg(feature = "crypto-asymmetric")]
+        if let Some(variant) = RsaVariant::from_name(&raw.name) {
+            let params = require_params(ctx, &raw, "RsaHashedImportParams")?;
+            let hash: HashAlgorithm = params.get("hash")?;
+            return Ok(ImportAlgorithm::RsaHashed {
+                variant,
+                hash: hash.0,
+            });
+        }
+
+        #[cfg(feature = "crypto-asymmetric")]
+        if let Some(variant) = EcVariant::from_name(&raw.name) {
+            let params = require_params(ctx, &raw, "EcKeyImportParams")?;
+            let named_curve = parse_named_curve(ctx, &params)?;
+            return Ok(ImportAlgorithm::Ec {
+                variant,
+                named_curve,
+            });
+        }
+
         match AesVariant::from_name(&raw.name) {
             Some(variant) => Ok(ImportAlgorithm::Aes(variant)),
             None => unrecognized_algorithm(ctx, &raw.name),
@@ -195,17 +293,54 @@ impl<'js> FromJs<'js> for ImportAlgorithm {
     }
 }
 
-/// `sign()`/`verify()`'s algorithm argument. HMAC carries no operation-specific parameters (the
-/// hash lives on the key), so this just validates the name.
-pub struct SignAlgorithm;
+/// `sign()`/`verify()`'s algorithm argument. HMAC and RSASSA-PKCS1-v1_5 carry no
+/// operation-specific parameters (their hash lives on the key), but ECDSA's hash is supplied
+/// per-call via `EcdsaParams` - the one place RSA and EC diverge here.
+pub enum SignAlgorithm {
+    Hmac,
+    #[cfg(feature = "crypto-asymmetric")]
+    RsaSsaPkcs1,
+    #[cfg(feature = "crypto-asymmetric")]
+    Ecdsa { hash: Algo },
+}
 
 impl<'js> FromJs<'js> for SignAlgorithm {
     fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
         let raw = RawAlgorithm::from_js(ctx, value)?;
         if raw.name.eq_ignore_ascii_case("HMAC") {
-            Ok(SignAlgorithm)
-        } else {
-            unrecognized_algorithm(ctx, &raw.name)
+            return Ok(SignAlgorithm::Hmac);
         }
+        #[cfg(feature = "crypto-asymmetric")]
+        if raw.name.eq_ignore_ascii_case("RSASSA-PKCS1-v1_5") {
+            return Ok(SignAlgorithm::RsaSsaPkcs1);
+        }
+        #[cfg(feature = "crypto-asymmetric")]
+        if raw.name.eq_ignore_ascii_case("ECDSA") {
+            let params = require_params(ctx, &raw, "EcdsaParams")?;
+            let hash: HashAlgorithm = params.get("hash")?;
+            return Ok(SignAlgorithm::Ecdsa { hash: hash.0 });
+        }
+        unrecognized_algorithm(ctx, &raw.name)
+    }
+}
+
+/// `deriveBits()`/`deriveKey()`'s algorithm argument - `EcdhKeyDeriveParams` (ECDH is the only
+/// derivation algorithm this milestone supports; HKDF/PBKDF2 remain unimplemented, see
+/// `MISSING_APIS.md`).
+#[cfg(feature = "crypto-asymmetric")]
+pub struct DeriveBitsAlgorithm<'js> {
+    pub public: rquickjs::Class<'js, super::key::CryptoKey>,
+}
+
+#[cfg(feature = "crypto-asymmetric")]
+impl<'js> FromJs<'js> for DeriveBitsAlgorithm<'js> {
+    fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+        let obj = Object::from_js(ctx, value)?;
+        let name: std::string::String = obj.get("name")?;
+        if !name.eq_ignore_ascii_case("ECDH") {
+            return unrecognized_algorithm(ctx, &name);
+        }
+        let public: rquickjs::Class<'js, super::key::CryptoKey> = obj.get("public")?;
+        Ok(DeriveBitsAlgorithm { public })
     }
 }

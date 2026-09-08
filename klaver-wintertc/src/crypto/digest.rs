@@ -59,6 +59,16 @@ impl<'js> FromJs<'js> for Algo {
     }
 }
 
+/// Hashes `data` with `algo`, with no JS/rquickjs types involved - used by RSA/ECDSA sign/verify
+/// (`crypto::module`), which hash the message themselves before handing the digest to
+/// `rsa::pkcs1v15_sign`/`ec::ecdsa_sign` (both take already-hashed bytes, not a message - see
+/// their module doc comments for why they never touch `rsa`'s/`p256`'s own digest generics).
+pub fn hash_bytes(algo: Algo, data: &[u8]) -> Vec<u8> {
+    let mut digest = algo.to_impl();
+    digest.update(data);
+    digest.digest()
+}
+
 impl<'js> IntoJs<'js> for Algo {
     fn into_js(self, ctx: &rquickjs::prelude::Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
         match self {

@@ -5,7 +5,16 @@ edition = "2024"
 
 [features]
 default = ["module"]
-full = ["fetch", "timers", "crypto", "crypto-cipher", "intl", "streams", "worker"]
+full = [
+    "fetch",
+    "timers",
+    "crypto",
+    "crypto-cipher",
+    "crypto-asymmetric",
+    "intl",
+    "streams",
+    "worker",
+]
 fetch = [
     "bytes",
     "http",
@@ -21,6 +30,7 @@ fetch = [
 timers = []
 crypto = ["rand", "uuid", "sha1", "sha2"]
 crypto-cipher = ["crypto", "aes", "aes-gcm", "cbc", "hmac"]
+crypto-asymmetric = ["crypto-cipher", "rsa", "p256", "p384"]
 intl = [
     "icu",
     "icu_provider",
@@ -87,6 +97,22 @@ aes-gcm = { version = "0.11", default-features = false, features = [
 ], optional = true }
 cbc = { version = "0.2", features = ["alloc"], optional = true }
 hmac = { version = "0.13", optional = true }
+
+## Crypto (asymmetric, gated separately behind `crypto-asymmetric`). Deliberately does NOT add its
+## own `pkcs8`/`spki`/`signature` dependency edges: `rsa` 0.9 depends on the 0.10/0.7/2.x line of
+## those crates while `p256`/`p384` 0.14 depend on the 0.11/0.8/3.x line, so all DER/signature-trait
+## code goes through each crate's own re-export (`rsa::pkcs8`, `p256::ecdsa::signature`, etc.)
+## rather than risking a version mismatch against a separately-pinned direct dependency.
+## `sha2` enables `rsa::sha2` (needed by `Oaep::new::<D>()` - PKCS#1 v1.5 sign/verify avoids this
+## entirely by constructing `Pkcs1v15Sign` from its own public `hash_len`/`prefix` fields directly,
+## hashing via this crate's own `digest.rs` instead). `getrandom` enables `rsa::rand_core::OsRng` -
+## `rsa`'s `CryptoRngCore` bound is rand_core 0.6, a different major version than the `rand = "0.10"`
+## (rand_core 0.10) used everywhere else in this crate (including by `p256`/`p384` below), so RSA
+## operations always go through `rsa::rand_core::OsRng`, never `rand::rng()`.
+rsa = { version = "0.9", features = ["sha2", "getrandom"], optional = true }
+## `ecdsa`/`pkcs8` are already on by default; `ecdh` (for `SecretKey::diffie_hellman`) is not.
+p256 = { version = "0.14", features = ["ecdh"], optional = true }
+p384 = { version = "0.14", features = ["ecdh"], optional = true }
 
 ## Intl
 icu = { version = "1.5.0", default-features = false, features = [
