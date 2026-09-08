@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2024"
 
 [features]
-default = ["module"]
+default = ["module", "crypto-cipher"]
 full = [
     "fetch",
     "timers",
@@ -30,7 +30,16 @@ fetch = [
 timers = []
 crypto = ["rand", "uuid", "sha1", "sha2"]
 crypto-cipher = ["crypto", "aes", "aes-gcm", "cbc", "hmac"]
-crypto-asymmetric = ["crypto-cipher", "rsa", "rsa-sha1", "p256", "p384", "p521", "hkdf", "pbkdf2"]
+crypto-asymmetric = [
+    "crypto-cipher",
+    "rsa",
+    "rsa-sha1",
+    "p256",
+    "p384",
+    "p521",
+    "hkdf",
+    "pbkdf2",
+]
 intl = [
     "icu",
     "icu_provider",
@@ -47,8 +56,26 @@ worker = ["klaver-vm"]
 fs = ["vfs", "mime_guess", "relative-path"]
 module = ["klaver-modules"]
 
-tokio = ["reqwest", "dep:tokio", "timers", "fetch", "fs", "vfs-tokio", "klaver-vm?/tokio"]
-compio = ["dep:compio", "dep:cyper", "fetch", "timers", "fs", "vfs-compio", "klaver-vm?/compio"]
+tokio = [
+    "reqwest",
+    "dep:tokio",
+    "timers",
+    "fetch",
+    "fs",
+    "vfs-tokio",
+    "klaver-vm?/tokio",
+    "goerdet/tokio",
+]
+compio = [
+    "dep:compio",
+    "dep:cyper",
+    "fetch",
+    "timers",
+    "fs",
+    "vfs-compio",
+    "klaver-vm?/compio",
+    "goerdet/compio",
+]
 
 [dependencies]
 rquickjs = { workspace = true }
@@ -156,6 +183,11 @@ vfs-compio = { git = "https://github.com/kildevaeld/vfs-rs", optional = true }
 relative-path = { version = "2", optional = true }
 
 mime_guess = { version = "2", optional = true }
+
+##
+goerdet = { git = "https://github.com/kildevaeld/goerdet", features = [
+    "alloc",
+] }
 
 ## Backend
 tokio = { version = "1", features = ["time"], optional = true }

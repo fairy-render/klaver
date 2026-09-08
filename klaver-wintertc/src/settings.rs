@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
+use goerdet::{BlockingSpawner, BoxError, DynResult};
 use klaver_core::{Core, throw_if};
 use rquickjs::{Class, Ctx, JsLifetime, class::Trace};
 
-use crate::backend::Backend;
 #[cfg(feature = "fetch")]
 use crate::fetch::{Client, LocalClient, SharedClient};
 #[cfg(feature = "fs")]
 use crate::fs::FileSystemSettings;
 #[cfg(feature = "timers")]
 use crate::timers::TimingBackend;
+use crate::{backend::Backend, blocking::Blocking};
 
 #[rquickjs::class]
 pub struct WinterTcInstance {
@@ -75,6 +76,7 @@ pub struct Settings {
     timers: TimingBackend,
     #[cfg(feature = "fs")]
     file_system: FileSystemSettings,
+    blocking: Blocking,
 }
 
 impl Default for Settings {
@@ -86,11 +88,25 @@ impl Default for Settings {
             timers: TimingBackend::null(),
             #[cfg(feature = "fs")]
             file_system: FileSystemSettings::default(),
+            blocking: Blocking::default(),
         }
     }
 }
 
 impl Settings {
+    pub fn blocking(&self) -> &Blocking {
+        &self.blocking
+    }
+
+    pub fn set_spawner<T>(&mut self, spawner: T)
+    where
+        T: BlockingSpawner + Send + Sync + 'static,
+        T::Future<DynResult>: Send,
+        T::Error: Into<BoxError>,
+    {
+        self.blocking.set_spawner(spawner);
+    }
+
     #[cfg(feature = "fetch")]
     pub fn set_http_client<T: SharedClient + 'static>(&mut self, client: T) {
         self.http_client.set_shared_client(client);

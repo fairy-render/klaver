@@ -4,6 +4,8 @@ mod macros;
 mod base;
 mod settings;
 
+mod blocking;
+
 pub mod abort_controller;
 #[cfg(feature = "streams")]
 pub mod blob;
@@ -14,13 +16,13 @@ pub mod crypto;
 pub mod dom_exception;
 pub mod encoding;
 pub mod events;
-pub mod performance;
 #[cfg(feature = "fetch")]
 pub mod fetch;
 #[cfg(feature = "fs")]
 pub mod fs;
 #[cfg(feature = "intl")]
 pub mod intl;
+pub mod performance;
 #[cfg(feature = "streams")]
 pub mod streams;
 #[cfg(feature = "timers")]

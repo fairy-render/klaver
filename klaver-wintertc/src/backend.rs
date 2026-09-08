@@ -33,6 +33,7 @@ mod tokio_backend {
             settings
                 .set_file_system(FileSystemSettings::new().with_backend(Box::new(TokioBackend)));
             settings.set_http_client(reqwest::Client::new());
+            settings.set_spawner(goerdet::TokioExecutor);
             Ok(())
         }
     }
@@ -92,12 +93,10 @@ mod compio_backend {
             settings
                 .set_file_system(FileSystemSettings::new().with_backend(Box::new(CompioBackend)));
             settings.set_local_http_client(throw_if!(ctx, cyper::Client::new()));
-
+            settings.set_spawner(goerdet::CompioExecutor);
             Ok(())
         }
     }
-
-    pub struct CompioTimer;
 
     impl TimerBackend for CompioBackend {
         type Timer = LocalBoxFuture<'static, ()>;
