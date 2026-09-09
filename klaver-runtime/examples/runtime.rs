@@ -19,6 +19,7 @@ async fn main() -> Result<(), RuntimeError> {
     let context = AsyncContext::full(&runtime).await?;
 
     rquickjs::async_with!(context => |ctx| {
+        klaver_core::register(&ctx)?;
 
       run(ctx.clone()).await.catch(&ctx)?;
       ctx.run_gc();
@@ -95,7 +96,7 @@ async fn run_inner<'js>(ctx: Ctx<'js>) -> rquickjs::Result<()> {
 
     Module::declare_def::<klaver_runtime::TaskModule, _>(ctx.clone(), "node:async_hooks")?;
 
-    let module = Module::declare(ctx.clone(), "main", include_str!("./promise.js"))?;
+    let module = Module::declare(ctx.clone(), "main", include_str!("./resource.js"))?;
 
     module.meta()?.set("main", true)?;
 

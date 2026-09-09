@@ -1,6 +1,6 @@
 use core::fmt;
 
-use rquickjs::CaughtError;
+use rquickjs::{CaughtError, Coerced};
 
 use crate::error::StackTrace;
 
@@ -12,8 +12,6 @@ pub struct CaugthException {
 
 impl fmt::Display for CaugthException {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        "Error:".fmt(f)?;
-
         if let Some(message) = &self.message {
             ' '.fmt(f)?;
             message.fmt(f)?;
@@ -38,10 +36,7 @@ impl<'js> From<CaughtError<'js>> for CaugthException {
                 let stack = if let Some(stack) = e.stack() {
                     let traces = match super::stack_trace::parse(&stack) {
                         Ok(ret) => ret,
-                        Err(_err) => {
-                            println!("ERROR {}", _err);
-                            Vec::default()
-                        }
+                        Err(_err) => Vec::default(),
                     };
                     traces
                 } else {
@@ -53,10 +48,30 @@ impl<'js> From<CaughtError<'js>> for CaugthException {
                     stack,
                 }
             }
-            CaughtError::Value(e) => CaugthException {
-                message: e.as_string().and_then(|m| m.to_string().ok()),
-                stack: Default::default(),
-            },
+            CaughtError::Value(e) => {
+                //
+                if let Some(object) = e.as_object() {
+                    let message = if let Ok(message) = object.get::<_, String>("message") {
+                        Some(message)
+                    } else {
+                        None
+                    };
+                    if let Ok(stack) = object.get::<_, String>("stack") {
+                        let traces = match super::stack_trace::parse(&stack) {
+                            Ok(ret) => ret,
+                            Err(_err) => Vec::default(),
+                        };
+                        return CaugthException {
+                            message: message,
+                            stack: traces,
+                        };
+                    }
+                }
+                CaugthException {
+                    message: e.get::<Coerced<String>>().map(|m| m.0).ok(),
+                    stack: Default::default(),
+                }
+            }
         }
     }
 }

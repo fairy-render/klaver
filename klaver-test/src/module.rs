@@ -31,4 +31,4 @@ impl ModuleDef for TestModule {
     }
 }
 
-module_info!("klaver:test" @types: include_str!("../module.d.ts") => TestModule);
+module_info!("@klaver/test" @types: include_str!("../module.d.ts") => TestModule);

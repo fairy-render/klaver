@@ -1,5 +1,8 @@
 export {};
 //
+//
+
+crypto.subtle.generateKey("Ed25519", true, ["encrypt", "decrypt"]);
 
 function encryptMessage(
   message: string,

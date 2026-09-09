@@ -16,16 +16,12 @@ debug = ["tracing-subscriber"]
 
 [dependencies]
 rquickjs.workspace = true
-klaver = { path = "../klaver", features = [
-    "fetch",
-    "crypto",
-    "crypto-asymmetric",
-] }
+klaver = { path = "../klaver", features = ["full"] }
 klaver-core = { path = "../klaver-core" }
 klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules", features = ["filelist"] }
 klaver-wintertc = { path = "../klaver-wintertc", features = ["fs", "tokio"] }
-
+klaver-test = { path = "../klaver-test" }
 klaver-image = { path = "../klaver-image" }
 # klaver-dom = { path = "../klaver-dom" }
 klaver-runtime = { path = "../klaver-runtime", features = ["module"] }

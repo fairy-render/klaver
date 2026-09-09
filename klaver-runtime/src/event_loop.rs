@@ -22,12 +22,10 @@ impl<T> EventLoop<T> {
         R: ParallelSend + 'static,
         R: for<'js> FromJs<'js>,
     {
-        let work = rquickjs::async_with!(context => |ctx| {
-
-            let ret = AsyncState::run_async(&ctx, |ctx| async {
-
-                self.runner.run(ctx).await
-            }).await.catch(&ctx)?;
+        let work = context.async_with(async move |ctx| {
+            let ret = AsyncState::run_async(&ctx, |ctx| async { self.runner.run(ctx).await })
+                .await
+                .catch(&ctx)?;
 
             Result::<_, RuntimeError>::Ok(ret)
         });

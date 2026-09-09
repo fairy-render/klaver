@@ -16,23 +16,22 @@ import { hello } from "./other.ts";
 
 hello();
 
-
+console.log(Fs.name);
 
 const path = await Fs.root.resolve("./store.js").open({ read: true });
 
 const content = await path.arrayBuffer();
-
 
 console.log(new TextDecoder().decode(content));
 
 const worker = new Worker(new URL("./worker.ts", import.meta.url).href);
 
 worker.onmessage = (event) => {
-    console.log("Message from worker", event.data);
-    worker.postMessage("Hello from main thread");
-    // console.log('sendt')
-    worker.terminate();
-}
+  console.log("Message from worker", event.data);
+  worker.postMessage("Hello from main thread");
+  // console.log('sendt')
+  worker.terminate();
+};
 
 // console.log(btoa(atob(new TextDecoder().decode(await resp.arrayBuffer()))));
 

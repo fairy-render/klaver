@@ -2969,6 +2969,7 @@ dependencies = [
  "klaver-image",
  "klaver-modules",
  "klaver-runtime",
+ "klaver-test",
  "klaver-vm",
  "klaver-wintertc",
  "reedline",

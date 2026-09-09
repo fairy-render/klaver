@@ -23,7 +23,7 @@ pub use self::{
 
 pub fn register(ctx: &rquickjs::Ctx) -> rquickjs::Result<()> {
     let core = Core::new(ctx)?;
-    ctx.globals().set("$runtime", core)?;
+    ctx.globals().prop("$runtime", Property::from(core))?;
     crate::value::register(ctx)?;
 
     Ok(())
@@ -34,3 +34,4 @@ pub mod prelude {
 }
 
 pub use rquickjs;
+use rquickjs::object::Property;

@@ -1,8 +1,10 @@
-
 use clap::Parser;
 use klaver_modules::{Global, global_info};
 use klaver_vm::RuntimeError;
-use klaver_wintertc::{TokioBackend, WinterTcInstance, fs::FileSystemEntry};
+use klaver_wintertc::{
+    TokioBackend, WinterTcInstance,
+    fs::{FileSystem, FileSystemEntry},
+};
 use rquickjs::CatchResultExt;
 
 use crate::run;
@@ -28,6 +30,7 @@ impl Cli {
             .global::<CliGlobal>()
             .module::<klaver_vm::VmModule>()
             .module::<klaver_image::Module>()
+            .module::<klaver_test::TestModule>()
             // .module::<klaver_dom::Module>()
             .module::<klaver_runtime::TaskModule>();
 
@@ -45,9 +48,9 @@ impl Cli {
                 .await
                 .map_err(|err| RuntimeError::Custom(Box::new(err)))?;
 
-            ctx.globals()
-                .set("Fs", FileSystemEntry { path })
-                .catch(&ctx)?;
+            let fs = FileSystem::new(ctx.clone(), "main", path).catch(&ctx)?;
+
+            ctx.globals().set("Fs", fs).catch(&ctx)?;
             Ok(())
         })
         .await?;
