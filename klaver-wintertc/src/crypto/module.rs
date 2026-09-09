@@ -16,6 +16,8 @@ use super::{
     key::{AesVariant, CryptoKey, KeyAlgorithm, KeyUsage},
 };
 #[cfg(feature = "crypto-cipher")]
+use crate::WinterTcInstance;
+#[cfg(feature = "crypto-cipher")]
 use crate::dom_exception::DOMException;
 #[cfg(feature = "crypto-cipher")]
 use rquickjs::{ArrayBuffer, Class};
@@ -23,8 +25,9 @@ use rquickjs::{ArrayBuffer, Class};
 #[cfg(feature = "crypto-asymmetric")]
 use super::{
     algorithm::{DeriveBitsAlgorithm, ImportAlgorithm},
-    ec, kdf, rsa as rsa_backend,
+    ec, kdf,
     key::{DeriveKind, EcCurve, EcVariant, KeyFormat, KeyType, RsaVariant},
+    rsa as rsa_backend,
 };
 #[cfg(feature = "crypto-asymmetric")]
 use rquickjs::prelude::Flat;
@@ -131,106 +134,132 @@ fn cipher_error<'js>(ctx: &Ctx<'js>, err: aes::CipherError) -> rquickjs::Error {
 /// the `"encrypt"` usage) and `wrap_key()` (which requires `"wrapKey"` instead, per spec - a key
 /// usable only for wrapping need not also carry a plain `"encrypt"` usage).
 #[cfg(feature = "crypto-cipher")]
-fn encrypt_bytes<'js>(
+async fn encrypt_bytes<'js>(
     ctx: &Ctx<'js>,
     algorithm: CipherAlgorithm,
     key_ref: &CryptoKey,
-    plaintext: &[u8],
+    plaintext: Vec<u8>,
 ) -> rquickjs::Result<Vec<u8>> {
     #[cfg(feature = "crypto-asymmetric")]
     if let CipherAlgorithm::RsaOaep { label } = algorithm {
         require_key_type(ctx, key_ref, KeyType::Public)?;
         let hash = require_rsa_variant(ctx, key_ref, RsaVariant::Oaep)?;
-        let rsa_backend::RsaKeyPair::Public(pub_key) = key_ref.rsa_key_pair().expect("checked above")
+        let rsa_backend::RsaKeyPair::Public(pub_key) =
+            key_ref.rsa_key_pair().expect("checked above")
         else {
             throw_dom!(ctx, "InvalidAccessError", "key is not an RSA public key");
         };
-        return rsa_backend::oaep_encrypt(pub_key, hash, label.as_deref(), plaintext)
+        return rsa_backend::oaep_encrypt(pub_key, hash, label.as_deref(), &plaintext)
             .map_err(|e| super::key::rsa_error(ctx, e));
     }
 
     require_aes_variant(ctx, key_ref, aes_variant_of(&algorithm))?;
-    let key_bytes = key_ref.key_bytes();
 
-    let result = match algorithm {
-        CipherAlgorithm::AesGcm {
-            iv,
-            additional_data,
-            tag_length_bits,
-        } => aes::gcm_encrypt(
-            key_bytes,
-            &iv,
-            additional_data.as_deref(),
-            tag_length_bits,
-            plaintext,
-        ),
-        CipherAlgorithm::AesCbc { iv } => aes::cbc_encrypt(key_bytes, &iv, plaintext),
-        CipherAlgorithm::AesCtr {
-            counter,
-            length_bits,
-        } => {
-            let Ok(counter): Result<[u8; 16], _> = counter.try_into() else {
-                return Err(cipher_error(ctx, aes::CipherError::WrongCounterLength));
+    let instance = WinterTcInstance::from_ctx(&ctx)?;
+    let key = key_ref.clone();
+
+    let result = instance
+        .borrow()
+        .spawn_blocking(&ctx, move || {
+            let key_bytes = key.key_bytes();
+
+            let result = match algorithm {
+                CipherAlgorithm::AesGcm {
+                    iv,
+                    additional_data,
+                    tag_length_bits,
+                } => aes::gcm_encrypt(
+                    key_bytes,
+                    &iv,
+                    additional_data.as_deref(),
+                    tag_length_bits,
+                    &plaintext,
+                ),
+                CipherAlgorithm::AesCbc { iv } => aes::cbc_encrypt(key_bytes, &iv, &plaintext),
+                CipherAlgorithm::AesCtr {
+                    counter,
+                    length_bits,
+                } => {
+                    let Ok(counter): Result<[u8; 16], _> = counter.try_into() else {
+                        return Err(aes::CipherError::WrongCounterLength);
+                    };
+                    aes::ctr_encrypt_decrypt(key_bytes, &counter, length_bits, &plaintext)
+                }
+                #[cfg(feature = "crypto-asymmetric")]
+                CipherAlgorithm::RsaOaep { .. } => unreachable!("handled above"),
             };
-            aes::ctr_encrypt_decrypt(key_bytes, &counter, length_bits, plaintext)
-        }
-        #[cfg(feature = "crypto-asymmetric")]
-        CipherAlgorithm::RsaOaep { .. } => unreachable!("handled above"),
-    };
 
-    result.map_err(|err| cipher_error(ctx, err))
+            result
+        })
+        .await?
+        .map_err(|err| cipher_error(ctx, err))?;
+
+    Ok(result)
 }
 
 /// The actual decrypt operation, with no `KeyUsage` check - see `encrypt_bytes`.
 #[cfg(feature = "crypto-cipher")]
-fn decrypt_bytes<'js>(
+async fn decrypt_bytes<'js>(
     ctx: &Ctx<'js>,
     algorithm: CipherAlgorithm,
     key_ref: &CryptoKey,
-    ciphertext: &[u8],
+    ciphertext: Vec<u8>,
 ) -> rquickjs::Result<Vec<u8>> {
     #[cfg(feature = "crypto-asymmetric")]
     if let CipherAlgorithm::RsaOaep { label } = algorithm {
         require_key_type(ctx, key_ref, KeyType::Private)?;
         let hash = require_rsa_variant(ctx, key_ref, RsaVariant::Oaep)?;
-        let rsa_backend::RsaKeyPair::Private(priv_key) = key_ref.rsa_key_pair().expect("checked above")
+        let rsa_backend::RsaKeyPair::Private(priv_key) =
+            key_ref.rsa_key_pair().expect("checked above")
         else {
             throw_dom!(ctx, "InvalidAccessError", "key is not an RSA private key");
         };
-        return rsa_backend::oaep_decrypt(priv_key, hash, label.as_deref(), ciphertext)
+        return rsa_backend::oaep_decrypt(priv_key, hash, label.as_deref(), &ciphertext)
             .map_err(|e| super::key::rsa_error(ctx, e));
     }
 
     require_aes_variant(ctx, key_ref, aes_variant_of(&algorithm))?;
-    let key_bytes = key_ref.key_bytes();
 
-    let result = match algorithm {
-        CipherAlgorithm::AesGcm {
-            iv,
-            additional_data,
-            tag_length_bits,
-        } => aes::gcm_decrypt(
-            key_bytes,
-            &iv,
-            additional_data.as_deref(),
-            tag_length_bits,
-            ciphertext,
-        ),
-        CipherAlgorithm::AesCbc { iv } => aes::cbc_decrypt(key_bytes, &iv, ciphertext),
-        CipherAlgorithm::AesCtr {
-            counter,
-            length_bits,
-        } => {
-            let Ok(counter): Result<[u8; 16], _> = counter.try_into() else {
-                return Err(cipher_error(ctx, aes::CipherError::WrongCounterLength));
+    let instance = WinterTcInstance::from_ctx(&ctx)?;
+    let key = key_ref.clone();
+
+    let result = instance
+        .borrow()
+        .spawn_blocking(&ctx, move || {
+            let key_bytes = key.key_bytes();
+
+            let result = match algorithm {
+                CipherAlgorithm::AesGcm {
+                    iv,
+                    additional_data,
+                    tag_length_bits,
+                } => aes::gcm_decrypt(
+                    key_bytes,
+                    &iv,
+                    additional_data.as_deref(),
+                    tag_length_bits,
+                    &ciphertext,
+                ),
+                CipherAlgorithm::AesCbc { iv } => aes::cbc_decrypt(key_bytes, &iv, &ciphertext),
+                CipherAlgorithm::AesCtr {
+                    counter,
+                    length_bits,
+                } => {
+                    let Ok(counter): Result<[u8; 16], _> = counter.try_into() else {
+                        return Err(aes::CipherError::WrongCounterLength);
+                    };
+                    aes::ctr_encrypt_decrypt(key_bytes, &counter, length_bits, &ciphertext)
+                }
+                #[cfg(feature = "crypto-asymmetric")]
+                CipherAlgorithm::RsaOaep { .. } => unreachable!("handled above"),
             };
-            aes::ctr_encrypt_decrypt(key_bytes, &counter, length_bits, ciphertext)
-        }
-        #[cfg(feature = "crypto-asymmetric")]
-        CipherAlgorithm::RsaOaep { .. } => unreachable!("handled above"),
-    };
 
-    result.map_err(|err| cipher_error(ctx, err))
+            result
+        })
+        .await?
+        .map_err(|err| cipher_error(ctx, err))?;
+
+    Ok(result)
 }
 
 #[cfg(feature = "crypto-cipher")]
@@ -243,7 +272,7 @@ async fn encrypt<'js>(
     let key_ref = key.borrow();
     require_usage(&ctx, &key_ref, KeyUsage::Encrypt)?;
     let plaintext = algorithm::buffer_bytes(&ctx, data)?;
-    let ciphertext = encrypt_bytes(&ctx, algorithm, &key_ref, &plaintext)?;
+    let ciphertext = encrypt_bytes(&ctx, algorithm, &key_ref, plaintext).await?;
     ArrayBuffer::new(ctx, ciphertext)
 }
 
@@ -257,7 +286,7 @@ async fn decrypt<'js>(
     let key_ref = key.borrow();
     require_usage(&ctx, &key_ref, KeyUsage::Decrypt)?;
     let ciphertext = algorithm::buffer_bytes(&ctx, data)?;
-    let plaintext = decrypt_bytes(&ctx, algorithm, &key_ref, &ciphertext)?;
+    let plaintext = decrypt_bytes(&ctx, algorithm, &key_ref, ciphertext).await?;
     ArrayBuffer::new(ctx, plaintext)
 }
 
@@ -270,8 +299,17 @@ fn aes_variant_of(algorithm: &CipherAlgorithm) -> AesVariant {
         CipherAlgorithm::AesCbc { .. } => AesVariant::Cbc,
         CipherAlgorithm::AesCtr { .. } => AesVariant::Ctr,
         #[cfg(feature = "crypto-asymmetric")]
-        CipherAlgorithm::RsaOaep { .. } => unreachable!("RSA-OAEP is handled before this is called"),
+        CipherAlgorithm::RsaOaep { .. } => {
+            unreachable!("RSA-OAEP is handled before this is called")
+        }
     }
+}
+
+#[cfg(feature = "crypto-asymmetric")]
+#[derive(Debug, Clone, Copy)]
+enum SignBackendError {
+    Rsa(rsa_backend::RsaError),
+    Ec(ec::EcError),
 }
 
 #[cfg(feature = "crypto-cipher")]
@@ -285,43 +323,80 @@ async fn sign<'js>(
     require_usage(&ctx, &key_ref, KeyUsage::Sign)?;
     let data = algorithm::buffer_bytes(&ctx, data)?;
 
-    let signature = match algorithm {
+    #[cfg(feature = "crypto-asymmetric")]
+    let (algorithm, hash, key) = match algorithm {
         SignAlgorithm::Hmac => {
             let hash = require_hmac(&ctx, &key_ref)?;
-            hmac_ops::sign(hash, key_ref.key_bytes(), &data)
+            return ArrayBuffer::new(ctx, hmac_ops::sign(hash, key_ref.key_bytes(), &data));
         }
-        #[cfg(feature = "crypto-asymmetric")]
         SignAlgorithm::RsaSsaPkcs1 => {
             require_key_type(&ctx, &key_ref, KeyType::Private)?;
             let hash = require_rsa_variant(&ctx, &key_ref, RsaVariant::Pkcs1v15)?;
-            let rsa_backend::RsaKeyPair::Private(priv_key) = key_ref.rsa_key_pair().expect("checked above") else {
-                throw_dom!(ctx, "InvalidAccessError", "key is not an RSA private key");
-            };
-            let hashed = super::digest::hash_bytes(hash, &data);
-            rsa_backend::pkcs1v15_sign(priv_key, hash, &hashed)
-                .map_err(|e| super::key::rsa_error(&ctx, e))?
+            (algorithm, hash, key_ref.clone())
         }
-        #[cfg(feature = "crypto-asymmetric")]
-        SignAlgorithm::RsaPss { salt_length } => {
+        SignAlgorithm::RsaPss { .. } => {
             require_key_type(&ctx, &key_ref, KeyType::Private)?;
             let hash = require_rsa_variant(&ctx, &key_ref, RsaVariant::Pss)?;
-            let rsa_backend::RsaKeyPair::Private(priv_key) = key_ref.rsa_key_pair().expect("checked above") else {
-                throw_dom!(ctx, "InvalidAccessError", "key is not an RSA private key");
-            };
-            let hashed = super::digest::hash_bytes(hash, &data);
-            rsa_backend::pss_sign(priv_key, hash, salt_length, &hashed)
-                .map_err(|e| super::key::rsa_error(&ctx, e))?
+            (algorithm, hash, key_ref.clone())
         }
-        #[cfg(feature = "crypto-asymmetric")]
         SignAlgorithm::Ecdsa { hash } => {
             require_key_type(&ctx, &key_ref, KeyType::Private)?;
             require_ec_variant(&ctx, &key_ref, EcVariant::Ecdsa)?;
-            let pair = key_ref.ec_key_pair().expect("checked above");
-            let hashed = super::digest::hash_bytes(hash, &data);
-            ec::ecdsa_sign(pair, &hashed).map_err(|e| super::key::ec_error(&ctx, e))?
+            (algorithm, hash, key_ref.clone())
         }
     };
-    ArrayBuffer::new(ctx, signature)
+
+    #[cfg(not(feature = "crypto-asymmetric"))]
+    match algorithm {
+        SignAlgorithm::Hmac => {
+            let hash = require_hmac(&ctx, &key_ref)?;
+            return ArrayBuffer::new(ctx, hmac_ops::sign(hash, key_ref.key_bytes(), &data));
+        }
+    }
+
+    #[cfg(feature = "crypto-asymmetric")]
+    {
+        let instance = WinterTcInstance::from_ctx(&ctx)?;
+
+        let signature = instance
+            .borrow()
+            .spawn_blocking(&ctx, move || {
+                let hashed = super::digest::hash_bytes(hash, &data);
+
+                match algorithm {
+                    SignAlgorithm::Hmac => unreachable!("handled above"),
+                    SignAlgorithm::RsaSsaPkcs1 => {
+                        let rsa_backend::RsaKeyPair::Private(priv_key) =
+                            key.rsa_key_pair().expect("checked above")
+                        else {
+                            return Err(SignBackendError::Rsa(rsa_backend::RsaError::InvalidKey));
+                        };
+                        rsa_backend::pkcs1v15_sign(priv_key, hash, &hashed)
+                            .map_err(SignBackendError::Rsa)
+                    }
+                    SignAlgorithm::RsaPss { salt_length } => {
+                        let rsa_backend::RsaKeyPair::Private(priv_key) =
+                            key.rsa_key_pair().expect("checked above")
+                        else {
+                            return Err(SignBackendError::Rsa(rsa_backend::RsaError::InvalidKey));
+                        };
+                        rsa_backend::pss_sign(priv_key, hash, salt_length, &hashed)
+                            .map_err(SignBackendError::Rsa)
+                    }
+                    SignAlgorithm::Ecdsa { .. } => {
+                        let pair = key.ec_key_pair().expect("checked above");
+                        ec::ecdsa_sign(pair, &hashed).map_err(SignBackendError::Ec)
+                    }
+                }
+            })
+            .await?
+            .map_err(|err| match err {
+                SignBackendError::Rsa(e) => super::key::rsa_error(&ctx, e),
+                SignBackendError::Ec(e) => super::key::ec_error(&ctx, e),
+            })?;
+
+        ArrayBuffer::new(ctx, signature)
+    }
 }
 
 #[cfg(feature = "crypto-cipher")]
@@ -337,40 +412,84 @@ async fn verify<'js>(
     let signature = algorithm::buffer_bytes(&ctx, signature)?;
     let data = algorithm::buffer_bytes(&ctx, data)?;
 
-    Ok(match algorithm {
+    #[cfg(feature = "crypto-asymmetric")]
+    let (algorithm, hash, key) = match algorithm {
         SignAlgorithm::Hmac => {
             let hash = require_hmac(&ctx, &key_ref)?;
-            hmac_ops::verify(hash, key_ref.key_bytes(), &data, &signature)
+            return Ok(hmac_ops::verify(
+                hash,
+                key_ref.key_bytes(),
+                &data,
+                &signature,
+            ));
         }
-        #[cfg(feature = "crypto-asymmetric")]
         SignAlgorithm::RsaSsaPkcs1 => {
             require_key_type(&ctx, &key_ref, KeyType::Public)?;
             let hash = require_rsa_variant(&ctx, &key_ref, RsaVariant::Pkcs1v15)?;
-            let rsa_backend::RsaKeyPair::Public(pub_key) = key_ref.rsa_key_pair().expect("checked above") else {
-                throw_dom!(ctx, "InvalidAccessError", "key is not an RSA public key");
-            };
-            let hashed = super::digest::hash_bytes(hash, &data);
-            rsa_backend::pkcs1v15_verify(pub_key, hash, &hashed, &signature)
+            (algorithm, hash, key_ref.clone())
         }
-        #[cfg(feature = "crypto-asymmetric")]
-        SignAlgorithm::RsaPss { salt_length } => {
+        SignAlgorithm::RsaPss { .. } => {
             require_key_type(&ctx, &key_ref, KeyType::Public)?;
             let hash = require_rsa_variant(&ctx, &key_ref, RsaVariant::Pss)?;
-            let rsa_backend::RsaKeyPair::Public(pub_key) = key_ref.rsa_key_pair().expect("checked above") else {
-                throw_dom!(ctx, "InvalidAccessError", "key is not an RSA public key");
-            };
-            let hashed = super::digest::hash_bytes(hash, &data);
-            rsa_backend::pss_verify(pub_key, hash, salt_length, &hashed, &signature)
+            (algorithm, hash, key_ref.clone())
         }
-        #[cfg(feature = "crypto-asymmetric")]
         SignAlgorithm::Ecdsa { hash } => {
             require_key_type(&ctx, &key_ref, KeyType::Public)?;
             require_ec_variant(&ctx, &key_ref, EcVariant::Ecdsa)?;
-            let pair = key_ref.ec_key_pair().expect("checked above");
-            let hashed = super::digest::hash_bytes(hash, &data);
-            ec::ecdsa_verify(pair, &hashed, &signature)
+            (algorithm, hash, key_ref.clone())
         }
-    })
+    };
+
+    #[cfg(not(feature = "crypto-asymmetric"))]
+    match algorithm {
+        SignAlgorithm::Hmac => {
+            let hash = require_hmac(&ctx, &key_ref)?;
+            return Ok(hmac_ops::verify(
+                hash,
+                key_ref.key_bytes(),
+                &data,
+                &signature,
+            ));
+        }
+    }
+
+    #[cfg(feature = "crypto-asymmetric")]
+    {
+        let instance = WinterTcInstance::from_ctx(&ctx)?;
+
+        let ok = instance
+            .borrow()
+            .spawn_blocking(&ctx, move || {
+                let hashed = super::digest::hash_bytes(hash, &data);
+
+                match algorithm {
+                    SignAlgorithm::Hmac => unreachable!("handled above"),
+                    SignAlgorithm::RsaSsaPkcs1 => {
+                        let rsa_backend::RsaKeyPair::Public(pub_key) =
+                            key.rsa_key_pair().expect("checked above")
+                        else {
+                            return false;
+                        };
+                        rsa_backend::pkcs1v15_verify(pub_key, hash, &hashed, &signature)
+                    }
+                    SignAlgorithm::RsaPss { salt_length } => {
+                        let rsa_backend::RsaKeyPair::Public(pub_key) =
+                            key.rsa_key_pair().expect("checked above")
+                        else {
+                            return false;
+                        };
+                        rsa_backend::pss_verify(pub_key, hash, salt_length, &hashed, &signature)
+                    }
+                    SignAlgorithm::Ecdsa { .. } => {
+                        let pair = key.ec_key_pair().expect("checked above");
+                        ec::ecdsa_verify(pair, &hashed, &signature)
+                    }
+                }
+            })
+            .await?;
+
+        Ok(ok)
+    }
 }
 
 /// Raw ECDH shared secret, or HKDF/PBKDF2 output, truncated/validated against `length` (bits).
@@ -383,7 +502,7 @@ async fn derive_bits<'js>(
 ) -> rquickjs::Result<ArrayBuffer<'js>> {
     let key_ref = base_key.borrow();
     require_usage(&ctx, &key_ref, KeyUsage::DeriveBits)?;
-    let bytes = derive_bits_bytes(&ctx, &algorithm, &key_ref, length.0)?;
+    let bytes = derive_bits_bytes(&ctx, &algorithm, &key_ref, length.0).await?;
     ArrayBuffer::new(ctx, bytes)
 }
 
@@ -428,7 +547,7 @@ fn require_derive_length<'js>(
 /// different usage on `base_key` (`"deriveBits"` vs. `"deriveKey"`) before reaching this, so the
 /// usage check lives in the two callers rather than here.
 #[cfg(feature = "crypto-asymmetric")]
-fn derive_bits_bytes<'js>(
+async fn derive_bits_bytes<'js>(
     ctx: &Ctx<'js>,
     algorithm: &DeriveBitsAlgorithm<'js>,
     key_ref: &CryptoKey,
@@ -488,14 +607,18 @@ fn derive_bits_bytes<'js>(
                     "PBKDF2 iterations must be greater than zero"
                 );
             }
-            let password = require_derive_key(ctx, key_ref, DeriveKind::Pbkdf2)?;
-            Ok(kdf::pbkdf2_derive_bits(
-                *hash,
-                password,
-                salt,
-                *iterations,
-                length_bytes,
-            ))
+            let password = require_derive_key(ctx, key_ref, DeriveKind::Pbkdf2)?.to_vec();
+            let hash = *hash;
+            let salt = salt.clone();
+            let iterations = *iterations;
+
+            let instance = WinterTcInstance::from_ctx(&ctx)?;
+            Ok(instance
+                .borrow()
+                .spawn_blocking(&ctx, move || {
+                    kdf::pbkdf2_derive_bits(hash, &password, &salt, iterations, length_bytes)
+                })
+                .await?)
         }
     }
 }
@@ -527,7 +650,7 @@ async fn derive_key<'js>(
     let bytes = {
         let key_ref = base_key.borrow();
         require_usage(&ctx, &key_ref, KeyUsage::DeriveKey)?;
-        derive_bits_bytes(&ctx, &algorithm, &key_ref, Some(Some(length_bits)))?
+        derive_bits_bytes(&ctx, &algorithm, &key_ref, Some(Some(length_bits))).await?
     };
     let bits = ArrayBuffer::new(ctx.clone(), bytes)?;
     let import_algorithm = match derived_key_algorithm {
@@ -569,7 +692,7 @@ async fn wrap_key<'js>(
     } else {
         algorithm::buffer_bytes(&ctx, Buffer::from_js(&ctx, exported)?)?
     };
-    let ciphertext = encrypt_bytes(&ctx, wrap_algorithm, &wrapping_key_ref, &data)?;
+    let ciphertext = encrypt_bytes(&ctx, wrap_algorithm, &wrapping_key_ref, data).await?;
     ArrayBuffer::new(ctx, ciphertext)
 }
 
@@ -588,7 +711,7 @@ async fn unwrap_key<'js>(
     let plaintext = {
         let unwrapping_key_ref = unwrapping_key.borrow();
         require_usage(&ctx, &unwrapping_key_ref, KeyUsage::UnwrapKey)?;
-        decrypt_bytes(&ctx, unwrap_algorithm, &unwrapping_key_ref, &wrapped_bytes)?
+        decrypt_bytes(&ctx, unwrap_algorithm, &unwrapping_key_ref, wrapped_bytes).await?
     };
     let key_data = if matches!(format, KeyFormat::Jwk) {
         let Ok(json) = std::string::String::from_utf8(plaintext) else {
@@ -725,6 +848,38 @@ impl klaver_modules::GlobalInfo for CryptoModule {
 }
 
 #[cfg(test)]
+struct TestBlockingSpawner;
+
+#[cfg(test)]
+impl goerdet::BlockingSpawner for TestBlockingSpawner {
+    type Future<R> = tokio::task::JoinHandle<R>;
+    type Error = tokio::task::JoinError;
+
+    fn spawn_blocking<T, R>(&self, work: T) -> Self::Future<R>
+    where
+        R: Send + 'static,
+        T: FnOnce() -> R + Send + 'static,
+    {
+        tokio::task::spawn_blocking(work)
+    }
+}
+
+#[cfg(test)]
+struct TestBackend;
+
+#[cfg(test)]
+impl crate::backend::Backend for TestBackend {
+    fn init(
+        &self,
+        _ctx: &rquickjs::Ctx<'_>,
+        settings: &mut crate::Settings,
+    ) -> rquickjs::Result<()> {
+        settings.set_spawner(TestBlockingSpawner);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use rquickjs::{CatchResultExt, Context, Runtime};
@@ -773,35 +928,41 @@ mod tests {
 mod cipher_tests {
     use super::*;
     use klaver_core::value::FunctionExt;
-    use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Function};
+    use klaver_vm::{Options, Vm};
+    use rquickjs::{CatchResultExt, Function};
+
+    async fn build_vm() -> Vm {
+        Options::default()
+            .global::<crate::WinterTC>()
+            .build()
+            .await
+            .unwrap()
+    }
 
     /// Runs `body` as the contents of an async IIFE, with a global `crypto` object (including
     /// `subtle`'s cipher surface) available. `body` is expected to throw on failure.
-    fn run(body: &str) {
-        futures::executor::block_on(async move {
-            let rt = AsyncRuntime::new().unwrap();
-            let ctx = AsyncContext::full(&rt).await.unwrap();
+    async fn run(body: &str) {
+        let vm = build_vm().await;
 
-            ctx.async_with(async |ctx| {
-                let crypto = Object::new(ctx.clone())?;
-                CryptoModule::export(&ctx, &Registry::instance(&ctx)?, &crypto)?;
-                ctx.globals().set("crypto", crypto)?;
+        vm.async_with(async |ctx| {
+            crate::set_backend(&ctx, TestBackend).catch(&ctx)?;
 
-                let test_fn: Function = ctx.eval(format!("(async () => {{\n{body}\n}})"))?;
+            let test_fn: Function = ctx
+                .eval(format!("(async () => {{\n{body}\n}})"))
+                .catch(&ctx)?;
 
-                if let Err(err) = test_fn.call_async::<_, ()>(()).await.catch(&ctx) {
-                    panic!("{err}");
-                }
+            if let Err(err) = test_fn.call_async::<_, ()>(()).await.catch(&ctx) {
+                panic!("{err}");
+            }
 
-                rquickjs::Result::Ok(())
-            })
-            .await
-            .unwrap();
-        });
+            Ok(())
+        })
+        .await
+        .unwrap();
     }
 
-    #[test]
-    fn aes_gcm_round_trips_and_rejects_tampering() {
+    #[tokio::test]
+    async fn aes_gcm_round_trips_and_rejects_tampering() {
         run(r#"
             const key = await crypto.subtle.generateKey(
                 { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
@@ -826,11 +987,12 @@ mod cipher_tests {
                 if (err.name !== "OperationError") throw new Error(`wrong error name: ${err.name}`);
             }
             if (!threw) throw new Error("decrypt did not reject tampered ciphertext");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn aes_cbc_round_trips_non_block_aligned_data() {
+    #[tokio::test]
+    async fn aes_cbc_round_trips_non_block_aligned_data() {
         run(r#"
             const key = await crypto.subtle.generateKey(
                 { name: "AES-CBC", length: 128 }, true, ["encrypt", "decrypt"]);
@@ -844,11 +1006,12 @@ mod cipher_tests {
             if (plaintext.length !== data.length || !plaintext.every((b, i) => b === data[i])) {
                 throw new Error("round trip did not recover the original plaintext");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn aes_ctr_round_trips() {
+    #[tokio::test]
+    async fn aes_ctr_round_trips() {
         run(r#"
             const key = await crypto.subtle.generateKey(
                 { name: "AES-CTR", length: 128 }, true, ["encrypt", "decrypt"]);
@@ -863,11 +1026,12 @@ mod cipher_tests {
             if (plaintext.length !== data.length || !plaintext.every((b, i) => b === data[i])) {
                 throw new Error("round trip did not recover the original plaintext");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn hmac_sign_and_verify() {
+    #[tokio::test]
+    async fn hmac_sign_and_verify() {
         run(r#"
             const key = await crypto.subtle.generateKey(
                 { name: "HMAC", hash: "SHA-256" }, true, ["sign", "verify"]);
@@ -881,11 +1045,12 @@ mod cipher_tests {
             tampered[0] ^= 1;
             const shouldFail = await crypto.subtle.verify("HMAC", key, tampered, data);
             if (shouldFail) throw new Error("verify() accepted a tampered signature");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn generate_import_export_round_trips_through_raw_and_jwk() {
+    #[tokio::test]
+    async fn generate_import_export_round_trips_through_raw_and_jwk() {
         run(r#"
             const key = await crypto.subtle.generateKey(
                 { name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"]);
@@ -906,11 +1071,12 @@ mod cipher_tests {
             if (!rawFromJwk.every((b, i) => b === new Uint8Array(raw)[i])) {
                 throw new Error("jwk round trip changed the key bytes");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn crypto_key_getters_and_illegal_constructor() {
+    #[tokio::test]
+    async fn crypto_key_getters_and_illegal_constructor() {
         run(r#"
             const key = await crypto.subtle.generateKey(
                 { name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"]);
@@ -934,11 +1100,12 @@ mod cipher_tests {
                 threw = err instanceof TypeError;
             }
             if (!threw) throw new Error("new CryptoKey() did not throw a TypeError");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn encrypt_with_wrong_key_kind_throws_invalid_access_error() {
+    #[tokio::test]
+    async fn encrypt_with_wrong_key_kind_throws_invalid_access_error() {
         run(r#"
             const hmacKey = await crypto.subtle.generateKey(
                 { name: "HMAC", hash: "SHA-256" }, true, ["sign", "verify"]);
@@ -952,11 +1119,12 @@ mod cipher_tests {
                 if (err.name !== "InvalidAccessError") throw new Error(`wrong error name: ${err.name}`);
             }
             if (!threw) throw new Error("encrypt() did not reject a non-AES key");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn non_extractable_key_cannot_be_exported() {
+    #[tokio::test]
+    async fn non_extractable_key_cannot_be_exported() {
         run(r#"
             const key = await crypto.subtle.generateKey(
                 { name: "AES-GCM", length: 128 }, false, ["encrypt", "decrypt"]);
@@ -969,7 +1137,8 @@ mod cipher_tests {
                 if (err.name !== "InvalidAccessError") throw new Error(`wrong error name: ${err.name}`);
             }
             if (!threw) throw new Error("exportKey() did not reject a non-extractable key");
-        "#);
+        "#)
+        .await;
     }
 }
 
@@ -977,34 +1146,40 @@ mod cipher_tests {
 mod asymmetric_tests {
     use super::*;
     use klaver_core::value::FunctionExt;
-    use rquickjs::{AsyncContext, AsyncRuntime, CatchResultExt, Function};
+    use klaver_vm::{Options, Vm};
+    use rquickjs::{CatchResultExt, Function};
 
-    /// Same pattern as `cipher_tests::run` in the parent module.
-    fn run(body: &str) {
-        futures::executor::block_on(async move {
-            let rt = AsyncRuntime::new().unwrap();
-            let ctx = AsyncContext::full(&rt).await.unwrap();
-
-            ctx.async_with(async |ctx| {
-                let crypto = Object::new(ctx.clone())?;
-                CryptoModule::export(&ctx, &Registry::instance(&ctx)?, &crypto)?;
-                ctx.globals().set("crypto", crypto)?;
-
-                let test_fn: Function = ctx.eval(format!("(async () => {{\n{body}\n}})"))?;
-
-                if let Err(err) = test_fn.call_async::<_, ()>(()).await.catch(&ctx) {
-                    panic!("{err}");
-                }
-
-                rquickjs::Result::Ok(())
-            })
+    async fn build_vm() -> Vm {
+        Options::default()
+            .global::<crate::WinterTC>()
+            .build()
             .await
-            .unwrap();
-        });
+            .unwrap()
     }
 
-    #[test]
-    fn generate_key_returns_a_crypto_key_pair() {
+    /// Same pattern as `cipher_tests::run` in the parent module.
+    async fn run(body: &str) {
+        let vm = build_vm().await;
+
+        vm.async_with(async |ctx| {
+            crate::set_backend(&ctx, TestBackend).catch(&ctx)?;
+
+            let test_fn: Function = ctx
+                .eval(format!("(async () => {{\n{body}\n}})"))
+                .catch(&ctx)?;
+
+            if let Err(err) = test_fn.call_async::<_, ()>(()).await.catch(&ctx) {
+                panic!("{err}");
+            }
+
+            Ok(())
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn generate_key_returns_a_crypto_key_pair() {
         run(r#"
             const pair = await crypto.subtle.generateKey(
                 { name: "RSASSA-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
@@ -1014,11 +1189,12 @@ mod asymmetric_tests {
             if (!pair.privateKey.usages.includes("sign")) throw new Error("privateKey missing sign usage");
             if (!pair.publicKey.usages.includes("verify")) throw new Error("publicKey missing verify usage");
             if (pair.privateKey.usages.includes("verify")) throw new Error("privateKey should not get verify usage");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn rsassa_pkcs1_v1_5_sign_and_verify_round_trips_and_rejects_tampering() {
+    #[tokio::test]
+    async fn rsassa_pkcs1_v1_5_sign_and_verify_round_trips_and_rejects_tampering() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "RSASSA-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
@@ -1033,11 +1209,12 @@ mod asymmetric_tests {
             tampered[0] ^= 1;
             const shouldFail = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", publicKey, tampered, data);
             if (shouldFail) throw new Error("verify() accepted a tampered signature");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn rsa_oaep_encrypt_and_decrypt_round_trips() {
+    #[tokio::test]
+    async fn rsa_oaep_encrypt_and_decrypt_round_trips() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "RSA-OAEP", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
@@ -1049,11 +1226,12 @@ mod asymmetric_tests {
             if (plaintext.length !== data.length || !plaintext.every((b, i) => b === data[i])) {
                 throw new Error("round trip did not recover the original plaintext");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn rsa_oaep_sha1_round_trips() {
+    #[tokio::test]
+    async fn rsa_oaep_sha1_round_trips() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "RSA-OAEP", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-1" },
@@ -1065,11 +1243,12 @@ mod asymmetric_tests {
             if (plaintext.length !== data.length || !plaintext.every((b, i) => b === data[i])) {
                 throw new Error("round trip did not recover the original plaintext");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn ecdsa_p256_and_p384_sign_and_verify_round_trip() {
+    #[tokio::test]
+    async fn ecdsa_p256_and_p384_sign_and_verify_round_trip() {
         run(r#"
             for (const namedCurve of ["P-256", "P-384", "P-521"]) {
                 const { publicKey, privateKey } = await crypto.subtle.generateKey(
@@ -1085,11 +1264,12 @@ mod asymmetric_tests {
                 const shouldFail = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, publicKey, tampered, data);
                 if (shouldFail) throw new Error(`${namedCurve}: verify() accepted a tampered signature`);
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn ecdh_derive_bits_produces_a_matching_shared_secret_on_both_sides() {
+    #[tokio::test]
+    async fn ecdh_derive_bits_produces_a_matching_shared_secret_on_both_sides() {
         run(r#"
             const alice = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
             const bob = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
@@ -1103,11 +1283,12 @@ mod asymmetric_tests {
             if (!aliceSecret.every((b, i) => b === bobSecret[i])) {
                 throw new Error("shared secrets did not match");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn ecdh_derive_key_produces_a_usable_aes_gcm_key() {
+    #[tokio::test]
+    async fn ecdh_derive_key_produces_a_usable_aes_gcm_key() {
         run(r#"
             const alice = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]);
             const bob = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]);
@@ -1127,11 +1308,12 @@ mod asymmetric_tests {
             if (!plaintext.every((b, i) => b === data[i])) {
                 throw new Error("derived keys did not agree");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn rsa_pkcs8_and_spki_export_import_round_trip() {
+    #[tokio::test]
+    async fn rsa_pkcs8_and_spki_export_import_round_trip() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "RSASSA-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
@@ -1149,11 +1331,12 @@ mod asymmetric_tests {
             const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", importedPrivate, data);
             const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", importedPublic, signature, data);
             if (!ok) throw new Error("round-tripped RSA keys did not agree");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn ec_pkcs8_and_spki_export_import_round_trip() {
+    #[tokio::test]
+    async fn ec_pkcs8_and_spki_export_import_round_trip() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
@@ -1178,11 +1361,12 @@ mod asymmetric_tests {
             if (!(await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, importedFromRaw, signature, data))) {
                 throw new Error("round-tripped EC keys (raw) did not agree");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn rsa_jwk_export_import_round_trip() {
+    #[tokio::test]
+    async fn rsa_jwk_export_import_round_trip() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "RSASSA-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
@@ -1205,11 +1389,12 @@ mod asymmetric_tests {
             if (!(await crypto.subtle.verify("RSASSA-PKCS1-v1_5", importedPublic, signature, data))) {
                 throw new Error("round-tripped RSA JWK keys did not agree");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn ec_jwk_export_import_round_trip() {
+    #[tokio::test]
+    async fn ec_jwk_export_import_round_trip() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
@@ -1231,11 +1416,12 @@ mod asymmetric_tests {
             if (!(await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, importedPublic, signature, data))) {
                 throw new Error("round-tripped EC JWK keys did not agree");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn wrap_key_and_unwrap_key_round_trip_with_an_aes_wrapping_key() {
+    #[tokio::test]
+    async fn wrap_key_and_unwrap_key_round_trip_with_an_aes_wrapping_key() {
         run(r#"
             const toWrap = await crypto.subtle.generateKey(
                 { name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"]);
@@ -1253,11 +1439,12 @@ mod asymmetric_tests {
             if (!rawOriginal.every((b, i) => b === rawUnwrapped[i])) {
                 throw new Error("unwrapped key bytes did not match the original");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn wrap_key_and_unwrap_key_round_trip_with_jwk_format() {
+    #[tokio::test]
+    async fn wrap_key_and_unwrap_key_round_trip_with_jwk_format() {
         run(r#"
             const toWrap = await crypto.subtle.generateKey(
                 { name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"]);
@@ -1275,11 +1462,12 @@ mod asymmetric_tests {
             if (!rawOriginal.every((b, i) => b === rawUnwrapped[i])) {
                 throw new Error("unwrapped key bytes did not match the original");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn wrap_key_and_unwrap_key_round_trip_with_an_rsa_oaep_wrapping_key() {
+    #[tokio::test]
+    async fn wrap_key_and_unwrap_key_round_trip_with_an_rsa_oaep_wrapping_key() {
         run(r#"
             const toWrap = await crypto.subtle.generateKey(
                 { name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"]);
@@ -1296,11 +1484,12 @@ mod asymmetric_tests {
             if (!rawOriginal.every((b, i) => b === rawUnwrapped[i])) {
                 throw new Error("unwrapped key bytes did not match the original");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn rsassa_pss_sign_and_verify_round_trips_and_rejects_tampering() {
+    #[tokio::test]
+    async fn rsassa_pss_sign_and_verify_round_trips_and_rejects_tampering() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "RSA-PSS", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
@@ -1316,11 +1505,12 @@ mod asymmetric_tests {
             const shouldFail = await crypto.subtle.verify(
                 { name: "RSA-PSS", saltLength: 32 }, publicKey, tampered, data);
             if (shouldFail) throw new Error("verify() accepted a tampered signature");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn rsassa_pss_sha1_sign_and_verify_round_trips() {
+    #[tokio::test]
+    async fn rsassa_pss_sha1_sign_and_verify_round_trips() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "RSA-PSS", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-1" },
@@ -1336,11 +1526,12 @@ mod asymmetric_tests {
             const shouldFail = await crypto.subtle.verify(
                 { name: "RSA-PSS", saltLength: 20 }, publicKey, tampered, data);
             if (shouldFail) throw new Error("verify() accepted a tampered signature");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn rsassa_pss_signatures_are_randomized() {
+    #[tokio::test]
+    async fn rsassa_pss_signatures_are_randomized() {
         run(r#"
             const { publicKey, privateKey } = await crypto.subtle.generateKey(
                 { name: "RSA-PSS", modulusLength: 1024, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
@@ -1357,11 +1548,12 @@ mod asymmetric_tests {
             if (!(await crypto.subtle.verify({ name: "RSA-PSS", saltLength: 32 }, publicKey, sig2, data))) {
                 throw new Error("second signature did not verify");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn ecdh_p521_derive_bits_produces_a_matching_shared_secret_on_both_sides() {
+    #[tokio::test]
+    async fn ecdh_p521_derive_bits_produces_a_matching_shared_secret_on_both_sides() {
         run(r#"
             const alice = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-521" }, true, ["deriveBits"]);
             const bob = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-521" }, true, ["deriveBits"]);
@@ -1375,11 +1567,12 @@ mod asymmetric_tests {
             if (!aliceSecret.every((b, i) => b === bobSecret[i])) {
                 throw new Error("shared secrets did not match");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn hkdf_derive_bits_matches_rfc5869_test_case_1() {
+    #[tokio::test]
+    async fn hkdf_derive_bits_matches_rfc5869_test_case_1() {
         run(r#"
             const ikm = new Uint8Array(22).fill(0x0b);
             const salt = new Uint8Array([0,1,2,3,4,5,6,7,8,9,10,11,12]);
@@ -1396,11 +1589,12 @@ mod asymmetric_tests {
             if (!okm.every((b, i) => b === expected[i])) {
                 throw new Error("HKDF output did not match the RFC 5869 test vector");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn hkdf_base_key_cannot_be_extractable() {
+    #[tokio::test]
+    async fn hkdf_base_key_cannot_be_extractable() {
         run(r#"
             let threw = false;
             try {
@@ -1410,11 +1604,12 @@ mod asymmetric_tests {
                 if (err.name !== "SyntaxError") throw new Error(`wrong error name: ${err.name}`);
             }
             if (!threw) throw new Error("importKey() did not reject an extractable HKDF key");
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn hkdf_derive_key_produces_a_usable_aes_gcm_key() {
+    #[tokio::test]
+    async fn hkdf_derive_key_produces_a_usable_aes_gcm_key() {
         run(r#"
             const baseKey = await crypto.subtle.importKey(
                 "raw", new Uint8Array(32).fill(7), "HKDF", false, ["deriveKey"]);
@@ -1433,11 +1628,12 @@ mod asymmetric_tests {
             if (!plaintext.every((b, i) => b === data[i])) {
                 throw new Error("HKDF-derived key did not round-trip AES-GCM");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn pbkdf2_derive_bits_matches_rfc6070_test_case_1() {
+    #[tokio::test]
+    async fn pbkdf2_derive_bits_matches_rfc6070_test_case_1() {
         run(r#"
             // "password" / "salt" as raw ASCII bytes (no TextEncoder in this bare test harness).
             const password = new Uint8Array([0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64]);
@@ -1453,11 +1649,12 @@ mod asymmetric_tests {
             if (!bits.every((b, i) => b === expected[i])) {
                 throw new Error("PBKDF2 output did not match the RFC 6070 test vector");
             }
-        "#);
+        "#)
+        .await;
     }
 
-    #[test]
-    fn pbkdf2_derive_bits_rejects_a_length_that_is_not_a_multiple_of_eight() {
+    #[tokio::test]
+    async fn pbkdf2_derive_bits_rejects_a_length_that_is_not_a_multiple_of_eight() {
         run(r#"
             const baseKey = await crypto.subtle.importKey(
                 "raw", new Uint8Array(8), "PBKDF2", false, ["deriveBits"]);
@@ -1471,6 +1668,7 @@ mod asymmetric_tests {
                 if (err.name !== "OperationError") throw new Error(`wrong error name: ${err.name}`);
             }
             if (!threw) throw new Error("deriveBits() did not reject a non-byte-aligned length");
-        "#);
+        "#)
+        .await;
     }
 }

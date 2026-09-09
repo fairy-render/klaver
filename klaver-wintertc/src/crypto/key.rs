@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rand::prelude::*;
 use rquickjs::{
     Class, Ctx, FromJs, IntoJs, Object, TypedArray, Value,
@@ -10,11 +12,13 @@ use super::jwk;
 use klaver_core::{throw, value::Buffer};
 
 #[cfg(feature = "crypto-asymmetric")]
-use crate::dom_exception::DOMException;
-#[cfg(feature = "crypto-asymmetric")]
 use super::ec;
 #[cfg(feature = "crypto-asymmetric")]
 use super::rsa as rsa_backend;
+#[cfg(feature = "crypto-asymmetric")]
+use crate::WinterTcInstance;
+#[cfg(feature = "crypto-asymmetric")]
+use crate::dom_exception::DOMException;
 
 /// Which of AES-GCM/CBC/CTR a `CryptoKey`/cipher operation targets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -413,18 +417,22 @@ impl KeyMaterial {
 /// constructor - the only way to get an instance is `generateKey`/`importKey`/`unwrapKey`, so
 /// (like `Performance`, see `performance.rs`) the JS-visible constructor just throws, and
 /// `CryptoKey::create` is the real, Rust-only way to build one.
-#[derive(rquickjs::JsLifetime)]
+#[derive(rquickjs::JsLifetime, Clone)]
 #[rquickjs::class]
 pub struct CryptoKey {
+    inner: Arc<CryptoKeyInner>,
+}
+
+impl<'js> Trace<'js> for CryptoKey {
+    fn trace<'a>(&self, _tracer: Tracer<'a, 'js>) {}
+}
+
+struct CryptoKeyInner {
     ty: KeyType,
     extractable: bool,
     usages: Vec<KeyUsage>,
     algorithm: KeyAlgorithm,
     material: KeyMaterial,
-}
-
-impl<'js> Trace<'js> for CryptoKey {
-    fn trace<'a>(&self, _tracer: Tracer<'a, 'js>) {}
 }
 
 impl CryptoKey {
@@ -436,30 +444,33 @@ impl CryptoKey {
         material: KeyMaterial,
     ) -> Self {
         Self {
-            ty,
-            extractable,
-            usages,
-            algorithm,
-            material,
+            inner: CryptoKeyInner {
+                ty,
+                extractable,
+                usages,
+                algorithm,
+                material,
+            }
+            .into(),
         }
     }
 
     pub(crate) fn usage_list(&self) -> &[KeyUsage] {
-        &self.usages
+        &self.inner.usages
     }
 
     pub(crate) fn algorithm_variant(&self) -> KeyAlgorithm {
-        self.algorithm.clone()
+        self.inner.algorithm.clone()
     }
 
     #[cfg(feature = "crypto-asymmetric")]
     pub(crate) fn key_type(&self) -> KeyType {
-        self.ty
+        self.inner.ty
     }
 
     #[cfg(feature = "crypto-asymmetric")]
     pub(crate) fn rsa_key_pair(&self) -> Option<&rsa_backend::RsaKeyPair> {
-        match &self.material {
+        match &self.inner.material {
             KeyMaterial::Rsa(kp) => Some(kp),
             _ => None,
         }
@@ -467,14 +478,14 @@ impl CryptoKey {
 
     #[cfg(feature = "crypto-asymmetric")]
     pub(crate) fn ec_key_pair(&self) -> Option<&ec::EcKeyPair> {
-        match &self.material {
+        match &self.inner.material {
             KeyMaterial::Ec(kp) => Some(kp),
             _ => None,
         }
     }
 
     pub(crate) fn key_bytes(&self) -> &[u8] {
-        self.material.bytes()
+        self.inner.material.bytes()
     }
 }
 
@@ -487,22 +498,22 @@ impl CryptoKey {
 
     #[qjs(get, rename = "type")]
     pub fn get_type(&self) -> &'static str {
-        self.ty.as_str()
+        self.inner.ty.as_str()
     }
 
     #[qjs(get)]
     pub fn extractable(&self) -> bool {
-        self.extractable
+        self.inner.extractable
     }
 
     #[qjs(get)]
     pub fn usages(&self) -> Vec<KeyUsage> {
-        self.usages.clone()
+        self.inner.usages.clone()
     }
 
     #[qjs(get)]
     pub fn algorithm<'js>(&self, ctx: Ctx<'js>) -> rquickjs::Result<Object<'js>> {
-        self.algorithm.clone().into_object(&ctx)
+        self.inner.algorithm.clone().into_object(&ctx)
     }
 }
 
@@ -659,9 +670,15 @@ pub async fn generate_key<'js>(
             public_exponent,
             hash,
         } => {
-            let (private, public) =
-                rsa_backend::generate_keypair(modulus_length, &public_exponent)
-                    .map_err(|e| rsa_error(&ctx, e))?;
+            let instance = WinterTcInstance::from_ctx(&ctx)?;
+            let public_exponent_for_closure = public_exponent.clone();
+            let (private, public) = instance
+                .borrow()
+                .spawn_blocking(&ctx, move || {
+                    rsa_backend::generate_keypair(modulus_length, &public_exponent_for_closure)
+                })
+                .await?
+                .map_err(|e| rsa_error(&ctx, e))?;
             let algorithm = KeyAlgorithm::RsaHashed {
                 variant,
                 modulus_length,
@@ -675,8 +692,7 @@ pub async fn generate_key<'js>(
                     &[KeyUsage::Encrypt, KeyUsage::WrapKey],
                 ),
             };
-            let (priv_usages, pub_usages) =
-                split_usages(&ctx, &usages, priv_allowed, pub_allowed)?;
+            let (priv_usages, pub_usages) = split_usages(&ctx, &usages, priv_allowed, pub_allowed)?;
             let private_key = Class::instance(
                 ctx.clone(),
                 CryptoKey::create(
@@ -704,7 +720,11 @@ pub async fn generate_key<'js>(
             variant,
             named_curve,
         } => {
-            let (private, public) = ec::generate_keypair(named_curve);
+            let instance = WinterTcInstance::from_ctx(&ctx)?;
+            let (private, public) = instance
+                .borrow()
+                .spawn_blocking(&ctx, move || ec::generate_keypair(named_curve))
+                .await?;
             let algorithm = KeyAlgorithm::Ec {
                 variant,
                 named_curve,
@@ -713,13 +733,9 @@ pub async fn generate_key<'js>(
                 EcVariant::Ecdsa => (&[KeyUsage::Sign], &[KeyUsage::Verify]),
                 // Per spec, ECDH's public key always ends up with an empty `usages` list - only
                 // the private/base key is ever passed to `deriveBits`/`deriveKey`.
-                EcVariant::Ecdh => (
-                    &[KeyUsage::DeriveKey, KeyUsage::DeriveBits],
-                    &[],
-                ),
+                EcVariant::Ecdh => (&[KeyUsage::DeriveKey, KeyUsage::DeriveBits], &[]),
             };
-            let (priv_usages, pub_usages) =
-                split_usages(&ctx, &usages, priv_allowed, pub_allowed)?;
+            let (priv_usages, pub_usages) = split_usages(&ctx, &usages, priv_allowed, pub_allowed)?;
             let private_key = Class::instance(
                 ctx.clone(),
                 CryptoKey::create(
@@ -884,9 +900,8 @@ fn import_ec_key<'js>(
                     (KeyType::Private, pair)
                 }
                 None => {
-                    let pair =
-                        ec::public_key_from_components(named_curve, &fields.x, &fields.y)
-                            .map_err(|e| ec_error(ctx, e))?;
+                    let pair = ec::public_key_from_components(named_curve, &fields.x, &fields.y)
+                        .map_err(|e| ec_error(ctx, e))?;
                     (KeyType::Public, pair)
                 }
             }
@@ -1006,9 +1021,14 @@ pub async fn import_key<'js>(
             usages,
         ),
         #[cfg(feature = "crypto-asymmetric")]
-        ImportAlgorithm::Hkdf => {
-            import_derive_only_key(&ctx, format, key_data, DeriveKind::Hkdf, extractable, usages)
-        }
+        ImportAlgorithm::Hkdf => import_derive_only_key(
+            &ctx,
+            format,
+            key_data,
+            DeriveKind::Hkdf,
+            extractable,
+            usages,
+        ),
         #[cfg(feature = "crypto-asymmetric")]
         ImportAlgorithm::Pbkdf2 => import_derive_only_key(
             &ctx,
@@ -1031,14 +1051,22 @@ fn export_rsa_key<'js>(
     match format {
         KeyFormat::Spki => {
             let rsa_backend::RsaKeyPair::Public(pub_key) = pair else {
-                throw_dom!(ctx, "InvalidAccessError", "\"spki\" export requires a public key");
+                throw_dom!(
+                    ctx,
+                    "InvalidAccessError",
+                    "\"spki\" export requires a public key"
+                );
             };
             let der = rsa_backend::to_spki_der(pub_key).map_err(|e| rsa_error(ctx, e))?;
             Ok(rquickjs::ArrayBuffer::new(ctx.clone(), der)?.into_value())
         }
         KeyFormat::Pkcs8 => {
             let rsa_backend::RsaKeyPair::Private(priv_key) = pair else {
-                throw_dom!(ctx, "InvalidAccessError", "\"pkcs8\" export requires a private key");
+                throw_dom!(
+                    ctx,
+                    "InvalidAccessError",
+                    "\"pkcs8\" export requires a private key"
+                );
             };
             let der = rsa_backend::to_pkcs8_der(priv_key).map_err(|e| rsa_error(ctx, e))?;
             Ok(rquickjs::ArrayBuffer::new(ctx.clone(), der)?.into_value())
@@ -1050,8 +1078,13 @@ fn export_rsa_key<'js>(
                     rsa_backend::private_components(k).map_err(|e| rsa_error(ctx, e))?
                 }
             };
-            let alg_tag = key_ref.algorithm.jwk_alg_tag();
-            let obj = jwk::rsa_to_jwk(ctx, &components, alg_tag.as_deref(), key_ref.extractable)?;
+            let alg_tag = key_ref.inner.algorithm.jwk_alg_tag();
+            let obj = jwk::rsa_to_jwk(
+                ctx,
+                &components,
+                alg_tag.as_deref(),
+                key_ref.inner.extractable,
+            )?;
             Ok(obj.into_value())
         }
         KeyFormat::Raw => not_supported_format(ctx, format),
@@ -1068,25 +1101,37 @@ fn export_ec_key<'js>(
     match format {
         KeyFormat::Raw => {
             let bytes = ec::public_key_to_raw(pair).map_err(|_| {
-                DOMException::throw_named(ctx, "InvalidAccessError", "\"raw\" export requires a public key")
+                DOMException::throw_named(
+                    ctx,
+                    "InvalidAccessError",
+                    "\"raw\" export requires a public key",
+                )
             })?;
             Ok(rquickjs::ArrayBuffer::new(ctx.clone(), bytes)?.into_value())
         }
         KeyFormat::Spki => {
             let der = ec::to_spki_der(pair).map_err(|_| {
-                DOMException::throw_named(ctx, "InvalidAccessError", "\"spki\" export requires a public key")
+                DOMException::throw_named(
+                    ctx,
+                    "InvalidAccessError",
+                    "\"spki\" export requires a public key",
+                )
             })?;
             Ok(rquickjs::ArrayBuffer::new(ctx.clone(), der)?.into_value())
         }
         KeyFormat::Pkcs8 => {
             let der = ec::to_pkcs8_der(pair).map_err(|_| {
-                DOMException::throw_named(ctx, "InvalidAccessError", "\"pkcs8\" export requires a private key")
+                DOMException::throw_named(
+                    ctx,
+                    "InvalidAccessError",
+                    "\"pkcs8\" export requires a private key",
+                )
             })?;
             Ok(rquickjs::ArrayBuffer::new(ctx.clone(), der)?.into_value())
         }
         KeyFormat::Jwk => {
             let components = ec::components(pair);
-            let obj = jwk::ec_to_jwk(ctx, &components, key_ref.extractable)?;
+            let obj = jwk::ec_to_jwk(ctx, &components, key_ref.inner.extractable)?;
             Ok(obj.into_value())
         }
     }
@@ -1098,23 +1143,23 @@ pub async fn export_key<'js>(
     key: Class<'js, CryptoKey>,
 ) -> rquickjs::Result<Value<'js>> {
     let key_ref = key.borrow();
-    if !key_ref.extractable {
+    if !key_ref.inner.extractable {
         throw_dom!(ctx, "InvalidAccessError", "key is not extractable");
     }
 
-    match &key_ref.material {
+    match &key_ref.inner.material {
         KeyMaterial::Aes(_) | KeyMaterial::Hmac(_) => match format {
             KeyFormat::Raw => {
-                let buf = rquickjs::ArrayBuffer::new(ctx, key_ref.material.bytes().to_vec())?;
+                let buf = rquickjs::ArrayBuffer::new(ctx, key_ref.inner.material.bytes().to_vec())?;
                 Ok(buf.into_value())
             }
             KeyFormat::Jwk => {
-                let alg_tag = key_ref.algorithm.jwk_alg_tag();
+                let alg_tag = key_ref.inner.algorithm.jwk_alg_tag();
                 let obj = jwk::oct_to_jwk(
                     &ctx,
-                    key_ref.material.bytes(),
+                    key_ref.inner.material.bytes(),
                     alg_tag.as_deref(),
-                    key_ref.extractable,
+                    key_ref.inner.extractable,
                 )?;
                 Ok(obj.into_value())
             }

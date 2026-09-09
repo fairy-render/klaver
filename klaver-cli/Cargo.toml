@@ -16,7 +16,11 @@ debug = ["tracing-subscriber"]
 
 [dependencies]
 rquickjs.workspace = true
-klaver = { path = "../klaver", features = ["fetch", "crypto"] }
+klaver = { path = "../klaver", features = [
+    "fetch",
+    "crypto",
+    "crypto-asymmetric",
+] }
 klaver-core = { path = "../klaver-core" }
 klaver-vm = { path = "../klaver-vm" }
 klaver-modules = { path = "../klaver-modules", features = ["filelist"] }

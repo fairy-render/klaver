@@ -59,6 +59,14 @@ impl WinterTcInstance {
     pub fn backend(&self) -> &Arc<dyn Backend + Send + Sync> {
         &self.backend
     }
+
+    pub async fn spawn_blocking<F, R>(&self, ctx: &Ctx<'_>, work: F) -> Result<R, rquickjs::Error>
+    where
+        F: FnOnce() -> R + Send + 'static,
+        R: Send + 'static,
+    {
+        self.settings.blocking().spawn_blocking(ctx, work).await
+    }
 }
 
 impl<'js> Trace<'js> for WinterTcInstance {
