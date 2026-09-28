@@ -1,7 +1,7 @@
 use futures::FutureExt;
 use klaver_core::{
     RuntimeError,
-    rquickjs::{self, AsyncContext, CatchResultExt, FromJs, markers::ParallelSend},
+    rquickjs::{self, AsyncContext, CatchResultExt, markers::ParallelSend},
 };
 
 use crate::{AsyncState, Context};
@@ -20,7 +20,6 @@ impl<T> EventLoop<T> {
         T: ParallelSend,
         T: for<'js> Runner<'js, Output = R>,
         R: ParallelSend + 'static,
-        R: for<'js> FromJs<'js>,
     {
         let work = context.async_with(async move |ctx| {
             let ret = AsyncState::run_async(&ctx, |ctx| async { self.runner.run(ctx).await })
@@ -42,6 +41,6 @@ impl<T> EventLoop<T> {
 }
 
 pub trait Runner<'js> {
-    type Output: FromJs<'js>;
+    type Output; //: FromJs<'js>;
     fn run(self, ctx: Context<'js>) -> impl Future<Output = rquickjs::Result<Self::Output>>;
 }

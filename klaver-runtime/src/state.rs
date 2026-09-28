@@ -21,7 +21,6 @@ impl AsyncState {
     pub async fn run_async<'js, T, R>(ctx: &Ctx<'js>, runner: T) -> rquickjs::Result<R>
     where
         T: AsyncFnOnce(Context<'js>) -> rquickjs::Result<R>,
-        R: FromJs<'js>,
     {
         Self::run_async_with(
             ctx,
@@ -41,7 +40,6 @@ impl AsyncState {
     ) -> rquickjs::Result<R>
     where
         T: AsyncFnOnce(Context<'js>) -> rquickjs::Result<R>,
-        R: FromJs<'js>,
     {
         let executor = TaskExecutor::from_ctx(ctx)?;
         executor.run_async(ctx, execution, runner).await
