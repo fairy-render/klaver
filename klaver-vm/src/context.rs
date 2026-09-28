@@ -54,7 +54,6 @@ impl Context {
     where
         T: ParallelSend,
         T: for<'js> Runner<'js, Output = R>,
-        R: for<'js> FromJs<'js>,
         R: 'static + ParallelSend,
     {
         EventLoop::new(task)
